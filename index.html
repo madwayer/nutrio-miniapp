@@ -506,31 +506,29 @@ async function startScanner() {
   setStatus('scanning', 'Ищу штрихкод...');
   scanning = true;
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    const video = document.getElementById('scanner-video');
-    video.srcObject = stream;
+  Quagga.init({
+    inputStream: {
+      type: 'LiveStream',
+      target: document.getElementById('video-container'),
+      constraints: { facingMode: 'environment', width: 640, height: 480 }
+    },
+    decoder: { readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'upc_reader'] },
+    locate: true,
+  }, err => {
+    if (err) { showToast('Ошибка камеры', 'var(--accent2)'); return; }
+    Quagga.start();
+  });
 
-    Quagga.init({
-      inputStream: { type: 'LiveStream', target: video, constraints: { facingMode: 'environment' } },
-      decoder: { readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'upc_reader'] },
-      locate: true,
-    }, err => {
-      if (err) { showToast('Ошибка камеры', 'var(--accent2)'); return; }
-      Quagga.start();
-    });
-
-    Quagga.onDetected(async result => {
-      if (!scanning) return;
-      const code = result.codeResult.code;
-      if (!code) return;
-      scanning = false;
-      Quagga.stop();
-      setStatus('scanning', `Штрихкод: ${code} — ищу...`);
-      await lookupBarcode(code);
-    });
+  Quagga.onDetected(async result => {
+    if (!scanning) return;
+    const code = result.codeResult.code;
+    if (!code) return;
+    scanning = false;
+    Quagga.stop();
+    setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+    await lookupBarcode(code);
+  });
+}
 
   } catch (e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
