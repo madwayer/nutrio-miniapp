@@ -474,20 +474,16 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import { BrowserMultiFormatReader, NotFoundException } from 'https://esm.sh/@zxing/library@0.21.3';
-
+<script>
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
+if (tg) { tg.ready(); tg.expand(); }
 
 let currentProduct = null;
-let scanning = false;
-let codeReader = null;
+let stream = null;
+let detecting = false;
+let animFrame = null;
 
-window.switchTab = function(tab) {
+function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
@@ -495,7 +491,7 @@ window.switchTab = function(tab) {
   if (tab !== 'scanner') stopScanner();
 }
 
-window.showToast = function(msg, color) {
+function showToast(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || 'var(--green)';
@@ -509,48 +505,66 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-window.startScanner = async function() {
+async function startScanner() {
+  if (!('BarcodeDetector' in window)) {
+    showToast('Сканер не поддерживается на этом устройстве', 'var(--accent2)');
+    return;
+  }
+
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
   document.getElementById('video-container').style.display = 'block';
   document.getElementById('product-card').classList.remove('show');
   setStatus('scanning', 'Ищу штрихкод...');
-  scanning = true;
+  detecting = true;
 
   try {
-    codeReader = new BrowserMultiFormatReader();
-    const videoEl = document.getElementById('scanner-video');
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
 
-    await codeReader.decodeFromConstraints(
-      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
-      videoEl,
-      async (result, err) => {
-        if (!scanning) return;
-        if (result) {
-          scanning = false;
-          const code = result.getText();
+    const video = document.getElementById('scanner-video');
+    video.style.display = 'block';
+    video.srcObject = stream;
+    await video.play();
+
+    const detector = new BarcodeDetector({
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
+    });
+
+    const scan = async () => {
+      if (!detecting) return;
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          const code = barcodes[0].rawValue;
+          detecting = false;
           stopScanner();
           setStatus('scanning', `Штрихкод: ${code} — ищу...`);
           await lookupBarcode(code);
+          return;
         }
-        // NotFoundException — норма, штрихкод ещё не найден, продолжаем
-      }
-    );
-  } catch (e) {
+      } catch(e) {}
+      animFrame = requestAnimationFrame(scan);
+    };
+
+    video.addEventListener('loadeddata', () => {
+      animFrame = requestAnimationFrame(scan);
+    }, { once: true });
+
+  } catch(e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
     resetScanner();
   }
 }
 
-window.stopScanner = function() {
-  scanning = false;
-  try { if (codeReader) { codeReader.reset(); codeReader = null; } } catch(e) {}
+function stopScanner() {
+  detecting = false;
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const video = document.getElementById('scanner-video');
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(t => t.stop());
-    video.srcObject = null;
-  }
+  video.srcObject = null;
   document.getElementById('video-container').style.display = 'none';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
@@ -599,17 +613,16 @@ async function lookupBarcode(code) {
   }
 }
 
-window.adjustWeight = function(delta) {
+function adjustWeight(delta) {
   const inp = document.getElementById('weight-input');
   inp.value = Math.max(1, parseInt(inp.value || 100) + delta);
 }
 
-window.saveProduct = function() {
+function saveProduct() {
   if (!currentProduct) return;
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
   const ratio = weight / 100;
-
   const data = {
     action: 'add_food',
     food_name: currentProduct.name,
@@ -620,15 +633,11 @@ window.saveProduct = function() {
     fat: Math.round(currentProduct.fat * ratio * 10) / 10,
     carbs: Math.round(currentProduct.carb * ratio * 10) / 10,
   };
-
-  if (tg) {
-    tg.sendData(JSON.stringify(data));
-  } else {
-    showToast(`✅ ${currentProduct.name} ${weight}г записан!`);
-  }
+  if (tg) { tg.sendData(JSON.stringify(data)); }
+  else { showToast(`✅ ${currentProduct.name} ${weight}г записан!`); }
 }
 
-window.resetScanner = function() {
+function resetScanner() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
   document.getElementById('scanner-hero').style.display = 'block';
@@ -636,23 +645,14 @@ window.resetScanner = function() {
   setStatus(null);
 }
 
-window.sendManual = function() {
+function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
-
-  if (!name || !weight) {
-    showToast('Заполни название и вес', 'var(--accent2)');
-    return;
-  }
-
+  if (!name || !weight) { showToast('Заполни название и вес', 'var(--accent2)'); return; }
   const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
-
-  if (tg) {
-    tg.sendData(JSON.stringify(data));
-  } else {
-    showToast(`✅ ${name} ${weight}г добавлен!`);
-  }
+  if (tg) { tg.sendData(JSON.stringify(data)); }
+  else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
 </script>
 </body>
