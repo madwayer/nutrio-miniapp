@@ -536,22 +536,31 @@ async function startScanner() {
     const scan = async () => {
       if (!detecting) return;
       try {
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue;
-          detecting = false;
-          stopScanner();
-          setStatus('scanning', `Штрихкод: ${code} — ищу...`);
-          await lookupBarcode(code);
-          return;
+        if (video.readyState >= 2) {
+          const barcodes = await detector.detect(video);
+          if (barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            detecting = false;
+            stopScanner();
+            setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+            await lookupBarcode(code);
+            return;
+          }
         }
       } catch(e) {}
-      animFrame = requestAnimationFrame(scan);
+      animFrame = setTimeout(scan, 150);
     };
 
-    video.addEventListener('loadeddata', () => {
-      animFrame = requestAnimationFrame(scan);
-    }, { once: true });
+    const startDetecting = () => {
+      if (video.readyState >= 2 && video.currentTime > 0) {
+        animFrame = requestAnimationFrame(scan);
+      } else {
+        setTimeout(startDetecting, 100);
+      }
+    };
+    video.addEventListener('playing', startDetecting, { once: true });
+    // На случай если 'playing' уже было
+    if (!video.paused) startDetecting();
 
   } catch(e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
@@ -561,7 +570,7 @@ async function startScanner() {
 
 function stopScanner() {
   detecting = false;
-  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  if (animFrame) { clearTimeout(animFrame); animFrame = null; }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const video = document.getElementById('scanner-video');
   video.srcObject = null;
