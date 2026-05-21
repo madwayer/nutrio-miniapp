@@ -116,10 +116,20 @@
   #video-container {
     position: relative;
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow: visible;
     margin-bottom: 16px;
     background: #000;
     display: none;
+    min-height: 300px;
+    width: 100%;
+  }
+  /* html5-qrcode вставляет свои элементы — убираем лишние стили */
+  #video-container video {
+    width: 100% !important;
+    border-radius: var(--radius);
+  }
+  #video-container canvas {
+    display: none !important;
   }
   #scanner-video {
     width: 100%;
@@ -464,16 +474,20 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script>
+<script type="module">
+import { BrowserMultiFormatReader, NotFoundException } from 'https://esm.sh/@zxing/library@0.21.3';
+
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
 
 let currentProduct = null;
-let html5QrCode = null;
-let processing = false;
+let scanning = false;
+let codeReader = null;
 
-function switchTab(tab) {
+window.switchTab = function(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
@@ -481,7 +495,7 @@ function switchTab(tab) {
   if (tab !== 'scanner') stopScanner();
 }
 
-function showToast(msg, color) {
+window.showToast = function(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || 'var(--green)';
@@ -495,42 +509,33 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-async function startScanner() {
+window.startScanner = async function() {
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
   document.getElementById('video-container').style.display = 'block';
-  document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('product-card').classList.remove('show');
   setStatus('scanning', 'Ищу штрихкод...');
-  processing = false;
+  scanning = true;
 
   try {
-    html5QrCode = new Html5Qrcode('video-container');
-    await html5QrCode.start(
-      { facingMode: 'environment' },
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 150 },
-        aspectRatio: 1.7,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.CODE_128,
-        ]
-      },
-      (code) => {
-        if (processing) return;
-        processing = true;
-        setTimeout(async () => {
-          await stopScanner();
+    codeReader = new BrowserMultiFormatReader();
+    const videoEl = document.getElementById('scanner-video');
+
+    await codeReader.decodeFromConstraints(
+      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
+      videoEl,
+      async (result, err) => {
+        if (!scanning) return;
+        if (result) {
+          scanning = false;
+          const code = result.getText();
+          stopScanner();
           setStatus('scanning', `Штрихкод: ${code} — ищу...`);
           await lookupBarcode(code);
-        }, 50);
-      },
-      () => {}
+        }
+        // NotFoundException — норма, штрихкод ещё не найден, продолжаем
+      }
     );
   } catch (e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
@@ -538,16 +543,15 @@ async function startScanner() {
   }
 }
 
-async function stopScanner() {
-  try {
-    if (html5QrCode) {
-      if (html5QrCode.isScanning) await html5QrCode.stop();
-      html5QrCode.clear();
-      html5QrCode = null;
-    }
-  } catch(e) {}
+window.stopScanner = function() {
+  scanning = false;
+  try { if (codeReader) { codeReader.reset(); codeReader = null; } } catch(e) {}
+  const video = document.getElementById('scanner-video');
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
   document.getElementById('video-container').style.display = 'none';
-  document.getElementById('scanner-video').style.display = 'block';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
   document.getElementById('scanner-hero').style.display = 'block';
@@ -595,16 +599,17 @@ async function lookupBarcode(code) {
   }
 }
 
-function adjustWeight(delta) {
+window.adjustWeight = function(delta) {
   const inp = document.getElementById('weight-input');
   inp.value = Math.max(1, parseInt(inp.value || 100) + delta);
 }
 
-function saveProduct() {
+window.saveProduct = function() {
   if (!currentProduct) return;
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
   const ratio = weight / 100;
+
   const data = {
     action: 'add_food',
     food_name: currentProduct.name,
@@ -615,11 +620,15 @@ function saveProduct() {
     fat: Math.round(currentProduct.fat * ratio * 10) / 10,
     carbs: Math.round(currentProduct.carb * ratio * 10) / 10,
   };
-  if (tg) { tg.sendData(JSON.stringify(data)); }
-  else { showToast(`✅ ${currentProduct.name} ${weight}г записан!`); }
+
+  if (tg) {
+    tg.sendData(JSON.stringify(data));
+  } else {
+    showToast(`✅ ${currentProduct.name} ${weight}г записан!`);
+  }
 }
 
-function resetScanner() {
+window.resetScanner = function() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
   document.getElementById('scanner-hero').style.display = 'block';
@@ -627,14 +636,23 @@ function resetScanner() {
   setStatus(null);
 }
 
-function sendManual() {
+window.sendManual = function() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
-  if (!name || !weight) { showToast('Заполни название и вес', 'var(--accent2)'); return; }
+
+  if (!name || !weight) {
+    showToast('Заполни название и вес', 'var(--accent2)');
+    return;
+  }
+
   const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
-  if (tg) { tg.sendData(JSON.stringify(data)); }
-  else { showToast(`✅ ${name} ${weight}г добавлен!`); }
+
+  if (tg) {
+    tg.sendData(JSON.stringify(data));
+  } else {
+    showToast(`✅ ${name} ${weight}г добавлен!`);
+  }
 }
 </script>
 </body>
