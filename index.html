@@ -464,9 +464,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import { BrowserMultiFormatReader, NotFoundException } from 'https://esm.sh/@zxing/library@0.21.3';
-
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
 const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
@@ -474,10 +473,9 @@ if (tg) {
 }
 
 let currentProduct = null;
-let scanning = false;
-let codeReader = null;
+let html5QrCode = null;
 
-window.switchTab = function(tab) {
+function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
@@ -485,7 +483,7 @@ window.switchTab = function(tab) {
   if (tab !== 'scanner') stopScanner();
 }
 
-window.showToast = function(msg, color) {
+function showToast(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || 'var(--green)';
@@ -499,33 +497,40 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-window.startScanner = async function() {
+async function startScanner() {
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
   document.getElementById('video-container').style.display = 'block';
   document.getElementById('product-card').classList.remove('show');
   setStatus('scanning', 'Ищу штрихкод...');
-  scanning = true;
+
+  // html5-qrcode рендерит видео сам внутри контейнера
+  document.getElementById('scanner-video').style.display = 'none';
 
   try {
-    codeReader = new BrowserMultiFormatReader();
-    const videoEl = document.getElementById('scanner-video');
-
-    await codeReader.decodeFromConstraints(
-      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
-      videoEl,
-      async (result, err) => {
-        if (!scanning) return;
-        if (result) {
-          scanning = false;
-          const code = result.getText();
-          stopScanner();
-          setStatus('scanning', `Штрихкод: ${code} — ищу...`);
-          await lookupBarcode(code);
-        }
-        // NotFoundException — норма, штрихкод ещё не найден, продолжаем
-      }
+    html5QrCode = new Html5Qrcode('video-container');
+    await html5QrCode.start(
+      { facingMode: 'environment' },
+      {
+        fps: 15,
+        qrbox: { width: 250, height: 150 },
+        aspectRatio: 1.7,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+        ]
+      },
+      async (code) => {
+        // Успешное сканирование
+        await stopScanner();
+        setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+        await lookupBarcode(code);
+      },
+      () => {} // ошибки "не найден" — игнорируем
     );
   } catch (e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
@@ -533,15 +538,16 @@ window.startScanner = async function() {
   }
 }
 
-window.stopScanner = function() {
-  scanning = false;
-  try { if (codeReader) { codeReader.reset(); codeReader = null; } } catch(e) {}
-  const video = document.getElementById('scanner-video');
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(t => t.stop());
-    video.srcObject = null;
-  }
+async function stopScanner() {
+  try {
+    if (html5QrCode && html5QrCode.isScanning) {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+      html5QrCode = null;
+    }
+  } catch(e) {}
   document.getElementById('video-container').style.display = 'none';
+  document.getElementById('scanner-video').style.display = 'block';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
   document.getElementById('scanner-hero').style.display = 'block';
@@ -589,12 +595,12 @@ async function lookupBarcode(code) {
   }
 }
 
-window.adjustWeight = function(delta) {
+function adjustWeight(delta) {
   const inp = document.getElementById('weight-input');
   inp.value = Math.max(1, parseInt(inp.value || 100) + delta);
 }
 
-window.saveProduct = function() {
+function saveProduct() {
   if (!currentProduct) return;
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
@@ -618,7 +624,7 @@ window.saveProduct = function() {
   }
 }
 
-window.resetScanner = function() {
+function resetScanner() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
   document.getElementById('scanner-hero').style.display = 'block';
@@ -626,7 +632,7 @@ window.resetScanner = function() {
   setStatus(null);
 }
 
-window.sendManual = function() {
+function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
