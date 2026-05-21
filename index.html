@@ -467,13 +467,11 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
+if (tg) { tg.ready(); tg.expand(); }
 
 let currentProduct = null;
 let html5QrCode = null;
+let processing = false;
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -502,18 +500,17 @@ async function startScanner() {
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
   document.getElementById('video-container').style.display = 'block';
+  document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('product-card').classList.remove('show');
   setStatus('scanning', 'Ищу штрихкод...');
-
-  // html5-qrcode рендерит видео сам внутри контейнера
-  document.getElementById('scanner-video').style.display = 'none';
+  processing = false;
 
   try {
     html5QrCode = new Html5Qrcode('video-container');
     await html5QrCode.start(
       { facingMode: 'environment' },
       {
-        fps: 15,
+        fps: 10,
         qrbox: { width: 250, height: 150 },
         aspectRatio: 1.7,
         formatsToSupport: [
@@ -524,13 +521,16 @@ async function startScanner() {
           Html5QrcodeSupportedFormats.CODE_128,
         ]
       },
-      async (code) => {
-        // Успешное сканирование
-        await stopScanner();
-        setStatus('scanning', `Штрихкод: ${code} — ищу...`);
-        await lookupBarcode(code);
+      (code) => {
+        if (processing) return;
+        processing = true;
+        setTimeout(async () => {
+          await stopScanner();
+          setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+          await lookupBarcode(code);
+        }, 50);
       },
-      () => {} // ошибки "не найден" — игнорируем
+      () => {}
     );
   } catch (e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
@@ -540,8 +540,8 @@ async function startScanner() {
 
 async function stopScanner() {
   try {
-    if (html5QrCode && html5QrCode.isScanning) {
-      await html5QrCode.stop();
+    if (html5QrCode) {
+      if (html5QrCode.isScanning) await html5QrCode.stop();
       html5QrCode.clear();
       html5QrCode = null;
     }
@@ -605,7 +605,6 @@ function saveProduct() {
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
   const ratio = weight / 100;
-
   const data = {
     action: 'add_food',
     food_name: currentProduct.name,
@@ -616,12 +615,8 @@ function saveProduct() {
     fat: Math.round(currentProduct.fat * ratio * 10) / 10,
     carbs: Math.round(currentProduct.carb * ratio * 10) / 10,
   };
-
-  if (tg) {
-    tg.sendData(JSON.stringify(data));
-  } else {
-    showToast(`✅ ${currentProduct.name} ${weight}г записан!`);
-  }
+  if (tg) { tg.sendData(JSON.stringify(data)); }
+  else { showToast(`✅ ${currentProduct.name} ${weight}г записан!`); }
 }
 
 function resetScanner() {
@@ -636,19 +631,10 @@ function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
-
-  if (!name || !weight) {
-    showToast('Заполни название и вес', 'var(--accent2)');
-    return;
-  }
-
+  if (!name || !weight) { showToast('Заполни название и вес', 'var(--accent2)'); return; }
   const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
-
-  if (tg) {
-    tg.sendData(JSON.stringify(data));
-  } else {
-    showToast(`✅ ${name} ${weight}г добавлен!`);
-  }
+  if (tg) { tg.sendData(JSON.stringify(data)); }
+  else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
 </script>
 </body>
