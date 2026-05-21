@@ -377,6 +377,7 @@
 <div class="tabs">
   <button class="tab active" onclick="switchTab('scanner')">📦 Штрихкод</button>
   <button class="tab" onclick="switchTab('manual')">✍️ Вручную</button>
+  <button class="tab" onclick="switchTab('game')">🎮 Игра</button>
 </div>
 
 <div class="content">
@@ -468,6 +469,22 @@
       </select>
     </div>
     <button class="btn btn-primary" onclick="sendManual()">✅ Добавить</button>
+  </div>
+
+
+  <!-- GAME PAGE -->
+  <div class="page" id="page-game">
+    <div style="text-align:center; margin-bottom:8px;">
+      <span id="game-score-display" style="font-size:15px; font-weight:700; color:var(--text2);">Очки: 0</span>
+      &nbsp;&nbsp;
+      <span id="game-fat-display" style="font-size:13px; color:var(--text2);">⚖️ 50%</span>
+    </div>
+    <canvas id="gameCanvas" style="display:block; margin:0 auto; border-radius:12px; touch-action:none;"></canvas>
+    <div id="game-controls" style="display:flex; gap:8px; margin-top:10px;">
+      <button class="btn btn-secondary" id="btn-left" style="flex:1; padding:18px; font-size:24px; user-select:none;">👈</button>
+      <button class="btn btn-secondary" id="btn-right" style="flex:1; padding:18px; font-size:24px; user-select:none;">👉</button>
+    </div>
+    <p style="text-align:center; font-size:11px; color:var(--text2); margin-top:6px;">Лови 🥦🍎🥕 — худеешь | Избегай 🍕🍔🧁 — толстеешь</p>
   </div>
 
 </div>
@@ -714,6 +731,295 @@ function sendManual() {
   if (tg) { tg.sendData(JSON.stringify(data)); }
   else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
+// ===== GAME =====
+let gameState = null;
+
+function initGame() {
+  const canvas = document.getElementById('gameCanvas');
+  if (!canvas) return;
+  const container = canvas.parentElement;
+  const W = Math.min(container.clientWidth - 0, 420);
+  const H = Math.min(window.innerHeight * 0.52, 380);
+  canvas.width = W;
+  canvas.height = H;
+
+  const HEALTHY = ['🥦','🍎','🥕','🥒','🫐','🍋','🥑','🍓'];
+  const JUNK    = ['🍕','🍔','🧁','🍰','🍫','🍟','🌮','🥐'];
+
+  gameState = {
+    canvas, ctx: canvas.getContext('2d'),
+    W, H,
+    score: 0, frame: 0, over: false, started: false,
+    player: { x: W/2, fat: 50, speed: W*0.018 },
+    foods: [], effects: [],
+    moveL: false, moveR: false,
+    raf: null,
+  };
+
+  const gs = gameState;
+
+  // Controls
+  const btnL = document.getElementById('btn-left');
+  const btnR = document.getElementById('btn-right');
+  const setL = v => gs.moveL = v;
+  const setR = v => gs.moveR = v;
+  btnL.addEventListener('touchstart', e => { e.preventDefault(); setL(true); }, {passive:false});
+  btnL.addEventListener('touchend',   e => { e.preventDefault(); setL(false); }, {passive:false});
+  btnR.addEventListener('touchstart', e => { e.preventDefault(); setR(true); }, {passive:false});
+  btnR.addEventListener('touchend',   e => { e.preventDefault(); setR(false); }, {passive:false});
+  btnL.addEventListener('mousedown',  () => setL(true));
+  btnL.addEventListener('mouseup',    () => setL(false));
+  btnR.addEventListener('mousedown',  () => setR(true));
+  btnR.addEventListener('mouseup',    () => setR(false));
+  document.addEventListener('keydown', e => { if(e.key==='ArrowLeft') setL(true); if(e.key==='ArrowRight') setR(true); });
+  document.addEventListener('keyup',   e => { if(e.key==='ArrowLeft') setL(false); if(e.key==='ArrowRight') setR(false); });
+
+  canvas.addEventListener('click', () => {
+    if (!gs.started) { gs.started = true; return; }
+    if (gs.over) restartGame();
+  });
+
+  function spawnFood() {
+    const isJunk = Math.random() < 0.45;
+    const list = isJunk ? JUNK : HEALTHY;
+    const emoji = list[Math.floor(Math.random() * list.length)];
+    gs.foods.push({
+      x: Math.random() * (W - 48) + 24,
+      y: -24, size: 26,
+      speed: (2.2 + Math.random()*1.8 + gs.score/400) * (H/380),
+      emoji, isJunk,
+    });
+  }
+
+  function drawPlayer() {
+    const ctx = gs.ctx;
+    const p = gs.player;
+    const fat = p.fat / 100;
+    const bw = W*0.09 + fat * W*0.13;
+    const bh = H*0.10 + fat * H*0.06;
+    const py = H - 55;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, py + bh/2 + 2, bw*0.6, 6, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Body gradient
+    const r = Math.round(80 + fat*160);
+    const g = Math.round(200 - fat*150);
+    const grad = ctx.createRadialGradient(p.x-bw*0.1, py-bh*0.1, 2, p.x, py, bw);
+    grad.addColorStop(0, `rgb(${r+40},${g+40},120)`);
+    grad.addColorStop(1, `rgb(${r},${g},80)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(p.x, py, bw, bh, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Head
+    const headR = W*0.052;
+    const hy = py - bh - headR*0.6;
+    ctx.fillStyle = '#FFD166';
+    ctx.beginPath();
+    ctx.arc(p.x, hy, headR, 0, Math.PI*2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(p.x - headR*0.35, hy - headR*0.1, headR*0.12, 0, Math.PI*2);
+    ctx.arc(p.x + headR*0.35, hy - headR*0.1, headR*0.12, 0, Math.PI*2);
+    ctx.fill();
+
+    // Mouth
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (fat < 0.65) {
+      ctx.arc(p.x, hy + headR*0.2, headR*0.28, 0.1, Math.PI-0.1);
+    } else {
+      ctx.arc(p.x, hy + headR*0.45, headR*0.28, Math.PI+0.1, 2*Math.PI-0.1);
+    }
+    ctx.stroke();
+
+    // Legs
+    const legW = Math.max(4, bw*0.18);
+    ctx.strokeStyle = `rgb(${r},${g},80)`;
+    ctx.lineWidth = legW; ctx.lineCap = 'round';
+    const legY = py + bh - 4;
+    const wobble = Math.sin(gs.frame * 0.25) * 4 * (gs.moveL || gs.moveR ? 1 : 0);
+    ctx.beginPath();
+    ctx.moveTo(p.x - bw*0.28, legY);
+    ctx.lineTo(p.x - bw*0.28 + wobble, legY + H*0.055);
+    ctx.moveTo(p.x + bw*0.28, legY);
+    ctx.lineTo(p.x + bw*0.28 - wobble, legY + H*0.055);
+    ctx.stroke();
+
+    // Arms
+    ctx.lineWidth = legW * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(p.x - bw*0.85, py - bh*0.1);
+    ctx.lineTo(p.x - bw - wobble, py + bh*0.2);
+    ctx.moveTo(p.x + bw*0.85, py - bh*0.1);
+    ctx.lineTo(p.x + bw + wobble, py + bh*0.2);
+    ctx.stroke();
+  }
+
+  function loop() {
+    const ctx = gs.ctx;
+    gs.raf = requestAnimationFrame(loop);
+
+    // BG
+    ctx.fillStyle = '#0f0f13';
+    ctx.fillRect(0, 0, W, H);
+
+    // Ground
+    ctx.fillStyle = '#1a1a22';
+    ctx.fillRect(0, H-32, W, 32);
+    ctx.fillStyle = '#22222e';
+    ctx.fillRect(0, H-34, W, 4);
+
+    if (!gs.started) {
+      ctx.fillStyle = 'rgba(108,99,255,0.15)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f0f0f5';
+      ctx.font = `bold ${W*0.065}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('🎮 NutriO Runner', W/2, H*0.38);
+      ctx.font = `${W*0.042}px sans-serif`;
+      ctx.fillStyle = '#8888aa';
+      ctx.fillText('Лови здоровую еду!', W/2, H*0.5);
+      ctx.fillStyle = '#6c63ff';
+      ctx.beginPath();
+      ctx.roundRect(W/2-70, H*0.6, 140, 44, 12);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${W*0.042}px sans-serif`;
+      ctx.fillText('▶  Начать', W/2, H*0.6+28);
+      drawPlayer();
+      return;
+    }
+
+    if (!gs.over) {
+      gs.frame++;
+      const p = gs.player;
+      const fatW = W*0.09 + (p.fat/100)*W*0.13;
+
+      // Move
+      if (gs.moveL) p.x = Math.max(fatW, p.x - p.speed);
+      if (gs.moveR) p.x = Math.min(W - fatW, p.x + p.speed);
+
+      // Spawn
+      const interval = Math.max(28, 55 - gs.score/8);
+      if (gs.frame % Math.round(interval) === 0) spawnFood();
+
+      // Update foods
+      const py = H - 55;
+      const fatH = H*0.10 + (p.fat/100)*H*0.06;
+      gs.foods = gs.foods.filter(f => {
+        f.y += f.speed;
+        const dx = Math.abs(f.x - p.x);
+        const dy = Math.abs(f.y - py);
+        if (dx < fatW + 14 && dy < fatH + 14) {
+          if (!f.isJunk) {
+            gs.score += 10 + Math.floor(gs.score/50);
+            p.fat = Math.max(5, p.fat - 6);
+            gs.effects.push({x:f.x, y:f.y, text:'+'+( 10+Math.floor(gs.score/50)), color:'#43e97b', vy:-1.5, a:1});
+          } else {
+            p.fat = Math.min(100, p.fat + 12);
+            gs.effects.push({x:f.x, y:f.y, text:'😬', color:'#ff6584', vy:-1.5, a:1});
+            if (p.fat >= 100) gs.over = true;
+          }
+          return false;
+        }
+        return f.y < H + 30;
+      });
+    }
+
+    // Draw foods
+    gs.foods.forEach(f => {
+      gs.ctx.font = `${f.size}px serif`;
+      gs.ctx.textAlign = 'center';
+      gs.ctx.fillText(f.emoji, f.x, f.y);
+    });
+
+    drawPlayer();
+
+    // Effects
+    gs.effects = gs.effects.filter(e => {
+      ctx.globalAlpha = e.a;
+      ctx.fillStyle = e.color;
+      ctx.font = `bold ${W*0.05}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(e.text, e.x, e.y);
+      ctx.globalAlpha = 1;
+      e.y += e.vy; e.a -= 0.025;
+      return e.a > 0;
+    });
+
+    // HUD
+    ctx.fillStyle = 'rgba(15,15,19,0.7)';
+    ctx.fillRect(0, 0, W, 36);
+    ctx.fillStyle = '#f0f0f5';
+    ctx.font = `bold ${W*0.042}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText('⭐ ' + gs.score, 10, 24);
+
+    // Fat bar
+    const barW = W*0.28;
+    ctx.fillStyle = '#22222e';
+    ctx.beginPath(); ctx.roundRect(W - barW - 10, 8, barW, 18, 6); ctx.fill();
+    const fatPct = gs.player.fat / 100;
+    const barColor = fatPct < 0.5 ? '#43e97b' : fatPct < 0.8 ? '#ffa500' : '#ff4444';
+    ctx.fillStyle = barColor;
+    ctx.beginPath(); ctx.roundRect(W - barW - 10, 8, barW * fatPct, 18, 6); ctx.fill();
+    ctx.fillStyle = '#f0f0f5';
+    ctx.font = `${W*0.033}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText('⚖️ ' + Math.round(gs.player.fat) + '%', W - 8, 22);
+
+    // Update external displays
+    document.getElementById('game-score-display').textContent = 'Очки: ' + gs.score;
+    document.getElementById('game-fat-display').textContent = '⚖️ ' + Math.round(gs.player.fat) + '%';
+
+    // Game over
+    if (gs.over) {
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ff6584';
+      ctx.font = `bold ${W*0.09}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('😱 Объелся!', W/2, H*0.38);
+      ctx.fillStyle = '#f0f0f5';
+      ctx.font = `${W*0.052}px sans-serif`;
+      ctx.fillText('Очки: ' + gs.score, W/2, H*0.52);
+      ctx.fillStyle = '#6c63ff';
+      ctx.beginPath(); ctx.roundRect(W/2-80, H*0.62, 160, 48, 12); ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${W*0.042}px sans-serif`;
+      ctx.fillText('🔄 Снова', W/2, H*0.62+31);
+    }
+  }
+
+  if (gs.raf) cancelAnimationFrame(gs.raf);
+  loop();
+}
+
+function restartGame() {
+  if (!gameState) return;
+  const gs = gameState;
+  gs.score = 0; gs.frame = 0; gs.over = false;
+  gs.foods = []; gs.effects = [];
+  gs.player = { x: gs.W/2, fat: 50, speed: gs.W*0.018 };
+  gs.started = true;
+}
+
+// Patch switchTab to init game
+const _origSwitchTab = switchTab;
+switchTab = function(tab) {
+  _origSwitchTab(tab);
+  if (tab === 'game') setTimeout(initGame, 50);
+};
+
 </script>
 </body>
 </html>
