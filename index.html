@@ -582,44 +582,81 @@ function stopScanner() {
 }
 
 async function lookupBarcode(code) {
-  try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
-    const data = await res.json();
+  setStatus('scanning', `🔍 Ищу в базах данных...`);
 
-    if (data.status !== 1) {
-      setStatus('scanning', `Штрихкод ${code} не найден 😔`);
-      document.getElementById('scan-btn').style.display = 'flex';
-      document.getElementById('stop-btn').style.display = 'none';
-      return;
-    }
+  let product = await tryOpenFoodFacts(code);
+  if (!product) product = await tryUPCItemDB(code);
 
-    const p = data.product;
-    const n = p.nutriments || {};
-    const name = p.product_name_ru || p.product_name || 'Продукт';
-    let cal = n['energy-kcal_100g'] || (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0);
-
-    currentProduct = {
-      name: name.trim(),
-      cal: Math.round(cal),
-      prot: Math.round((n['proteins_100g'] || 0) * 10) / 10,
-      fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
-      carb: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-    };
-
-    document.getElementById('product-name').textContent = currentProduct.name;
-    document.getElementById('m-cal').textContent = currentProduct.cal;
-    document.getElementById('m-prot').textContent = currentProduct.prot;
-    document.getElementById('m-fat').textContent = currentProduct.fat;
-    document.getElementById('m-carb').textContent = currentProduct.carb;
-    document.getElementById('product-card').classList.add('show');
-    document.getElementById('video-container').style.display = 'none';
-    document.getElementById('stop-btn').style.display = 'none';
-    setStatus('found', `Найдено: ${currentProduct.name}`);
-
-  } catch(e) {
-    setStatus('scanning', 'Ошибка поиска, попробуй снова');
+  if (!product) {
+    setStatus('scanning', `Штрихкод ${code} не найден 😔`);
     document.getElementById('scan-btn').style.display = 'flex';
+    document.getElementById('stop-btn').style.display = 'none';
+    return;
   }
+
+  currentProduct = product;
+  document.getElementById('product-name').textContent = currentProduct.name;
+  document.getElementById('m-cal').textContent = currentProduct.cal;
+  document.getElementById('m-prot').textContent = currentProduct.prot;
+  document.getElementById('m-fat').textContent = currentProduct.fat;
+  document.getElementById('m-carb').textContent = currentProduct.carb;
+  document.getElementById('product-card').classList.add('show');
+  document.getElementById('video-container').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'none';
+  setStatus('found', `Найдено: ${currentProduct.name}`);
+}
+
+function parseOFFProduct(data) {
+  if (data.status !== 1) return null;
+  const p = data.product;
+  const n = p.nutriments || {};
+  const name = p.product_name_ru || p.product_name_en || p.product_name || '';
+  if (!name) return null;
+  let cal = n['energy-kcal_100g'] || (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0);
+  return {
+    name: name.trim(),
+    cal: Math.round(cal),
+    prot: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+    fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
+    carb: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+  };
+}
+
+async function tryOpenFoodFacts(code) {
+  // Сначала русский сервер — больше РФ/СНГ продуктов
+  const urls = [
+    `https://ru.openfoodfacts.org/api/v0/product/${code}.json`,
+    `https://world.openfoodfacts.org/api/v0/product/${code}.json`,
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const product = parseOFFProduct(data);
+      if (product) return product;
+    } catch(e) {}
+  }
+  return null;
+}
+
+async function tryUPCItemDB(code) {
+  try {
+    const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
+    const data = await res.json();
+    if (data.code !== 'OK' || !data.items?.length) return null;
+    const item = data.items[0];
+    const name = item.title || item.brand || '';
+    if (!name) return null;
+    // UPCItemDB не всегда даёт КБЖУ — ставим 0, юзер сам введёт
+    const n = item.nutrition || {};
+    return {
+      name: name.trim(),
+      cal: Math.round(n.calories || 0),
+      prot: Math.round((n.protein || 0) * 10) / 10,
+      fat: Math.round((n.fat || 0) * 10) / 10,
+      carb: Math.round((n.carbohydrate || 0) * 10) / 10,
+    };
+  } catch(e) { return null; }
 }
 
 function adjustWeight(delta) {
@@ -642,16 +679,21 @@ function saveProduct() {
     fat: Math.round(currentProduct.fat * ratio * 10) / 10,
     carbs: Math.round(currentProduct.carb * ratio * 10) / 10,
   };
-  if (tg) { tg.sendData(JSON.stringify(data)); }
-  else { showToast(`✅ ${currentProduct.name} ${weight}г записан!`); }
+  try {
+    if (tg && tg.sendData) {
+      tg.sendData(JSON.stringify(data));
+    } else {
+      showToast(`✅ ${currentProduct.name} ${weight}г записан!`);
+    }
+  } catch(e) {
+    showToast('Ошибка отправки: ' + e.message, 'var(--accent2)');
+  }
 }
 
 function resetScanner() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
-  document.getElementById('scanner-hero').style.display = 'block';
-  document.getElementById('scan-btn').style.display = 'flex';
-  setStatus(null);
+  startScanner();
 }
 
 function sendManual() {
