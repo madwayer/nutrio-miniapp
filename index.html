@@ -464,8 +464,9 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-<script>
+<script type="module">
+import { BrowserMultiFormatReader, NotFoundException } from 'https://esm.sh/@zxing/library@0.21.3';
+
 const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
@@ -474,8 +475,9 @@ if (tg) {
 
 let currentProduct = null;
 let scanning = false;
+let codeReader = null;
 
-function switchTab(tab) {
+window.switchTab = function(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
@@ -483,7 +485,7 @@ function switchTab(tab) {
   if (tab !== 'scanner') stopScanner();
 }
 
-function showToast(msg, color) {
+window.showToast = function(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || 'var(--green)';
@@ -497,7 +499,7 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-async function startScanner() {
+window.startScanner = async function() {
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
@@ -506,39 +508,34 @@ async function startScanner() {
   setStatus('scanning', 'Ищу штрихкод...');
   scanning = true;
 
-  Quagga.init({
-    inputStream: {
-      type: 'LiveStream',
-      target: document.getElementById('video-container'),
-      constraints: { facingMode: 'environment', width: 640, height: 480 }
-    },
-    decoder: { readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'upc_reader'] },
-    locate: true,
-  }, err => {
-    if (err) { showToast('Ошибка камеры', 'var(--accent2)'); return; }
-    Quagga.start();
-  });
+  try {
+    codeReader = new BrowserMultiFormatReader();
+    const videoEl = document.getElementById('scanner-video');
 
-  Quagga.onDetected(async result => {
-    if (!scanning) return;
-    const code = result.codeResult.code;
-    if (!code) return;
-    scanning = false;
-    Quagga.stop();
-    setStatus('scanning', `Штрихкод: ${code} — ищу...`);
-    await lookupBarcode(code);
-  });
-}
-
+    await codeReader.decodeFromConstraints(
+      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
+      videoEl,
+      async (result, err) => {
+        if (!scanning) return;
+        if (result) {
+          scanning = false;
+          const code = result.getText();
+          stopScanner();
+          setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+          await lookupBarcode(code);
+        }
+        // NotFoundException — норма, штрихкод ещё не найден, продолжаем
+      }
+    );
   } catch (e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
     resetScanner();
   }
 }
 
-function stopScanner() {
+window.stopScanner = function() {
   scanning = false;
-  try { Quagga.stop(); } catch(e) {}
+  try { if (codeReader) { codeReader.reset(); codeReader = null; } } catch(e) {}
   const video = document.getElementById('scanner-video');
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
@@ -592,12 +589,12 @@ async function lookupBarcode(code) {
   }
 }
 
-function adjustWeight(delta) {
+window.adjustWeight = function(delta) {
   const inp = document.getElementById('weight-input');
   inp.value = Math.max(1, parseInt(inp.value || 100) + delta);
 }
 
-function saveProduct() {
+window.saveProduct = function() {
   if (!currentProduct) return;
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
@@ -621,7 +618,7 @@ function saveProduct() {
   }
 }
 
-function resetScanner() {
+window.resetScanner = function() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
   document.getElementById('scanner-hero').style.display = 'block';
@@ -629,7 +626,7 @@ function resetScanner() {
   setStatus(null);
 }
 
-function sendManual() {
+window.sendManual = function() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
