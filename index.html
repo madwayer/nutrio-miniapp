@@ -669,7 +669,10 @@ function saveProduct() {
   const weight = parseInt(document.getElementById('weight-input').value) || 100;
   const meal = document.getElementById('meal-select-scanner').value;
   const ratio = weight / 100;
-  const data = {
+
+  // Если КБЖУ известно — сохраняем напрямую, иначе отдаём боту на расчёт через AI
+  const hasNutrition = currentProduct.cal > 0;
+  const data = hasNutrition ? {
     action: 'add_food',
     food_name: currentProduct.name,
     meal_type: meal,
@@ -678,7 +681,13 @@ function saveProduct() {
     protein: Math.round(currentProduct.prot * ratio * 10) / 10,
     fat: Math.round(currentProduct.fat * ratio * 10) / 10,
     carbs: Math.round(currentProduct.carb * ratio * 10) / 10,
+  } : {
+    action: 'add_manual',
+    food_name: currentProduct.name,
+    meal_type: meal,
+    weight: weight,
   };
+
   try {
     if (tg && tg.sendData) {
       tg.sendData(JSON.stringify(data));
