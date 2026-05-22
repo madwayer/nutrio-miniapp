@@ -731,295 +731,960 @@ function sendManual() {
   if (tg) { tg.sendData(JSON.stringify(data)); }
   else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
-// ===== GAME =====
-let gameState = null;
 
-function initGame() {
-  const canvas = document.getElementById('gameCanvas');
-  if (!canvas) return;
-  const container = canvas.parentElement;
-  const W = Math.min(container.clientWidth - 0, 420);
-  const H = Math.min(window.innerHeight * 0.52, 380);
-  canvas.width = W;
-  canvas.height = H;
+</script>
+</body>
+</html>
 
-  const HEALTHY = ['🥦','🍎','🥕','🥒','🫐','🍋','🥑','🍓'];
-  const JUNK    = ['🍕','🍔','🧁','🍰','🍫','🍟','🌮','🥐'];
 
-  gameState = {
-    canvas, ctx: canvas.getContext('2d'),
-    W, H,
-    score: 0, frame: 0, over: false, started: false,
-    player: { x: W/2, fat: 50, speed: W*0.018 },
-    foods: [], effects: [],
-    moveL: false, moveR: false,
-    raf: null,
-  };
 
-  const gs = gameState;
-
-  // Controls
-  const btnL = document.getElementById('btn-left');
-  const btnR = document.getElementById('btn-right');
-  const setL = v => gs.moveL = v;
-  const setR = v => gs.moveR = v;
-  btnL.addEventListener('touchstart', e => { e.preventDefault(); setL(true); }, {passive:false});
-  btnL.addEventListener('touchend',   e => { e.preventDefault(); setL(false); }, {passive:false});
-  btnR.addEventListener('touchstart', e => { e.preventDefault(); setR(true); }, {passive:false});
-  btnR.addEventListener('touchend',   e => { e.preventDefault(); setR(false); }, {passive:false});
-  btnL.addEventListener('mousedown',  () => setL(true));
-  btnL.addEventListener('mouseup',    () => setL(false));
-  btnR.addEventListener('mousedown',  () => setR(true));
-  btnR.addEventListener('mouseup',    () => setR(false));
-  document.addEventListener('keydown', e => { if(e.key==='ArrowLeft') setL(true); if(e.key==='ArrowRight') setR(true); });
-  document.addEventListener('keyup',   e => { if(e.key==='ArrowLeft') setL(false); if(e.key==='ArrowRight') setR(false); });
-
-  canvas.addEventListener('click', () => {
-    if (!gs.started) { gs.started = true; return; }
-    if (gs.over) restartGame();
-  });
-
-  function spawnFood() {
-    const isJunk = Math.random() < 0.45;
-    const list = isJunk ? JUNK : HEALTHY;
-    const emoji = list[Math.floor(Math.random() * list.length)];
-    gs.foods.push({
-      x: Math.random() * (W - 48) + 24,
-      y: -24, size: 26,
-      speed: (2.2 + Math.random()*1.8 + gs.score/400) * (H/380),
-      emoji, isJunk,
-    });
-  }
-
-  function drawPlayer() {
-    const ctx = gs.ctx;
-    const p = gs.player;
-    const fat = p.fat / 100;
-    const bw = W*0.09 + fat * W*0.13;
-    const bh = H*0.10 + fat * H*0.06;
-    const py = H - 55;
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath();
-    ctx.ellipse(p.x, py + bh/2 + 2, bw*0.6, 6, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Body gradient
-    const r = Math.round(80 + fat*160);
-    const g = Math.round(200 - fat*150);
-    const grad = ctx.createRadialGradient(p.x-bw*0.1, py-bh*0.1, 2, p.x, py, bw);
-    grad.addColorStop(0, `rgb(${r+40},${g+40},120)`);
-    grad.addColorStop(1, `rgb(${r},${g},80)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.ellipse(p.x, py, bw, bh, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Head
-    const headR = W*0.052;
-    const hy = py - bh - headR*0.6;
-    ctx.fillStyle = '#FFD166';
-    ctx.beginPath();
-    ctx.arc(p.x, hy, headR, 0, Math.PI*2);
-    ctx.fill();
-
-    // Eyes
-    ctx.fillStyle = '#333';
-    ctx.beginPath();
-    ctx.arc(p.x - headR*0.35, hy - headR*0.1, headR*0.12, 0, Math.PI*2);
-    ctx.arc(p.x + headR*0.35, hy - headR*0.1, headR*0.12, 0, Math.PI*2);
-    ctx.fill();
-
-    // Mouth
-    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    if (fat < 0.65) {
-      ctx.arc(p.x, hy + headR*0.2, headR*0.28, 0.1, Math.PI-0.1);
-    } else {
-      ctx.arc(p.x, hy + headR*0.45, headR*0.28, Math.PI+0.1, 2*Math.PI-0.1);
-    }
-    ctx.stroke();
-
-    // Legs
-    const legW = Math.max(4, bw*0.18);
-    ctx.strokeStyle = `rgb(${r},${g},80)`;
-    ctx.lineWidth = legW; ctx.lineCap = 'round';
-    const legY = py + bh - 4;
-    const wobble = Math.sin(gs.frame * 0.25) * 4 * (gs.moveL || gs.moveR ? 1 : 0);
-    ctx.beginPath();
-    ctx.moveTo(p.x - bw*0.28, legY);
-    ctx.lineTo(p.x - bw*0.28 + wobble, legY + H*0.055);
-    ctx.moveTo(p.x + bw*0.28, legY);
-    ctx.lineTo(p.x + bw*0.28 - wobble, legY + H*0.055);
-    ctx.stroke();
-
-    // Arms
-    ctx.lineWidth = legW * 0.8;
-    ctx.beginPath();
-    ctx.moveTo(p.x - bw*0.85, py - bh*0.1);
-    ctx.lineTo(p.x - bw - wobble, py + bh*0.2);
-    ctx.moveTo(p.x + bw*0.85, py - bh*0.1);
-    ctx.lineTo(p.x + bw + wobble, py + bh*0.2);
-    ctx.stroke();
-  }
-
-  function loop() {
-    const ctx = gs.ctx;
-    gs.raf = requestAnimationFrame(loop);
-
-    // BG
-    ctx.fillStyle = '#0f0f13';
-    ctx.fillRect(0, 0, W, H);
-
-    // Ground
-    ctx.fillStyle = '#1a1a22';
-    ctx.fillRect(0, H-32, W, 32);
-    ctx.fillStyle = '#22222e';
-    ctx.fillRect(0, H-34, W, 4);
-
-    if (!gs.started) {
-      ctx.fillStyle = 'rgba(108,99,255,0.15)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#f0f0f5';
-      ctx.font = `bold ${W*0.065}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('🎮 NutriO Runner', W/2, H*0.38);
-      ctx.font = `${W*0.042}px sans-serif`;
-      ctx.fillStyle = '#8888aa';
-      ctx.fillText('Лови здоровую еду!', W/2, H*0.5);
-      ctx.fillStyle = '#6c63ff';
-      ctx.beginPath();
-      ctx.roundRect(W/2-70, H*0.6, 140, 44, 12);
-      ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = `bold ${W*0.042}px sans-serif`;
-      ctx.fillText('▶  Начать', W/2, H*0.6+28);
-      drawPlayer();
-      return;
-    }
-
-    if (!gs.over) {
-      gs.frame++;
-      const p = gs.player;
-      const fatW = W*0.09 + (p.fat/100)*W*0.13;
-
-      // Move
-      if (gs.moveL) p.x = Math.max(fatW, p.x - p.speed);
-      if (gs.moveR) p.x = Math.min(W - fatW, p.x + p.speed);
-
-      // Spawn
-      const interval = Math.max(28, 55 - gs.score/8);
-      if (gs.frame % Math.round(interval) === 0) spawnFood();
-
-      // Update foods
-      const py = H - 55;
-      const fatH = H*0.10 + (p.fat/100)*H*0.06;
-      gs.foods = gs.foods.filter(f => {
-        f.y += f.speed;
-        const dx = Math.abs(f.x - p.x);
-        const dy = Math.abs(f.y - py);
-        if (dx < fatW + 14 && dy < fatH + 14) {
-          if (!f.isJunk) {
-            gs.score += 10 + Math.floor(gs.score/50);
-            p.fat = Math.max(5, p.fat - 6);
-            gs.effects.push({x:f.x, y:f.y, text:'+'+( 10+Math.floor(gs.score/50)), color:'#43e97b', vy:-1.5, a:1});
-          } else {
-            p.fat = Math.min(100, p.fat + 12);
-            gs.effects.push({x:f.x, y:f.y, text:'😬', color:'#ff6584', vy:-1.5, a:1});
-            if (p.fat >= 100) gs.over = true;
-          }
-          return false;
-        }
-        return f.y < H + 30;
-      });
-    }
-
-    // Draw foods
-    gs.foods.forEach(f => {
-      gs.ctx.font = `${f.size}px serif`;
-      gs.ctx.textAlign = 'center';
-      gs.ctx.fillText(f.emoji, f.x, f.y);
-    });
-
-    drawPlayer();
-
-    // Effects
-    gs.effects = gs.effects.filter(e => {
-      ctx.globalAlpha = e.a;
-      ctx.fillStyle = e.color;
-      ctx.font = `bold ${W*0.05}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(e.text, e.x, e.y);
-      ctx.globalAlpha = 1;
-      e.y += e.vy; e.a -= 0.025;
-      return e.a > 0;
-    });
-
-    // HUD
-    ctx.fillStyle = 'rgba(15,15,19,0.7)';
-    ctx.fillRect(0, 0, W, 36);
-    ctx.fillStyle = '#f0f0f5';
-    ctx.font = `bold ${W*0.042}px sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.fillText('⭐ ' + gs.score, 10, 24);
-
-    // Fat bar
-    const barW = W*0.28;
-    ctx.fillStyle = '#22222e';
-    ctx.beginPath(); ctx.roundRect(W - barW - 10, 8, barW, 18, 6); ctx.fill();
-    const fatPct = gs.player.fat / 100;
-    const barColor = fatPct < 0.5 ? '#43e97b' : fatPct < 0.8 ? '#ffa500' : '#ff4444';
-    ctx.fillStyle = barColor;
-    ctx.beginPath(); ctx.roundRect(W - barW - 10, 8, barW * fatPct, 18, 6); ctx.fill();
-    ctx.fillStyle = '#f0f0f5';
-    ctx.font = `${W*0.033}px sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.fillText('⚖️ ' + Math.round(gs.player.fat) + '%', W - 8, 22);
-
-    // Update external displays
-    document.getElementById('game-score-display').textContent = 'Очки: ' + gs.score;
-    document.getElementById('game-fat-display').textContent = '⚖️ ' + Math.round(gs.player.fat) + '%';
-
-    // Game over
-    if (gs.over) {
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#ff6584';
-      ctx.font = `bold ${W*0.09}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('😱 Объелся!', W/2, H*0.38);
-      ctx.fillStyle = '#f0f0f5';
-      ctx.font = `${W*0.052}px sans-serif`;
-      ctx.fillText('Очки: ' + gs.score, W/2, H*0.52);
-      ctx.fillStyle = '#6c63ff';
-      ctx.beginPath(); ctx.roundRect(W/2-80, H*0.62, 160, 48, 12); ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = `bold ${W*0.042}px sans-serif`;
-      ctx.fillText('🔄 Снова', W/2, H*0.62+31);
-    }
-  }
-
-  if (gs.raf) cancelAnimationFrame(gs.raf);
-  loop();
-}
-
-function restartGame() {
-  if (!gameState) return;
-  const gs = gameState;
-  gs.score = 0; gs.frame = 0; gs.over = false;
-  gs.foods = []; gs.effects = [];
-  gs.player = { x: gs.W/2, fat: 50, speed: gs.W*0.018 };
-  gs.started = true;
-}
-
-// Patch switchTab to init game
-const _origSwitchTab = switchTab;
-switchTab = function(tab) {
-  _origSwitchTab(tab);
-  if (tab === 'game') setTimeout(initGame, 50);
+<style>
+#gameCanvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;margin:0 auto;}
+</style>
+<script>
+// ============================================================
+// NUTRIO RUNNER v5
+// ============================================================
+const PX=3;
+const STORE={
+  get:(k,d)=>{try{const v=localStorage.getItem('nr5_'+k);return v!==null?JSON.parse(v):d;}catch(e){return d;}},
+  set:(k,v)=>{try{localStorage.setItem('nr5_'+k,JSON.stringify(v));}catch(e){}},
 };
 
+// ============================================================
+// ЧАСТИ ПЕРСОНАЖА
+// ============================================================
+const PARTS={
+  male:{
+    hat:[
+      {n:'Нет',     c:null},
+      {n:'Кепка',   c:'#222244', c2:'#4444aa'},
+      {n:'Шапка',   c:'#882211', c2:'#cc4422'},
+      {n:'Шляпа',   c:'#2a1800', c2:'#553300'},
+      {n:'Капюшон', c:'#334455', c2:'#556677'},
+      {n:'Берет',   c:'#1a3322', c2:'#336644'},
+    ],
+    hair:[
+      {n:'Короткие',c:'#3a1800',hl:'#6a3010'},
+      {n:'Тёмные',  c:'#111111',hl:'#333333'},
+      {n:'Рыжие',   c:'#bb3300',hl:'#ee6600'},
+      {n:'Светлые', c:'#ccaa33',hl:'#eedd66'},
+      {n:'Серые',   c:'#888888',hl:'#aaaaaa'},
+      {n:'Белые',   c:'#dddddd',hl:'#ffffff'},
+    ],
+    shirt:[
+      {n:'Синяя',   c:'#2a6ab4',hl:'#5a9ae4'},
+      {n:'Красная', c:'#aa2222',hl:'#dd5555'},
+      {n:'Зелёная', c:'#226622',hl:'#449944'},
+      {n:'Чёрная',  c:'#1a1a1a',hl:'#444444'},
+      {n:'Жёлтая',  c:'#aa9900',hl:'#ddcc22'},
+      {n:'Фиолет',  c:'#6622aa',hl:'#9944dd'},
+    ],
+    pants:[
+      {n:'Джинсы',  c:'#2a4a90',hl:'#4a6ab0'},
+      {n:'Хаки',    c:'#445522',hl:'#667744'},
+      {n:'Чёрные',  c:'#111122',hl:'#333355'},
+      {n:'Серые',   c:'#444455',hl:'#666677'},
+      {n:'Бежевые', c:'#887755',hl:'#aa9977'},
+      {n:'Красные', c:'#882222',hl:'#aa4444'},
+    ],
+    boot:[
+      {n:'Синие',   c:'#112240'},
+      {n:'Коричн',  c:'#442200'},
+      {n:'Чёрные',  c:'#111111'},
+      {n:'Белые',   c:'#bbbbcc'},
+      {n:'Красные', c:'#881122'},
+      {n:'Серые',   c:'#555566'},
+    ],
+  },
+  female:{
+    hat:[
+      {n:'Нет',     c:null},
+      {n:'Ободок',  c:'#ff4488', c2:'#ff88bb'},
+      {n:'Берет',   c:'#cc2244', c2:'#ee5577'},
+      {n:'Бантик',  c:'#ff88cc', c2:'#ffbbee'},
+      {n:'Шляпка',  c:'#4a2a00', c2:'#7a5a22'},
+      {n:'Диадема', c:'#ccaa00', c2:'#ffdd22'},
+    ],
+    hair:[
+      {n:'Розовые', c:'#cc2288',hl:'#ff55bb'},
+      {n:'Блонд',   c:'#ddcc22',hl:'#ffee66'},
+      {n:'Тёмные',  c:'#111111',hl:'#333333'},
+      {n:'Рыжие',   c:'#bb3300',hl:'#ee6600'},
+      {n:'Фиолет',  c:'#8822cc',hl:'#bb55ff'},
+      {n:'Голубые', c:'#2288cc',hl:'#55aaff'},
+    ],
+    top:[
+      {n:'Блузка',  c:'#dd3399',hl:'#ff77cc'},
+      {n:'Голубая', c:'#2288cc',hl:'#55aaee'},
+      {n:'Белая',   c:'#dddddd',hl:'#ffffff'},
+      {n:'Чёрная',  c:'#1a1a1a',hl:'#444444'},
+      {n:'Жёлтая',  c:'#cc9900',hl:'#ffcc22'},
+      {n:'Зелёная', c:'#226633',hl:'#449955'},
+    ],
+    skirt:[
+      {n:'Розовая', c:'#cc2266',hl:'#ee5599'},
+      {n:'Синяя',   c:'#2a4a90',hl:'#4a6ab0'},
+      {n:'Чёрная',  c:'#111122',hl:'#333355'},
+      {n:'Белая',   c:'#cccccc',hl:'#eeeeee'},
+      {n:'Красная', c:'#992222',hl:'#cc5555'},
+      {n:'Фиолет',  c:'#662299',hl:'#9944cc'},
+    ],
+    boot:[
+      {n:'Каблук',  c:'#cc2266'},
+      {n:'Кеды',    c:'#ffffff'},
+      {n:'Чёрные',  c:'#111111'},
+      {n:'Золото',  c:'#cc9922'},
+      {n:'Синие',   c:'#2244aa'},
+      {n:'Бежевые', c:'#aa8855'},
+    ],
+  },
+};
+
+const DIFFICULTY=[
+  {name:'Лёгкий',     baseSpeed:0.60,spawnBase:65, wavePts:300,speedInc:0.07,fatMult:0.6,maxItems:3,laneCool:22},
+  {name:'Нормальный', baseSpeed:0.75,spawnBase:52, wavePts:220,speedInc:0.10,fatMult:0.9,maxItems:4,laneCool:18},
+  {name:'Сложный',    baseSpeed:1.00,spawnBase:40, wavePts:160,speedInc:0.14,fatMult:1.3,maxItems:5,laneCool:14},
+];
+
+const BACKGROUNDS=[
+  {name:'Космос',      sky:['#060612','#0d0d22'],starField:true, ground:'#1a3a0a',grass:'#2a5a1a'},
+  {name:'Лес',         sky:['#0a1a08','#1a3010'],trees:true,     ground:'#2a1a0a',grass:'#3a6a1a'},
+  {name:'Закат',       sky:['#1a0808','#3a1522'],sunset:true,    ground:'#3a2a1a',grass:'#2a4a0a'},
+  {name:'Подземелье',  sky:['#080808','#101010'],dungeon:true,   ground:'#2a2a2a',grass:'#444444'},
+];
+
+const FOOD_ITEMS={
+  healthy:[
+    {emoji:'🥦',name:'Брокколи',  pts:12,color:'#44cc44'},
+    {emoji:'🍎',name:'Яблоко',    pts:10,color:'#ee4444'},
+    {emoji:'🥕',name:'Морковь',   pts:8, color:'#ff8800'},
+    {emoji:'🥒',name:'Огурец',    pts:8, color:'#55cc55'},
+    {emoji:'🫐',name:'Черника',   pts:15,color:'#8844ee'},
+    {emoji:'🍋',name:'Лимон',     pts:7, color:'#eedd00'},
+    {emoji:'🥑',name:'Авокадо',   pts:12,color:'#448833'},
+    {emoji:'🍓',name:'Клубника',  pts:10,color:'#ee2244'},
+    // Легендарные
+    {emoji:'🥗',name:'Салат',     pts:30,color:'#22ff88',rare:true},
+    {emoji:'🍇',name:'Виноград',  pts:25,color:'#aa44ff',rare:true},
+  ],
+  junk:[
+    {emoji:'🍕',name:'Пицца',      fat:8, color:'#ff6622'},
+    {emoji:'🍔',name:'Бургер',     fat:10,color:'#cc8833'},
+    {emoji:'🧁',name:'Пирожное',   fat:7, color:'#ff88cc'},
+    {emoji:'🍰',name:'Торт',       fat:11,color:'#ffaacc'},
+    {emoji:'🍫',name:'Шоколад',    fat:6, color:'#884422'},
+    {emoji:'🍟',name:'Картошка фри',fat:9,color:'#eebb22'},
+    {emoji:'🌮',name:'Тако',       fat:7, color:'#ffcc44'},
+    {emoji:'🥐',name:'Круассан',   fat:6, color:'#ddaa44'},
+  ],
+  powerup:[
+    {emoji:'🧲',name:'Магнит',    type:'magnet',color:'#22aaff',dur:300},
+    {emoji:'🛡️',name:'Щит',      type:'shield',color:'#aaaaff',dur:220},
+    {emoji:'💊',name:'Таблетка',  type:'pill',  color:'#ff44aa',dur:0},
+    {emoji:'⭐',name:'x2 очки',  type:'double',color:'#ffee00',dur:240},
+    {emoji:'❤️',name:'+Жизнь',   type:'life',  color:'#ff4466',dur:0},
+  ],
+};
+
+// Состояние настроек
+let S={
+  gender: STORE.get('gender',null),
+  bg:     STORE.get('bg',0),
+  diff:   STORE.get('diff',1),
+  highScore:STORE.get('highScore',0),
+  hat:    STORE.get('hat',0),
+  hair:   STORE.get('hair',0),
+  shirt:  STORE.get('shirt',0),
+  pants:  STORE.get('pants',0),
+  boot:   STORE.get('boot',0),
+};
+
+function getSkin(){
+  const g=S.gender||'male';
+  const p=PARTS[g];
+  const hatItem=p.hat[S.hat]||p.hat[0];
+  const hairItem=p.hair[S.hair]||p.hair[0];
+  const shirtPool=g==='male'?p.shirt:p.top;
+  const pantsPool=g==='male'?p.pants:p.skirt;
+  return {
+    hat:  hatItem.c, hatH: hatItem.c2||'#888',
+    hair: hairItem.c, hairH: hairItem.hl||'#888',
+    shirt:(shirtPool[S.shirt]||shirtPool[0]).c,
+    shirtH:(shirtPool[S.shirt]||shirtPool[0]).hl||'#888',
+    pants:(pantsPool[S.pants]||pantsPool[0]).c,
+    boot: (p.boot[S.boot]||p.boot[0]).c,
+    skin:'#f4c07a', skinD:'#d4905a',
+  };
+}
+
+let GS=null;
+let SCREEN='start';
+let settingsTab='bg';
+let charPart=0; // 0=hat,1=hair,2=shirt,3=pants,4=boot
+let laneLastSpawn=[0,0,0,0];
+
+// ============================================================
+// PIXEL UTILS
+// ============================================================
+function px(ctx,x,y,c,s=PX){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),s,s);}
+function pxRect(ctx,x,y,w,h,fill,stroke=null){
+  ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=PX;ctx.strokeRect(x+PX/2,y+PX/2,w-PX,h-PX);}
+}
+function pxText(ctx,t,x,y,c,sz=12,align='center'){
+  ctx.fillStyle=c;ctx.font=`bold ${sz}px monospace`;ctx.textAlign=align;ctx.fillText(t,x,y);
+}
+function pxBtn(ctx,x,y,w,h,text,bg='#6c63ff',fg='#fff',sz=11){
+  pxRect(ctx,x,y,w,h,bg,'#ffffff22');
+  pxText(ctx,text,x+w/2,y+h/2+sz*0.38,fg,sz);
+}
+
+// ============================================================
+// РИСУЕМ ПЕРСОНАЖА
+// ============================================================
+function drawPlayerAt(ctx,cx,py,fat,gender,skin,frame=0,moveL=false,moveR=false,shield=0,magnet=0,W=400,double_=0){
+  const fatN=Math.min(fat/100,1);
+  const isFemale=gender==='female';
+
+  // Размеры масштабируются с жиром
+  const bodyBaseW=isFemale?8:9;
+  const bodyW=Math.round((bodyBaseW+fatN*9)*PX);
+  const headS=8*PX, legH=7*PX;
+
+  // Девушка: узкие плечи, чуть шире бёдра ТОЛЬКО при наборе жира
+  const shoulderW=isFemale ? bodyW*(0.72+fatN*0.18) : bodyW;
+  const hipW=     isFemale ? bodyW*(0.78+fatN*0.28) : bodyW*0.9;
+  const bodyH=Math.round((6+fatN*4)*PX);
+
+  const bodyY=py-bodyH-legH;
+  const headY=bodyY-headS;
+  const headX=Math.round(cx-headS/2);
+  const moving=moveL||moveR;
+  const legA=Math.sin(frame*0.22)*3*(moving?1:0);
+
+  // Эффекты бонусов
+  if(shield>0){
+    ctx.strokeStyle=`rgba(100,150,255,${0.35+Math.sin(frame*0.15)*0.3})`;
+    ctx.lineWidth=PX*2;ctx.beginPath();
+    ctx.ellipse(cx,bodyY+bodyH/2,bodyW+PX*5,bodyH+headS+PX*5,0,0,Math.PI*2);ctx.stroke();
+  }
+  if(magnet>0){
+    ctx.strokeStyle='rgba(34,170,255,0.12)';ctx.lineWidth=PX;ctx.beginPath();
+    ctx.arc(cx,bodyY,W*0.22,0,Math.PI*2);ctx.stroke();
+  }
+  if(double_>0){
+    ctx.strokeStyle=`rgba(255,238,0,${0.2+Math.sin(frame*0.2)*0.15})`;ctx.lineWidth=PX*1.5;
+    ctx.beginPath();ctx.arc(cx,bodyY+bodyH/2,bodyW+PX*7,0,Math.PI*2);ctx.stroke();
+  }
+
+  // Тень
+  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();
+  ctx.ellipse(cx,py+2,bodyW*0.5,4,0,0,Math.PI*2);ctx.fill();
+
+  // ===== НОГИ =====
+  const lw=4*PX, ly=bodyY+bodyH;
+  if(isFemale){
+    // Юбка — ширина зависит от жира
+    const skirtFlare=0.55+fatN*0.45;
+    ctx.beginPath();
+    ctx.moveTo(cx-hipW*0.52,ly-PX*2);
+    ctx.lineTo(cx+hipW*0.52,ly-PX*2);
+    ctx.lineTo(cx+hipW*skirtFlare,ly+legH*0.65);
+    ctx.lineTo(cx-hipW*skirtFlare,ly+legH*0.65);
+    ctx.closePath(); ctx.fillStyle=skin.pants; ctx.fill();
+    ctx.strokeStyle='#1a1a2e22'; ctx.lineWidth=1; ctx.stroke();
+    // Декоративная полоска на юбке
+    ctx.fillStyle=skin.pants+'66';
+    ctx.fillRect(cx-hipW*0.45,ly+PX*2,hipW*0.9,PX*2);
+    // Ноги
+    pxRect(ctx,Math.round(cx-lw*1.1),ly+legH*0.6,lw,legH*0.42,skin.skin);
+    pxRect(ctx,Math.round(cx+lw*0.1), ly+legH*0.6,lw,legH*0.42,skin.skin);
+    // Обувь
+    pxRect(ctx,Math.round(cx-lw*1.2),ly+legH,lw+PX*2,PX*3,skin.boot);
+    pxRect(ctx,Math.round(cx+lw*0.0), ly+legH,lw+PX*2,PX*3,skin.boot);
+  } else {
+    pxRect(ctx,Math.round(cx-bodyW*0.3-lw/2),ly+legA,  lw,legH-legA,skin.pants);
+    pxRect(ctx,Math.round(cx-bodyW*0.3-lw/2),ly+legH,  lw,PX*2,     skin.boot);
+    pxRect(ctx,Math.round(cx+bodyW*0.3-lw/2),ly-legA,  lw,legH+legA,skin.pants);
+    pxRect(ctx,Math.round(cx+bodyW*0.3-lw/2),ly+legH,  lw,PX*2,     skin.boot);
+  }
+
+  // ===== ТЕЛО =====
+  if(isFemale){
+    // Трапеция
+    ctx.beginPath();
+    ctx.moveTo(cx-shoulderW*0.5,bodyY);
+    ctx.lineTo(cx+shoulderW*0.5,bodyY);
+    ctx.lineTo(cx+hipW*0.5,     bodyY+bodyH);
+    ctx.lineTo(cx-hipW*0.5,     bodyY+bodyH);
+    ctx.closePath();
+    ctx.fillStyle=skin.shirt; ctx.fill();
+    ctx.strokeStyle='#1a1a2e'; ctx.lineWidth=PX*0.7; ctx.stroke();
+    // Блик
+    ctx.fillStyle=skin.shirtH+'44';
+    ctx.beginPath();
+    ctx.moveTo(cx-shoulderW*0.38,bodyY+PX);
+    ctx.lineTo(cx-shoulderW*0.38+PX*2,bodyY+PX);
+    ctx.lineTo(cx-hipW*0.3+PX*2,bodyY+bodyH-PX);
+    ctx.lineTo(cx-hipW*0.3,bodyY+bodyH-PX);
+    ctx.closePath(); ctx.fill();
+  } else {
+    pxRect(ctx,Math.round(cx-shoulderW/2),bodyY,shoulderW,bodyH,skin.shirt,'#1a1a2e');
+    pxRect(ctx,Math.round(cx-shoulderW/2)+PX,bodyY+PX,PX*2,bodyH-PX*2,skin.shirtH+'44');
+    pxRect(ctx,Math.round(cx-shoulderW/2),bodyY+bodyH-PX*3,shoulderW,PX*3,'#1a1a2e');
+    pxRect(ctx,Math.round(cx-PX*1.5),bodyY+bodyH-PX*3,PX*3,PX*3,'#ddaa22');
+  }
+
+  // ===== РУКИ =====
+  const aW=3*PX, aH=isFemale?3*PX:5*PX, aY=bodyY+PX*2;
+  const aS=Math.sin(frame*0.22)*4*(moving?1:0);
+  const lAx=Math.round(cx-shoulderW/2)-aW;
+  const rAx=Math.round(cx+shoulderW/2);
+  pxRect(ctx,lAx,aY+aS, aW,aH,skin.skin,'#1a1a2e');
+  pxRect(ctx,rAx,aY-aS,aW,aH,skin.skin,'#1a1a2e');
+
+  // ===== ГОЛОВА =====
+  pxRect(ctx,headX,headY,headS,headS,skin.skin,'#1a1a2e');
+  // Щёки
+  ctx.fillStyle=skin.skinD+'66';
+  ctx.fillRect(headX+PX,headY+PX*3,PX*2,PX*2);
+  ctx.fillRect(headX+PX*5,headY+PX*3,PX*2,PX*2);
+
+  // ===== ВОЛОСЫ =====
+  pxRect(ctx,headX,headY,headS,PX*2,skin.hair);
+  // Блик на волосах
+  px(ctx,headX+PX,headY,skin.hairH,PX);px(ctx,headX+PX*3,headY,skin.hairH,PX);
+  if(isFemale){
+    // Длинные локоны по бокам
+    pxRect(ctx,headX-PX,headY+PX,PX*2,headS*0.88,skin.hair);
+    pxRect(ctx,headX+headS-PX,headY+PX,PX*2,headS*0.82,skin.hair);
+    // Хвост
+    pxRect(ctx,headX+headS,headY+PX*2,PX*2,headS*0.55,skin.hair);
+    px(ctx,headX+headS+PX,headY+PX*3,skin.hairH,PX);
+  } else {
+    pxRect(ctx,headX,headY,PX*2,headS*0.55,skin.hair);
+  }
+
+  // ===== ГОЛОВНОЙ УБОР =====
+  if(skin.hat){
+    const hx=headX, hy=headY;
+    if(S.hat===1){ // Кепка/Ободок для мужика — кепка
+      pxRect(ctx,hx-PX,hy-PX*3,headS+PX*2,PX*3,skin.hat,'#1a1a2e');
+      pxRect(ctx,hx+headS,hy-PX,PX*5,PX*2,skin.hat); // козырёк
+      px(ctx,hx+PX,hy-PX*3,skin.hatH,PX); // блик
+    } else if(S.hat===2){ // Шапка
+      pxRect(ctx,hx,hy-PX*5,headS,PX*5,skin.hat,'#1a1a2e');
+      pxRect(ctx,hx-PX,hy-PX*2,headS+PX*2,PX*2,skin.hat);
+      px(ctx,hx+PX*2,hy-PX*4,skin.hatH,PX*3);
+    } else if(S.hat===3){ // Шляпа
+      pxRect(ctx,hx-PX*2,hy-PX,headS+PX*4,PX*2,skin.hat,'#1a1a2e'); // поля
+      pxRect(ctx,hx+PX,hy-PX*6,headS-PX*2,PX*5,skin.hat,'#1a1a2e'); // тулья
+      px(ctx,hx+PX*3,hy-PX*5,skin.hatH,PX); // блик
+    } else if(S.hat===4){ // Капюшон/Берет
+      ctx.beginPath();ctx.ellipse(cx,hy-PX*2,headS*0.55,PX*5,0,0,Math.PI*2);
+      ctx.fillStyle=skin.hat;ctx.fill();
+      ctx.strokeStyle='#1a1a2e';ctx.lineWidth=PX*0.7;ctx.stroke();
+    } else if(S.hat===5){ // Берет/Диадема
+      if(isFemale){ // Диадема
+        for(let i=0;i<5;i++) px(ctx,hx+PX*i*1.5,hy-PX*3,skin.hat,PX*2);
+        px(ctx,hx+PX*3,hy-PX*5,skin.hatH,PX*2); // центральный камень
+      } else { // Берет
+        ctx.beginPath();ctx.ellipse(cx+PX*2,hy-PX*3,headS*0.6,PX*4,0.3,0,Math.PI*2);
+        ctx.fillStyle=skin.hat;ctx.fill();ctx.strokeStyle='#1a1a2e';ctx.lineWidth=1;ctx.stroke();
+      }
+    }
+    // Женские шляпки (отдельная логика)
+    if(isFemale){
+      if(S.hat===1){ // Ободок
+        pxRect(ctx,hx,hy-PX,headS,PX*2,skin.hat);
+        // Цветочек
+        px(ctx,hx+PX*2,hy-PX*2,'#ff88aa',PX*2);px(ctx,hx+PX*4,hy-PX*3,'#ff88aa',PX);
+      } else if(S.hat===2){ // Берет
+        ctx.beginPath();ctx.ellipse(cx-PX,hy-PX*3,headS*0.55,PX*4,-0.2,0,Math.PI*2);
+        ctx.fillStyle=skin.hat;ctx.fill();ctx.strokeStyle='#1a1a2e';ctx.lineWidth=1;ctx.stroke();
+      } else if(S.hat===3){ // Бантик
+        // Левое крыло
+        ctx.beginPath();ctx.ellipse(cx-PX*4,hy-PX*4,PX*4,PX*3,-0.5,0,Math.PI*2);
+        ctx.fillStyle=skin.hat;ctx.fill();ctx.strokeStyle='#1a1a2e';ctx.lineWidth=1;ctx.stroke();
+        // Правое крыло
+        ctx.beginPath();ctx.ellipse(cx+PX*4,hy-PX*4,PX*4,PX*3,0.5,0,Math.PI*2);
+        ctx.fillStyle=skin.hat;ctx.fill();ctx.stroke();
+        // Центр
+        px(ctx,cx-PX,hy-PX*5,skin.hatH,PX*2);
+      } else if(S.hat===4){ // Шляпка
+        pxRect(ctx,hx-PX*3,hy,headS+PX*6,PX*2,skin.hat,'#1a1a2e');
+        pxRect(ctx,hx+PX,hy-PX*5,headS-PX*2,PX*5,skin.hat,'#1a1a2e');
+        // Лента
+        pxRect(ctx,hx+PX,hy-PX,headS-PX*2,PX*2,skin.hatH);
+      }
+    }
+  }
+
+  // ===== ГЛАЗА =====
+  const eY=headY+PX*3, eShift=moveR?PX:(moveL?-PX:0);
+  pxRect(ctx,headX+PX*2-1,eY-1,PX*2+2,PX*2+2,'#fffde8');
+  pxRect(ctx,headX+PX*5-1,eY-1,PX*2+2,PX*2+2,'#fffde8');
+  px(ctx,headX+PX*2+eShift,eY,'#1a1a1a',PX*2);
+  px(ctx,headX+PX*5+eShift,eY,'#1a1a1a',PX*2);
+  px(ctx,headX+PX*2+eShift,eY,'#ffffffaa',PX);
+  px(ctx,headX+PX*5+eShift,eY,'#ffffffaa',PX);
+  if(isFemale){
+    // Длинные ресницы
+    px(ctx,headX+PX*2-PX,eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*2,   eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*2+PX,eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*2+PX*2,eY-PX,skin.hair,PX);
+    px(ctx,headX+PX*5-PX,eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*5,   eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*5+PX,eY-PX*2,skin.hair,PX);
+    px(ctx,headX+PX*5+PX*2,eY-PX,skin.hair,PX);
+    // Помада
+    px(ctx,headX+PX*3,headY+PX*6,'#ff3377',PX*2);
+  }
+
+  // ===== РОТ =====
+  const mY=headY+PX*5;
+  if(fatN<0.6){px(ctx,headX+PX*2,mY+PX,'#333',PX);px(ctx,headX+PX*3,mY+PX*2,'#333',PX);px(ctx,headX+PX*4,mY+PX*2,'#333',PX);px(ctx,headX+PX*5,mY+PX,'#333',PX);}
+  else if(fatN<0.82){px(ctx,headX+PX*2,mY+PX*2,'#333',PX*4);}
+  else{px(ctx,headX+PX*2,mY+PX*2,'#333',PX);px(ctx,headX+PX*3,mY+PX,'#333',PX);px(ctx,headX+PX*4,mY+PX,'#333',PX);px(ctx,headX+PX*5,mY+PX*2,'#333',PX);}
+  if(fatN>0.7){px(ctx,headX+headS+PX,headY+PX*3,'#44aaff',PX);px(ctx,headX+headS+PX,headY+PX*5,'#44aaff',PX);}
+}
+
+// ============================================================
+// ФОН
+// ============================================================
+function drawBGFull(ctx,gs,bgIdx){
+  const bg=BACKGROUNDS[bgIdx],{W,H}=gs;
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,bg.sky[0]);grad.addColorStop(1,bg.sky[1]);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+  if(bg.starField&&gs.bgStars) gs.bgStars.forEach(s=>{
+    const t=Math.sin((gs.frame||0)*0.05+s.blink)*0.5+0.5;
+    ctx.fillStyle=`rgba(200,220,255,${0.3+t*0.7})`;ctx.fillRect(s.x,s.y,s.s,s.s);
+  });
+  if(bg.sunset){
+    ctx.fillStyle='#ff880099';ctx.beginPath();ctx.arc(W*0.75,H*0.2,30,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ff440033';ctx.beginPath();ctx.arc(W*0.75,H*0.2,48,0,Math.PI*2);ctx.fill();
+  }
+  if(bg.dungeon){
+    for(let y=0;y<H-30;y+=PX*6){
+      const off=(Math.floor(y/(PX*6))%2)*PX*5;
+      for(let x=-off;x<W;x+=PX*10){ctx.strokeStyle='#1a1a1a44';ctx.lineWidth=1;ctx.strokeRect(x,y,PX*10,PX*6);}
+    }
+    [W*0.12,W*0.88].forEach(tx=>{ctx.font='15px serif';ctx.textAlign='center';ctx.fillText('🔥',tx,H*0.25+Math.sin((gs.frame||0)*0.12)*2);});
+  }
+  if(bg.trees){
+    [0.08,0.22,0.78,0.92].forEach(tx=>{
+      ctx.fillStyle='#0a1a0a';ctx.fillRect(W*tx-4,H-90,8,60);
+      ctx.beginPath();ctx.arc(W*tx,H-92,24,0,Math.PI*2);ctx.fill();
+    });
+  }
+  const gy=H-30;
+  for(let x=0;x<W;x+=PX*2){px(ctx,x,gy,bg.ground,PX*2);px(ctx,x,gy+PX*2,bg.ground,PX*2);}
+  for(let x=0;x<W;x+=PX*4)px(ctx,x,gy-PX,bg.grass,PX*2);
+
+  // Детокс-раунд — зелёный оверлей
+  if(gs&&gs.detoxRound){
+    ctx.fillStyle=`rgba(0,200,80,${0.06+Math.sin((gs.frame||0)*0.1)*0.03})`;
+    ctx.fillRect(0,0,W,H);
+    pxText(ctx,'🍃 ДЕТОКС-РАУНД!',W/2,50,'#44ff88',12);
+  }
+}
+
+function drawBGPreview(ctx,x,y,w,h,bgIdx){
+  const bg=BACKGROUNDS[bgIdx];
+  const grad=ctx.createLinearGradient(x,y,x,y+h);
+  grad.addColorStop(0,bg.sky[0]);grad.addColorStop(1,bg.sky[1]);
+  ctx.fillStyle=grad;ctx.fillRect(x,y,w,h);
+  if(bg.starField){for(let i=0;i<14;i++)px(ctx,x+Math.random()*w,y+Math.random()*h*0.75,'#ffffffbb',1);}
+  if(bg.sunset){ctx.fillStyle='#ff9900bb';ctx.beginPath();ctx.arc(x+w*0.75,y+h*0.25,7,0,Math.PI*2);ctx.fill();}
+  if(bg.trees){ctx.fillStyle='#0a1a0a';ctx.fillRect(x+w*0.2-2,y+h-14,4,10);ctx.beginPath();ctx.arc(x+w*0.2,y+h-16,7,0,Math.PI*2);ctx.fill();}
+  if(bg.dungeon){for(let dy=0;dy<h;dy+=6){ctx.strokeStyle='#33333366';ctx.lineWidth=1;ctx.strokeRect(x,y+dy,w,6);}}
+  ctx.fillStyle=bg.ground;ctx.fillRect(x,y+h-7,w,7);
+  ctx.fillStyle=bg.grass;ctx.fillRect(x,y+h-9,w,3);
+}
+
+// ============================================================
+// НАСТРОЙКИ — вкладка персонажа
+// ============================================================
+
+function getPartPool(g,partIdx){
+  if(g==='male') return [PARTS.male.hat,PARTS.male.hair,PARTS.male.shirt,PARTS.male.pants,PARTS.male.boot][partIdx];
+  return [PARTS.female.hat,PARTS.female.hair,PARTS.female.top,PARTS.female.skirt,PARTS.female.boot][partIdx];
+}
+function getPartKey(partIdx){return ['hat','hair','shirt','pants','boot'][partIdx];}
+function getPartVal(partIdx){return [S.hat,S.hair,S.shirt,S.pants,S.boot][partIdx];}
+
+function drawSettings(ctx,W,H){
+  ctx.fillStyle='rgba(6,6,18,0.97)';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#6c63ff';ctx.lineWidth=PX;ctx.strokeRect(PX,PX,W-PX*2,H-PX*2);
+  pxText(ctx,'⚙️ НАСТРОЙКИ',W/2,26,'#ffe066',14);
+
+  // Главные табы
+  const tabs=[['🌄 Фон','bg'],['👤 Персонаж','char'],['⚔️ Сложность','diff']];
+  tabs.forEach(([label,id],i)=>{
+    const bx=W*0.04+i*(W*0.32),by=36,bw=W*0.29,bh=22;
+    pxBtn(ctx,bx,by,bw,bh,label,settingsTab===id?'#6c63ff':'#223344',settingsTab===id?'#fff':'#aaaacc',8);
+  });
+
+  if(settingsTab==='bg'){
+    pxText(ctx,'Выбери локацию',W/2,74,'#aaaacc',10);
+    const pw=Math.round(W*0.42),ph=50,gap=8,ox=(W-pw*2-gap)/2;
+    BACKGROUNDS.forEach((bg,i)=>{
+      const col=i%2,row=Math.floor(i/2),bx=ox+col*(pw+gap),by=86+row*(ph+26);
+      drawBGPreview(ctx,bx,by,pw,ph,i);
+      const sel=i===S.bg;
+      ctx.strokeStyle=sel?'#6c63ff':'#334466';ctx.lineWidth=sel?PX*1.5:1;ctx.strokeRect(bx,by,pw,ph);
+      pxBtn(ctx,bx,by+ph+2,pw,18,bg.name,sel?'#6c63ff':'#223344',sel?'#fff':'#aaaacc',8);
+    });
+  }
+
+  if(settingsTab==='char'){
+    const g=S.gender||'male';
+    const skin=getSkin();
+
+    // Превью персонажа
+    const preX=Math.round(W*0.24), preY=Math.round(H*0.40);
+    pxText(ctx,'Превью',preX,66,'#aaaacc',8);
+    drawPlayerAt(ctx,preX,preY,20,g,skin,0,false,false,0,0,W); // fat=20 — стройный
+
+    // Пол
+    pxText(ctx,'Пол',W*0.70,66,'#aaaacc',8,'center');
+    [['👦 Парень',W*0.52,'male'],['👧 Девушка',W*0.72,'female']].forEach(([label,bx,gv])=>{
+      pxBtn(ctx,bx-2,70,W*0.22,20,label,g===gv?'#6c63ff':'#223344',g===gv?'#fff':'#aaaacc',8);
+    });
+
+    // Навигация по частям — стрелки < Название >
+    const partNames=g==='male'
+      ?['Гол. убор','Причёска','Рубашка','Брюки','Обувь']
+      :['Гол. убор','Причёска','Блузка','Юбка','Обувь'];
+    const navY=H*0.44;
+    pxBtn(ctx,W*0.48-26,navY,24,22,'◀','#334455','#aaccff',12);
+    pxText(ctx,partNames[charPart],W*0.68,navY+15,'#ffe066',10);
+    pxBtn(ctx,W*0.48+W*0.40,navY,24,22,'▶','#334455','#aaccff',12);
+
+    // Цветовые свотчи (6 штук, 2 ряда по 3)
+    const pool=getPartPool(g,charPart);
+    const curVal=getPartVal(charPart);
+    const swW=Math.round(W*0.12), swH=18, swGap=4;
+    const swTotalW=3*(swW+swGap)-swGap;
+    const swOx=W*0.48+(W*0.48-swTotalW)/2;
+    pool.forEach((part,i)=>{
+      const col=i%3, row=Math.floor(i/3);
+      const bx=swOx+col*(swW+swGap), by=H*0.52+row*(swH+swGap+14);
+      const sel=curVal===i;
+      // Цвет или "Нет"
+      if(part.c===null){
+        pxRect(ctx,bx,by,swW,swH,'#1a1a2a','#334466');
+        pxText(ctx,'×',bx+swW/2,by+swH/2+4,'#aaaacc',10);
+      } else {
+        pxRect(ctx,bx,by,swW,swH,part.c,sel?'#ffffff':'#333366');
+        if(part.c2) pxRect(ctx,bx+swW*0.6,by,swW*0.4,swH,part.c2);
+      }
+      if(sel){ctx.strokeStyle='#ffe066';ctx.lineWidth=2;ctx.strokeRect(bx,by,swW,swH);}
+      pxText(ctx,part.n,bx+swW/2,by+swH+10,'#aaaacc',7);
+    });
+  }
+
+  if(settingsTab==='diff'){
+    pxText(ctx,'Выбери сложность',W/2,74,'#aaaacc',10);
+    DIFFICULTY.forEach((d,i)=>{
+      const by=88+i*66,bh=58,sel=i===S.diff;
+      pxRect(ctx,W*0.06,by,W*0.88,bh,sel?'#1a1a44':'#111122',sel?'#6c63ff':'#334466');
+      pxText(ctx,d.name,W/2,by+22,sel?'#ffe066':'#aaaacc',13);
+      const descs=['🐢 Медленно, для знакомства','🎮 Стандартно для всех','🔥 Быстро — для опытных'][i];
+      pxText(ctx,descs,W/2,by+40,'#666688',8);
+    });
+    pxText(ctx,'🏆 Рекорд: '+S.highScore,W/2,282,'#ffe066',12);
+  }
+
+  pxBtn(ctx,W/2-55,H-52,110,34,'◀ Назад','#334455','#aaccff',11);
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function drawHUD(ctx,gs){
+  const{W}=gs;
+  if(gs.fat>80){
+    ctx.fillStyle=`rgba(180,0,0,${0.07+Math.sin(gs.frame*0.2)*0.05})`;
+    ctx.fillRect(0,0,W,gs.H);
+  }
+  ctx.fillStyle='rgba(6,6,18,0.9)';ctx.fillRect(0,0,W,36);
+  pxText(ctx,'⭐'+gs.score,10,24,'#ffe066',13,'left');
+  if(gs.combo>1)pxText(ctx,'x'+gs.combo+' КОМБО!',W/2,24,'#ff88ff',11);
+  ctx.textAlign='right';ctx.font='11px monospace';ctx.fillStyle='#fff';
+  ctx.fillText('❤️'.repeat(gs.lives),W-6,24);
+  const bY=36,bH=10;
+  ctx.fillStyle='#080818';ctx.fillRect(0,bY,W,bH);
+  const fc=gs.fat<40?'#44ee44':gs.fat<70?'#eebb22':gs.fat<85?'#ee7700':'#ee2200';
+  ctx.fillStyle=fc;ctx.fillRect(0,bY,W*(gs.fat/100),bH);
+  for(let i=1;i<10;i++){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(W/10*i-1,bY,2,bH);}
+  pxText(ctx,'⚖️ '+Math.round(gs.fat)+'%',W/2,bY+8,'#ffffffaa',8);
+  if(gs.detoxRound)pxText(ctx,'🍃 ДЕТОКС',8,bY+8,'#44ff88',8,'left');
+  else pxText(ctx,'ВОЛНА '+gs.wave,8,bY+8,'#5566aa',8,'left');
+  let bx=W-8;
+  [gs.double>0&&'⭐',gs.magnet>0&&'🧲',gs.shield>0&&'🛡️'].filter(Boolean).forEach(ic=>{
+    ctx.textAlign='right';ctx.font='12px serif';ctx.fillText(ic,bx,bY+8);bx-=17;
+  });
+  pxText(ctx,'⚙️',W-10,22,'#aaaacc',13,'right');
+}
+
+// ============================================================
+// ЕДА
+// ============================================================
+function drawFood(ctx,f){
+  const glow=f.isPowerup?'#ffff88':f.isJunk?'#ff4444':'#44ff44';
+  const glowStr=f.rare?20:10;
+  ctx.shadowColor=glow;ctx.shadowBlur=glowStr;
+  ctx.font=`${f.size}px serif`;ctx.textAlign='center';
+  ctx.fillText(f.emoji,f.x,f.y+f.size*0.8);ctx.shadowBlur=0;
+  if(f.rare){pxText(ctx,'★',f.x+f.size*0.4,f.y,'#ffee00',10);}
+  const label=f.isPowerup?f.name:f.isJunk?'⚠ Вредно':'✓ Полезно';
+  const lc=f.isPowerup?'#ffee88':f.isJunk?'#ff8888':'#88ff88';
+  pxText(ctx,label,f.x,f.y+f.size+11,lc,8);
+}
+
+// ============================================================
+// УМНЫЙ СПАВН
+// ============================================================
+function spawnFood(){
+  const gs=GS;
+  const diff=DIFFICULTY[S.diff];
+  const maxOnScreen=Math.min(diff.maxItems,2+Math.floor(gs.wave*0.7));
+  if(gs.foods.length>=maxOnScreen)return;
+
+  const LANES=4, laneW=gs.W/LANES;
+  const available=[];
+  for(let i=0;i<LANES;i++){
+    if(gs.frame-laneLastSpawn[i]<diff.laneCool)continue;
+    const lx=laneW*(i+0.5);
+    const blocked=gs.foods.some(f=>Math.abs(f.x-lx)<55&&f.y<gs.H*0.3);
+    if(!blocked)available.push(i);
+  }
+  if(available.length===0)return;
+
+  const lane=available[Math.floor(Math.random()*available.length)];
+  laneLastSpawn[lane]=gs.frame;
+  const lx=laneW*(lane+0.5)+(Math.random()-0.5)*laneW*0.22;
+
+  let pool,isJunk=false,isPowerup=false,isRare=false;
+  const roll=Math.random();
+  if(gs.detoxRound){
+    pool=FOOD_ITEMS.healthy;
+  } else if(roll<0.07&&gs.score>30){
+    pool=FOOD_ITEMS.powerup;isPowerup=true;
+  } else if(roll<0.10&&gs.score>100){
+    // Легендарный предмет
+    pool=FOOD_ITEMS.healthy.filter(f=>f.rare);isRare=true;
+  } else if(roll<0.44){
+    pool=FOOD_ITEMS.junk;isJunk=true;
+  } else {
+    pool=FOOD_ITEMS.healthy.filter(f=>!f.rare);
+  }
+  const item=pool[Math.floor(Math.random()*pool.length)];
+  gs.foods.push({
+    x:lx,y:-34,size:30,
+    speed:gs.speed*(0.78+Math.random()*0.44),
+    ...item,isJunk,isPowerup,rare:isRare,
+    wobble:Math.random()*Math.PI*2,
+    wobbleSpeed:(Math.random()-0.5)*0.022,
+  });
+}
+
+// ============================================================
+// ЧАСТИЦЫ
+// ============================================================
+function spawnParticles(x,y,color,n=6){
+  for(let i=0;i<n;i++)GS.particles.push({
+    x,y,vx:(Math.random()-0.5)*4,vy:-Math.random()*3-1,
+    color,life:1,size:PX*(1+Math.floor(Math.random()*2)),
+  });
+}
+
+// ============================================================
+// ЭКРАНЫ
+// ============================================================
+function drawStart(ctx,W,H){
+  ctx.fillStyle='rgba(6,6,18,0.86)';ctx.fillRect(0,H*0.06,W,H*0.86);
+  ctx.strokeStyle='#6c63ff';ctx.lineWidth=PX;ctx.strokeRect(PX,H*0.06+PX,W-PX*2,H*0.86-PX*2);
+  pxText(ctx,'NUTRIO RUNNER',W/2,H*0.14,'#ffe066',17);
+  pxText(ctx,'КАК ИГРАТЬ',W/2,H*0.21,'#5566aa',9);
+  const rules=[
+    ['✓ Полезно','Лови — худеешь и зарабатываешь очки','#88ff88'],
+    ['⚠ Вредно', 'Избегай — набираешь лишний вес','#ff8888'],
+    ['🧲 Магнит', 'Притягивает полезную еду (10 сек)','#aaddff'],
+    ['🛡️ Щит',   'Блокирует один вредный продукт','#aaaaff'],
+    ['💊 Таблетка','Сбрасывает 20% лишнего веса','#ff88ff'],
+    ['⭐ x2',     'Удваивает очки на 8 секунд','#ffee66'],
+    ['❤️ +Жизнь', 'Бонусная жизнь (макс. 5)','#ff6666'],
+    ['🍃 Детокс', 'Каждая 4-я волна — только полезное!','#88ffaa'],
+    ['💪 Комбо',  '5 подряд = -5% веса в подарок','#aaffcc'],
+  ];
+  rules.forEach(([icon,desc,c],i)=>{
+    pxText(ctx,icon,W*0.07,H*0.28+i*21,c,8,'left');
+    pxText(ctx,desc,W*0.39,H*0.28+i*21,'#888899',8,'left');
+  });
+  pxBtn(ctx,W/2-65,H*0.82,130,36,'▶  ИГРАТЬ');
+  pxBtn(ctx,W/2-65,H*0.90,130,26,'⚙️ Настройки','#334455','#aaccff',10);
+}
+
+function drawGender(ctx,W,H){
+  ctx.fillStyle='rgba(6,6,18,0.94)';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#6c63ff';ctx.lineWidth=PX;ctx.strokeRect(PX*3,H*0.2,W-PX*6,H*0.6);
+  pxText(ctx,'Выбери персонажа',W/2,H*0.29,'#ffe066',15);
+  pxText(ctx,'(можно сменить в настройках)',W/2,H*0.36,'#555577',8);
+  pxBtn(ctx,W*0.1,H*0.44,W*0.34,50,'👦 Парень','#3a5fa0');
+  pxBtn(ctx,W*0.56,H*0.44,W*0.34,50,'👧 Девушка','#a03a7a');
+}
+
+function drawOver(ctx,gs){
+  const{W,H,score,maxCombo}=gs;
+  ctx.fillStyle='rgba(4,4,16,0.93)';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#ff4444';ctx.lineWidth=PX;ctx.strokeRect(PX*2,H*0.14,W-PX*4,H*0.72);
+  pxText(ctx,'GAME OVER',W/2,H*0.25,'#ff4444',20);
+  pxText(ctx,'СЧЁТ: '+score,W/2,H*0.35,'#ffe066',15);
+  pxText(ctx,'РЕКОРД: '+S.highScore,W/2,H*0.43,'#aaaacc',10);
+  pxText(ctx,'МАКС КОМБО: x'+maxCombo,W/2,H*0.50,'#ff88ff',10);
+  const medal=score>=500?'🏆':score>=200?'🥈':score>=100?'🥉':'💪';
+  ctx.font='30px serif';ctx.textAlign='center';ctx.fillText(medal,W/2,H*0.60);
+  pxBtn(ctx,W/2-65,H*0.67,130,36,'▶ ЕЩЁ РАЗ');
+  pxBtn(ctx,W/2-65,H*0.77,130,28,'◀ Меню','#334455','#aaccff',10);
+}
+
+// ============================================================
+// ИНИЦИАЛИЗАЦИЯ
+// ============================================================
+function initGame(){
+  const canvas=document.getElementById('gameCanvas');
+  if(!canvas)return;
+  if(GS&&GS.raf){cancelAnimationFrame(GS.raf);GS.raf=null;}
+  const pw=canvas.parentElement.clientWidth-24;
+  const W=Math.min(pw,400),H=Math.round(W*1.44);
+  canvas.width=W;canvas.height=H;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const diff=DIFFICULTY[S.diff];
+  laneLastSpawn=[0,0,0,0];
+  GS={
+    canvas,ctx:canvas.getContext('2d'),W,H,
+    score:0,combo:0,maxCombo:0,fat:50,lives:5,
+    frame:0,wave:1,speed:diff.baseSpeed,
+    over:false,started:false,detoxRound:false,
+    player:{x:W/2,y:H-32,w:16*PX,moveL:false,moveR:false},
+    foods:[],effects:[],particles:[],
+    magnet:0,shield:0,double:0,
+    flashColor:null,flashA:0,raf:null,
+    bgStars:Array.from({length:32},()=>({x:Math.random()*W,y:Math.random()*H,s:Math.random()<0.5?1:2,blink:Math.random()*60})),
+  };
+  ['btn-left','btn-right'].forEach((id,side)=>{
+    const el=document.getElementById(id);if(!el)return;
+    const on=(evs,fn)=>evs.forEach(e=>el.addEventListener(e,fn,{passive:false}));
+    on(['touchstart','mousedown'],e=>{e.preventDefault();if(side===0)GS.player.moveL=true;else GS.player.moveR=true;});
+    on(['touchend','mouseup','mouseleave'],e=>{e.preventDefault();if(side===0)GS.player.moveL=false;else GS.player.moveR=false;});
+  });
+  document.addEventListener('keydown',e=>{if(!GS)return;if(e.key==='ArrowLeft'||e.key==='a')GS.player.moveL=true;if(e.key==='ArrowRight'||e.key==='d')GS.player.moveR=true;});
+  document.addEventListener('keyup',e=>{if(!GS)return;if(e.key==='ArrowLeft'||e.key==='a')GS.player.moveL=false;if(e.key==='ArrowRight'||e.key==='d')GS.player.moveR=false;});
+  canvas.addEventListener('click',e=>{
+    const r=canvas.getBoundingClientRect();
+    handleClick((e.clientX-r.left)*(GS.W/r.width),(e.clientY-r.top)*(GS.H/r.height));
+  });
+  SCREEN=S.gender?'start':'gender';
+  gameLoop();
+}
+
+function handleClick(cx,cy){
+  const{W,H}=GS;
+  if(SCREEN==='gender'){S.gender=cx<W/2?'male':'female';STORE.set('gender',S.gender);SCREEN='start';return;}
+  if(SCREEN==='start'){
+    if(cy>H*0.82&&cy<H*0.82+36){SCREEN='game';GS.started=true;return;}
+    if(cy>H*0.90&&cy<H*0.90+26){SCREEN='settings';return;}
+    return;
+  }
+  if(SCREEN==='settings'){
+    // Главные табы
+    [['bg',0],['char',1],['diff',2]].forEach(([t,i])=>{
+      const bx=W*0.04+i*(W*0.32),by=36,bw=W*0.29;
+      if(cx>bx&&cx<bx+bw&&cy>by&&cy<by+22)settingsTab=t;
+    });
+    if(settingsTab==='bg'){
+      const pw=Math.round(W*0.42),ph=50,gap=8,ox=(W-pw*2-gap)/2;
+      BACKGROUNDS.forEach((bg,i)=>{
+        const col=i%2,row=Math.floor(i/2),bx=ox+col*(pw+gap),by=86+row*(ph+26);
+        if(cx>bx&&cx<bx+pw&&cy>by&&cy<by+ph+20){S.bg=i;STORE.set('bg',i);}
+      });
+    }
+    if(settingsTab==='char'){
+      const g=S.gender||'male';
+      // Смена пола
+      if(cy>70&&cy<90){
+        const ng=cx<W*0.62?'male':'female';
+        if(ng!==S.gender){S.gender=ng;STORE.set('gender',S.gender);S.hat=S.hair=S.shirt=S.pants=S.boot=0;['hat','hair','shirt','pants','boot'].forEach(k=>STORE.set(k,0));}
+      }
+      // Стрелки навигации частей
+      const navY=H*0.44;
+      if(cy>navY&&cy<navY+22){
+        if(cx>W*0.48-26&&cx<W*0.48){charPart=(charPart+4)%5;}
+        if(cx>W*0.48+W*0.40&&cx<W*0.48+W*0.40+24){charPart=(charPart+1)%5;}
+      }
+      // Свотчи
+      const pool=getPartPool(g,charPart);
+      const swW=Math.round(W*0.12),swH=18,swGap=4,swTotalW=3*(swW+swGap)-swGap;
+      const swOx=W*0.48+(W*0.48-swTotalW)/2;
+      pool.forEach((part,i)=>{
+        const col=i%3,row=Math.floor(i/3),bx=swOx+col*(swW+swGap),by=H*0.52+row*(swH+swGap+14);
+        if(cx>bx&&cx<bx+swW&&cy>by&&cy<by+swH){
+          const key=getPartKey(charPart);S[key]=i;STORE.set(key,i);
+        }
+      });
+    }
+    if(settingsTab==='diff'){
+      DIFFICULTY.forEach((d,i)=>{const by=88+i*66;if(cy>by&&cy<by+58){S.diff=i;STORE.set('diff',i);}});
+    }
+    if(cy>H-52&&cy<H-18&&cx>W/2-55&&cx<W/2+55)SCREEN='start';
+    return;
+  }
+  if(SCREEN==='game'){if(cx>GS.W-30&&cy<30){SCREEN='settings';return;}return;}
+  if(SCREEN==='over'){
+    if(cy>H*0.67&&cy<H*0.67+36)restartGame();
+    else if(cy>H*0.77&&cy<H*0.77+28)SCREEN='start';
+    return;
+  }
+}
+
+function restartGame(){
+  const diff=DIFFICULTY[S.diff];
+  laneLastSpawn=[0,0,0,0];
+  Object.assign(GS,{score:0,combo:0,maxCombo:0,fat:50,lives:5,frame:0,wave:1,
+    speed:diff.baseSpeed,over:false,started:true,detoxRound:false,
+    foods:[],effects:[],particles:[],magnet:0,shield:0,double:0,flashA:0});
+  SCREEN='game';
+}
+
+// ============================================================
+// ГЛАВНЫЙ ЦИКЛ
+// ============================================================
+function gameLoop(){
+  const gs=GS;if(!gs)return;
+  gs.raf=requestAnimationFrame(gameLoop);
+  const{ctx,W,H}=gs;
+  const skin=getSkin();
+  const gender=S.gender||'male';
+
+  drawBGFull(ctx,gs,S.bg);
+
+  if(SCREEN==='gender'){drawPlayerAt(ctx,W/2,H-65,20,gender,skin,gs.frame);gs.frame++;drawGender(ctx,W,H);return;}
+  if(SCREEN==='start'){drawPlayerAt(ctx,W/2,H-65,20,gender,skin,gs.frame);gs.frame++;drawStart(ctx,W,H);return;}
+  if(SCREEN==='settings'){drawSettings(ctx,W,H);return;}
+
+  const GRACE=300;
+  if(SCREEN==='game'&&!gs.over){
+    gs.frame++;
+    const p=gs.player,spd=W*0.016;
+    if(p.moveL)p.x=Math.max(p.w/2,p.x-spd);
+    if(p.moveR)p.x=Math.min(W-p.w/2,p.x+spd);
+    if(gs.magnet>0)gs.magnet--;
+    if(gs.shield>0)gs.shield--;
+    if(gs.double>0)gs.double--;
+
+    const diff=DIFFICULTY[S.diff];
+    const newWave=Math.floor(gs.score/diff.wavePts)+1;
+    if(newWave>gs.wave){
+      gs.wave=newWave;gs.speed+=diff.speedInc;
+      // Детокс каждую 4-ю волну
+      gs.detoxRound=(gs.wave%4===0);
+      gs.effects.push({x:W/2,y:H*0.45,text:gs.detoxRound?'🍃 ДЕТОКС-РАУНД!':'ВОЛНА '+gs.wave+'!',color:gs.detoxRound?'#44ff88':'#ffe066',vy:-0.7,a:1,size:15});
+      spawnParticles(W/2,H/2,gs.detoxRound?'#44ff44':'#6c63ff',14);
+      // Бонусная жизнь каждые 3 волны
+      if(gs.wave%3===0&&gs.lives<5){
+        gs.lives=Math.min(5,gs.lives+1);
+        gs.effects.push({x:W*0.5,y:H*0.38,text:'+❤️ Бонусная жизнь!',color:'#ff6666',vy:-0.5,a:1,size:12});
+      }
+    }
+
+    const interval=Math.max(28,diff.spawnBase-gs.wave*3);
+    if(gs.frame%interval===0)spawnFood();
+
+    const fatW=(8+(gs.fat/100)*9)*PX;
+    const catchY=p.y-24;
+    gs.foods=gs.foods.filter(f=>{
+      f.y+=f.speed;
+      f.x+=Math.sin(gs.frame*f.wobbleSpeed+f.wobble)*0.4;
+      if(gs.magnet>0&&!f.isJunk&&!f.isPowerup){
+        const dx=p.x-f.x,dy=catchY-f.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<W*0.23){f.x+=dx*0.08;f.y+=dy*0.06;}
+      }
+      // Коллизия
+      if(Math.abs(f.x-p.x)<fatW+f.size*0.42&&Math.abs(f.y-catchY)<f.size*0.92){
+        if(f.isPowerup){
+          if(f.type==='magnet')gs.magnet=f.dur;
+          if(f.type==='shield')gs.shield=f.dur;
+          if(f.type==='double')gs.double=f.dur;
+          if(f.type==='pill'){gs.fat=Math.max(5,gs.fat-20);gs.effects.push({x:f.x,y:f.y-20,text:'-20% веса!',color:'#ff88ff',vy:-1,a:1,size:12});}
+          if(f.type==='life'&&gs.lives<5){gs.lives++;gs.effects.push({x:f.x,y:f.y-20,text:'+❤️',color:'#ff6666',vy:-1,a:1,size:14});}
+          spawnParticles(f.x,f.y,'#aaddff',10);gs.flashColor='#002244';gs.flashA=0.16;
+        } else if(!f.isJunk){
+          const multi=gs.double>0?2:1;
+          const comboBon=gs.combo>2?Math.min(gs.combo,8):1;
+          const pts=(f.pts||10)*comboBon*multi*(f.rare?2:1);
+          gs.score+=pts;gs.combo++;
+          if(gs.combo>gs.maxCombo)gs.maxCombo=gs.combo;
+          gs.fat=Math.max(5,gs.fat-(gs.detoxRound?8:4));
+          if(gs.combo%5===0){
+            gs.fat=Math.max(5,gs.fat-5);
+            gs.effects.push({x:f.x,y:f.y-32,text:'💪 КОМБО БОНУС!',color:'#88ffaa',vy:-0.8,a:1,size:12});
+          }
+          const label=f.rare?'★ РЕДКОСТЬ! +'+pts:'+'+pts+(gs.combo>1?' x'+gs.combo:'');
+          gs.effects.push({x:f.x,y:f.y-20,text:label,color:f.rare?'#ffee00':'#44ff88',vy:-1.2,a:1,size:f.rare?14:12});
+          spawnParticles(f.x,f.y,f.rare?'#ffee00':'#44ff44',f.rare?12:7);
+          gs.flashColor='#002200';gs.flashA=0.14;
+        } else {
+          if(gs.shield>0){gs.shield=0;gs.effects.push({x:f.x,y:f.y-20,text:'🛡️ Заблокировано!',color:'#aaaaff',vy:-1,a:1,size:12});}
+          else{
+            const diff2=DIFFICULTY[S.diff];
+            gs.fat=Math.min(100,gs.fat+f.fat*diff2.fatMult);gs.combo=0;
+            gs.effects.push({x:f.x,y:f.y-20,text:'+вес!',color:'#ff4444',vy:-1.2,a:1,size:13});
+            spawnParticles(f.x,f.y,'#ff4444',8);gs.flashColor='#440000';gs.flashA=0.28;
+            if(gs.fat>=100){gs.over=true;SCREEN='over';}
+          }
+        }
+        return false;
+      }
+      if(f.y>H+20){
+        if(!f.isJunk&&!f.isPowerup&&gs.frame>GRACE){
+          gs.lives--;gs.combo=0;
+          gs.effects.push({x:f.x,y:H-60,text:'Мимо!',color:'#ff8888',vy:-0.8,a:1,size:13});
+          gs.flashColor='#220000';gs.flashA=0.25;
+          if(gs.lives<=0){gs.over=true;SCREEN='over';}
+        }
+        return false;
+      }
+      return true;
+    });
+    if(gs.score>S.highScore){S.highScore=gs.score;STORE.set('highScore',gs.score);}
+  }
+
+  gs.foods.forEach(f=>drawFood(ctx,f));
+  gs.particles=gs.particles.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.12;p.life-=0.04;
+    ctx.fillStyle=p.color+Math.round(p.life*255).toString(16).padStart(2,'0');
+    ctx.fillRect(Math.round(p.x),Math.round(p.y),p.size,p.size);return p.life>0;
+  });
+
+  const{player:pl,magnet:mg,shield:sh,double:db}=gs;
+  drawPlayerAt(ctx,pl.x,pl.y,gs.fat,gender,skin,gs.frame,pl.moveL,pl.moveR,sh,mg,W,db);
+  if(SCREEN==='game')drawHUD(ctx,gs);
+
+  gs.effects=gs.effects.filter(e=>{
+    ctx.globalAlpha=e.a;ctx.fillStyle=e.color;ctx.font=`bold ${e.size||12}px monospace`;ctx.textAlign='center';
+    ctx.fillText(e.text,e.x,e.y);ctx.globalAlpha=1;e.y+=e.vy;e.a-=0.02;return e.a>0;
+  });
+  if(gs.flashA>0){ctx.fillStyle=gs.flashColor;ctx.globalAlpha=gs.flashA;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;gs.flashA=Math.max(0,gs.flashA-0.04);}
+  if(SCREEN==='over')drawOver(ctx,gs);
+}
+
+const _origST=switchTab;
+switchTab=function(tab){_origST(tab);if(tab==='game')setTimeout(initGame,50);};
 </script>
 </body>
 </html>
