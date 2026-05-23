@@ -502,35 +502,42 @@ const MINI_I18N = {
   uk: { scan_title:'Сканер штрихкодів', scan_sub:'Наведи камеру на штрихкод — бот знайде КБЖУ автоматично', open_cam:'📷 Відкрити камеру', stop:'⏹ Зупинити', searching:'Шукаю штрихкод...', found:'Знайдено:', not_found:'Не знайдено 😔', write:'✅ Записати в щоденник', rescan:'🔄 Сканувати знову', manual_title:'✍️ Вручну', name_ph:'Наприклад: Курка', weight_ph:'200', add:'✅ Додати', meal_breakfast:'🌅 Сніданок', meal_lunch:'☀️ Обід', meal_dinner:'🌙 Вечеря', meal_snack:'🍎 Перекус', weight_label:'Вага порції (грами)', kcal:'ККАЛ', protein:'БІЛКИ', fat:'ЖИРИ', carbs:'ВУГЛ', fill_all:'Заповни назву і вагу', send_error:'Помилка', game:'🎮 Гра', tab_scan:'📦 Штрихкод', tab_manual:'✍️ Вручну', healthy:'✓ Корисно', junk:'⚠ Шкідливо', bonus:'Бонус', wave:'ХВИЛЯ', miss:'Мимо!', shield_block:'🛡️ Заблоковано!', combo_bonus:'💪 КОМБО БОНУС!', detox:'🍃 ДЕТОКС-РАУНД!', fat_pct:'% жир', score:'Очки', game_over_score:'РАХУНОК:', game_over_record:'РЕКОРД:', game_over_combo:'МАКС КОМБО:', play:'▶  ГРАТИ', settings_lbl:'⚙️ Налаштування', back:'◀ Назад', location:'Локація', character:'Персонаж', difficulty:'Складність', style_lbl:'Форма', color_lbl:'Колір', gender_m:'👦 Хлопець', gender_f:'👧 Дівчина', preview:'Перегляд', diff_easy:'Легкий', diff_normal:'Нормальний', diff_hard:'Складний', diff_desc_easy:'🐢 Повільно', diff_desc_normal:'🎮 Стандартно', diff_desc_hard:'🔥 Швидко', record:'🏆 Рекорд:', again:'▶ ЩЕ РАЗ', menu:'◀ Меню', choose_char:'Вибери персонажа', choose_loc:'Вибери локацію', how_to:'ЯК ГРАТИ', start_btn:'▶  ПОЧАТИ', detox_round:'ДЕТОКС' },
   de: { scan_title:'Barcode-Scanner', scan_sub:'Kamera auf Barcode richten — Bot findet Nährwerte automatisch', open_cam:'📷 Kamera öffnen', stop:'⏹ Stopp', searching:'Suche...', found:'Gefunden:', not_found:'Nicht gefunden 😔', write:'✅ Im Tagebuch speichern', rescan:'🔄 Erneut scannen', manual_title:'✍️ Manuell', name_ph:'Z.B.: Hähnchen', weight_ph:'200', add:'✅ Hinzufügen', meal_breakfast:'🌅 Frühstück', meal_lunch:'☀️ Mittagessen', meal_dinner:'🌙 Abendessen', meal_snack:'🍎 Snack', weight_label:'Portionsgewicht (Gramm)', kcal:'KKAL', protein:'PROTEIN', fat:'FETT', carbs:'KOHLENHYDR', fill_all:'Name und Gewicht ausfüllen', send_error:'Fehler', game:'🎮 Spiel', tab_scan:'📦 Barcode', tab_manual:'✍️ Manuell', healthy:'✓ Gesund', junk:'⚠ Ungesund', bonus:'Bonus', wave:'WELLE', miss:'Verfehlt!', shield_block:'🛡️ Blockiert!', combo_bonus:'💪 COMBO BONUS!', detox:'🍃 DETOX-RUNDE!', fat_pct:'% Fett', score:'Punkte', game_over_score:'PUNKTE:', game_over_record:'REKORD:', game_over_combo:'MAX COMBO:', play:'▶  SPIELEN', settings_lbl:'⚙️ Einstellungen', back:'◀ Zurück', location:'Ort', character:'Charakter', difficulty:'Schwierigkeit', style_lbl:'Stil', color_lbl:'Farbe', gender_m:'👦 Junge', gender_f:'👧 Mädchen', preview:'Vorschau', diff_easy:'Leicht', diff_normal:'Normal', diff_hard:'Schwer', diff_desc_easy:'🐢 Langsam', diff_desc_normal:'🎮 Standard', diff_desc_hard:'🔥 Schnell', record:'🏆 Rekord:', again:'▶ NOCHMAL', menu:'◀ Menü', choose_char:'Charakter wählen', choose_loc:'Ort wählen', how_to:'WIE SPIELEN', start_btn:'▶  START', detox_round:'DETOX' },
 };
-// Для остальных языков — fallback на English
-['fr','es','it','pt','tr','pl','kk','uz','be','ar','he','zh','ja','ko','hi','th','ro','bg','sr','cs','ka','hy','az','fi','nl','id'].forEach(l => {
-  if (!MINI_I18N[l]) MINI_I18N[l] = {...MINI_I18N.en};
-});
-
+// Только ru и en — остальные получают en
 let LANG = 'ru';
 let i18n = MINI_I18N.ru;
 
 function applyLang(code) {
   const base = (code||'ru').toLowerCase().split('-')[0].split('_')[0];
-  LANG = MINI_I18N[base] ? base : 'ru';
-  i18n = MINI_I18N[LANG];
+  // Только ru и en, остальное → en (не ru)
+  if (base === 'ru' || base === 'uk' || base === 'be' || base === 'kk' || base === 'uz') {
+    LANG = 'ru';
+  } else if (MINI_I18N[base]) {
+    LANG = base;
+  } else {
+    LANG = 'en';
+  }
+  i18n = MINI_I18N[LANG] || MINI_I18N.en;
 }
 
-function detectLangFallback() {
+function detectLang() {
   const tgLang = tg?.initDataUnsafe?.user?.language_code || '';
   const navLang = navigator.language || '';
   for (const src of [tgLang, navLang]) {
-    const base = src.toLowerCase().split('-')[0].split('_')[0];
-    if (MINI_I18N[base]) return base;
+    if (src) return src;
   }
   return 'ru';
 }
 
-// Читаем язык: CloudStorage (выбранный в боте) → Telegram → navigator
-applyLang(detectLangFallback());
+// Читаем язык: CloudStorage → Telegram → navigator
+applyLang(detectLang());
 if (tg && tg.CloudStorage) {
   tg.CloudStorage.getItem('nutrio_lang', (err, val) => {
-    if (!err && val) applyLang(val);
+    if (!err && val) {
+      applyLang(val);
+    } else {
+      // Первый запуск — сохраняем определённый язык
+      tg.CloudStorage.setItem('nutrio_lang', LANG, () => {});
+    }
     document.addEventListener('DOMContentLoaded', applyTranslations);
   });
 } else {
@@ -1474,7 +1481,10 @@ function drawSettings(ctx,W,H){
     DIFFICULTY.forEach((d,i)=>{const by=84+i*66,sel=i===S.diff;pxRect(ctx,W*0.06,by,W*0.88,56,sel?'#1a1a44':'#0f0f22',sel?'#6c63ff':'#334466');pxText(ctx,d.name,W/2,by+22,sel?'#ffe066':'#aaaacc',13);pxText(ctx,['🐢 Медленно, для знакомства','🎮 Стандартно — для большинства','🔥 Быстро и опасно — для опытных'][i],W/2,by+40,'#666688',8);});
     pxText(ctx,'🏆 Рекорд: '+S.highScore,W/2,292,'#ffe066',12);
   }
-  pxBtn(ctx,W/2-55,H-52,110,34,'◀ Назад','#334455','#aaccff',11);
+  // Кнопка языка
+  const langLabel = LANG === 'ru' ? '🇷🇺 RU → EN' : '🇬🇧 EN → RU';
+  pxBtn(ctx,W*0.04,H-52,W*0.44,34,langLabel,'#223344','#aaccff',10);
+  pxBtn(ctx,W*0.52,H-52,W*0.44,34,i18n.back,'#334455','#aaccff',11);
 }
 
 // ============================================================
@@ -1599,7 +1609,13 @@ function handleClick(cx,cy){
       });
     }
     if(settingsTab==='diff'){DIFFICULTY.forEach((d,i)=>{const by=84+i*66;if(cy>by&&cy<by+56){S.diff=i;saveS('diff');}});}
-    if(cy>H-52&&cy<H-18&&cx>W/2-55&&cx<W/2+55)SCREEN='start';
+    // Назад
+    if(cy>H-52&&cy<H-18&&cx>W*0.52&&cx<W)SCREEN='start';
+    // Смена языка
+    if(cy>H-52&&cy<H-18&&cx>W*0.04&&cx<W*0.48){
+      applyLang(LANG==='ru'?'en':'ru');
+      if(tg&&tg.CloudStorage) tg.CloudStorage.setItem('nutrio_lang',LANG,()=>{});
+    }
     return;
   }
   if(SCREEN==='game'){if(cx<35&&cy<30){SCREEN='settings';return;}return;}
