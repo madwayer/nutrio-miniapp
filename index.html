@@ -520,28 +520,28 @@ function applyLang(code) {
 }
 
 function detectLang() {
+  // 1. Сохранённый пользователем выбор (localStorage)
+  try {
+    const saved = localStorage.getItem('nutrio_lang');
+    if (saved === 'ru' || saved === 'en') return saved;
+  } catch(e) {}
+  // 2. Telegram user language
   const tgLang = tg?.initDataUnsafe?.user?.language_code || '';
-  const navLang = navigator.language || '';
-  for (const src of [tgLang, navLang]) {
-    if (src) return src;
-  }
-  return 'ru';
+  if (tgLang) return tgLang;
+  // 3. Browser language
+  return navigator.language || 'ru';
 }
 
-// Читаем язык: CloudStorage → Telegram → navigator
 applyLang(detectLang());
-if (tg && tg.CloudStorage) {
-  tg.CloudStorage.getItem('nutrio_lang', (err, val) => {
-    if (!err && val) {
-      applyLang(val);
-    } else {
-      // Первый запуск — сохраняем определённый язык
-      tg.CloudStorage.setItem('nutrio_lang', LANG, () => {});
-    }
-    document.addEventListener('DOMContentLoaded', applyTranslations);
-  });
-} else {
-  document.addEventListener('DOMContentLoaded', applyTranslations);
+document.addEventListener('DOMContentLoaded', applyTranslations);
+
+// Функция смены языка (вызывается из кнопки в настройках игры)
+function toggleLang() {
+  const newLang = LANG === 'ru' ? 'en' : 'ru';
+  applyLang(newLang);
+  try { localStorage.setItem('nutrio_lang', newLang); } catch(e) {}
+  // Перерисовываем текущий экран
+  applyTranslations();
 }
 
 function applyTranslations() {
@@ -1613,8 +1613,7 @@ function handleClick(cx,cy){
     if(cy>H-52&&cy<H-18&&cx>W*0.52&&cx<W)SCREEN='start';
     // Смена языка
     if(cy>H-52&&cy<H-18&&cx>W*0.04&&cx<W*0.48){
-      applyLang(LANG==='ru'?'en':'ru');
-      if(tg&&tg.CloudStorage) tg.CloudStorage.setItem('nutrio_lang',LANG,()=>{});
+      toggleLang();
     }
     return;
   }
