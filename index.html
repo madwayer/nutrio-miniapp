@@ -495,6 +495,67 @@
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
+// ── Переводы Mini App ─────────────────────────────────────────
+const MINI_I18N = {
+  ru: { scan_title:'Сканер штрихкодов', scan_sub:'Наведи камеру на штрихкод упаковки — бот найдёт КБЖУ автоматически', open_cam:'📷 Открыть камеру', stop:'⏹ Остановить', searching:'Ищу штрихкод...', found:'Найдено:', not_found:'Не найдено 😔', write:'✅ Записать в дневник', rescan:'🔄 Сканировать снова', manual_title:'✍️ Вручную', name_ph:'Например: Курица', weight_ph:'200', add:'✅ Добавить', meal_breakfast:'🌅 Завтрак', meal_lunch:'☀️ Обед', meal_dinner:'🌙 Ужин', meal_snack:'🍎 Перекус', weight_label:'Вес порции (граммы)', kcal:'ККАЛ', protein:'БЕЛКИ', fat:'ЖИРЫ', carbs:'УГЛЕВ', fill_all:'Заполни название и вес', send_error:'Ошибка отправки', game:'🎮 Игра', tab_scan:'📦 Штрихкод', tab_manual:'✍️ Вручную', healthy:'✓ Полезно', junk:'⚠ Вредно', bonus:'Бонус', wave:'ВОЛНА', miss:'Мимо!', shield_block:'🛡️ Заблокировано!', combo_bonus:'💪 КОМБО БОНУС!', detox:'🍃 ДЕТОКС-РАУНД!', fat_pct:'% жир', score:'Очки', game_over_score:'СЧЁТ:', game_over_record:'РЕКОРД:', game_over_combo:'МАКС КОМБО:', play:'▶  ИГРАТЬ', settings_lbl:'⚙️ Настройки', back:'◀ Назад', location:'Локация', character:'Персонаж', difficulty:'Сложность', style_lbl:'Форма', color_lbl:'Цвет', gender_m:'👦 Парень', gender_f:'👧 Девушка', preview:'Превью', diff_easy:'Лёгкий', diff_normal:'Нормальный', diff_hard:'Сложный', diff_desc_easy:'🐢 Медленно', diff_desc_normal:'🎮 Стандартно', diff_desc_hard:'🔥 Быстро', record:'🏆 Рекорд:', again:'▶ ЕЩЁ РАЗ', menu:'◀ Меню', choose_char:'Выбери персонажа', choose_loc:'Выбери локацию', how_to:'КАК ИГРАТЬ', start_btn:'▶  НАЧАТЬ', detox_round:'ДЕТОКС' },
+  en: { scan_title:'Barcode scanner', scan_sub:'Point camera at barcode — bot finds nutrition automatically', open_cam:'📷 Open camera', stop:'⏹ Stop', searching:'Scanning...', found:'Found:', not_found:'Not found 😔', write:'✅ Add to diary', rescan:'🔄 Scan again', manual_title:'✍️ Manual', name_ph:'E.g.: Chicken', weight_ph:'200', add:'✅ Add', meal_breakfast:'🌅 Breakfast', meal_lunch:'☀️ Lunch', meal_dinner:'🌙 Dinner', meal_snack:'🍎 Snack', weight_label:'Portion weight (grams)', kcal:'KCAL', protein:'PROTEIN', fat:'FAT', carbs:'CARBS', fill_all:'Fill name and weight', send_error:'Send error', game:'🎮 Game', tab_scan:'📦 Barcode', tab_manual:'✍️ Manual', healthy:'✓ Healthy', junk:'⚠ Junk', bonus:'Bonus', wave:'WAVE', miss:'Miss!', shield_block:'🛡️ Blocked!', combo_bonus:'💪 COMBO BONUS!', detox:'🍃 DETOX ROUND!', fat_pct:'% fat', score:'Score', game_over_score:'SCORE:', game_over_record:'RECORD:', game_over_combo:'MAX COMBO:', play:'▶  PLAY', settings_lbl:'⚙️ Settings', back:'◀ Back', location:'Location', character:'Character', difficulty:'Difficulty', style_lbl:'Style', color_lbl:'Color', gender_m:'👦 Boy', gender_f:'👧 Girl', preview:'Preview', diff_easy:'Easy', diff_normal:'Normal', diff_hard:'Hard', diff_desc_easy:'🐢 Slow', diff_desc_normal:'🎮 Standard', diff_desc_hard:'🔥 Fast', record:'🏆 Record:', again:'▶ PLAY AGAIN', menu:'◀ Menu', choose_char:'Choose character', choose_loc:'Choose location', how_to:'HOW TO PLAY', start_btn:'▶  START', detox_round:'DETOX' },
+  uk: { scan_title:'Сканер штрихкодів', scan_sub:'Наведи камеру на штрихкод — бот знайде КБЖУ автоматично', open_cam:'📷 Відкрити камеру', stop:'⏹ Зупинити', searching:'Шукаю штрихкод...', found:'Знайдено:', not_found:'Не знайдено 😔', write:'✅ Записати в щоденник', rescan:'🔄 Сканувати знову', manual_title:'✍️ Вручну', name_ph:'Наприклад: Курка', weight_ph:'200', add:'✅ Додати', meal_breakfast:'🌅 Сніданок', meal_lunch:'☀️ Обід', meal_dinner:'🌙 Вечеря', meal_snack:'🍎 Перекус', weight_label:'Вага порції (грами)', kcal:'ККАЛ', protein:'БІЛКИ', fat:'ЖИРИ', carbs:'ВУГЛ', fill_all:'Заповни назву і вагу', send_error:'Помилка', game:'🎮 Гра', tab_scan:'📦 Штрихкод', tab_manual:'✍️ Вручну', healthy:'✓ Корисно', junk:'⚠ Шкідливо', bonus:'Бонус', wave:'ХВИЛЯ', miss:'Мимо!', shield_block:'🛡️ Заблоковано!', combo_bonus:'💪 КОМБО БОНУС!', detox:'🍃 ДЕТОКС-РАУНД!', fat_pct:'% жир', score:'Очки', game_over_score:'РАХУНОК:', game_over_record:'РЕКОРД:', game_over_combo:'МАКС КОМБО:', play:'▶  ГРАТИ', settings_lbl:'⚙️ Налаштування', back:'◀ Назад', location:'Локація', character:'Персонаж', difficulty:'Складність', style_lbl:'Форма', color_lbl:'Колір', gender_m:'👦 Хлопець', gender_f:'👧 Дівчина', preview:'Перегляд', diff_easy:'Легкий', diff_normal:'Нормальний', diff_hard:'Складний', diff_desc_easy:'🐢 Повільно', diff_desc_normal:'🎮 Стандартно', diff_desc_hard:'🔥 Швидко', record:'🏆 Рекорд:', again:'▶ ЩЕ РАЗ', menu:'◀ Меню', choose_char:'Вибери персонажа', choose_loc:'Вибери локацію', how_to:'ЯК ГРАТИ', start_btn:'▶  ПОЧАТИ', detox_round:'ДЕТОКС' },
+  de: { scan_title:'Barcode-Scanner', scan_sub:'Kamera auf Barcode richten — Bot findet Nährwerte automatisch', open_cam:'📷 Kamera öffnen', stop:'⏹ Stopp', searching:'Suche...', found:'Gefunden:', not_found:'Nicht gefunden 😔', write:'✅ Im Tagebuch speichern', rescan:'🔄 Erneut scannen', manual_title:'✍️ Manuell', name_ph:'Z.B.: Hähnchen', weight_ph:'200', add:'✅ Hinzufügen', meal_breakfast:'🌅 Frühstück', meal_lunch:'☀️ Mittagessen', meal_dinner:'🌙 Abendessen', meal_snack:'🍎 Snack', weight_label:'Portionsgewicht (Gramm)', kcal:'KKAL', protein:'PROTEIN', fat:'FETT', carbs:'KOHLENHYDR', fill_all:'Name und Gewicht ausfüllen', send_error:'Fehler', game:'🎮 Spiel', tab_scan:'📦 Barcode', tab_manual:'✍️ Manuell', healthy:'✓ Gesund', junk:'⚠ Ungesund', bonus:'Bonus', wave:'WELLE', miss:'Verfehlt!', shield_block:'🛡️ Blockiert!', combo_bonus:'💪 COMBO BONUS!', detox:'🍃 DETOX-RUNDE!', fat_pct:'% Fett', score:'Punkte', game_over_score:'PUNKTE:', game_over_record:'REKORD:', game_over_combo:'MAX COMBO:', play:'▶  SPIELEN', settings_lbl:'⚙️ Einstellungen', back:'◀ Zurück', location:'Ort', character:'Charakter', difficulty:'Schwierigkeit', style_lbl:'Stil', color_lbl:'Farbe', gender_m:'👦 Junge', gender_f:'👧 Mädchen', preview:'Vorschau', diff_easy:'Leicht', diff_normal:'Normal', diff_hard:'Schwer', diff_desc_easy:'🐢 Langsam', diff_desc_normal:'🎮 Standard', diff_desc_hard:'🔥 Schnell', record:'🏆 Rekord:', again:'▶ NOCHMAL', menu:'◀ Menü', choose_char:'Charakter wählen', choose_loc:'Ort wählen', how_to:'WIE SPIELEN', start_btn:'▶  START', detox_round:'DETOX' },
+};
+// Для остальных языков — fallback на English
+['fr','es','it','pt','tr','pl','kk','uz','be','ar','he','zh','ja','ko','hi','th','ro','bg','sr','cs','ka','hy','az','fi','nl','id'].forEach(l => {
+  if (!MINI_I18N[l]) MINI_I18N[l] = {...MINI_I18N.en};
+});
+
+let LANG = 'ru';
+let i18n = MINI_I18N.ru;
+
+function applyLang(code) {
+  const base = (code||'ru').toLowerCase().split('-')[0].split('_')[0];
+  LANG = MINI_I18N[base] ? base : 'ru';
+  i18n = MINI_I18N[LANG];
+}
+
+function detectLangFallback() {
+  const tgLang = tg?.initDataUnsafe?.user?.language_code || '';
+  const navLang = navigator.language || '';
+  for (const src of [tgLang, navLang]) {
+    const base = src.toLowerCase().split('-')[0].split('_')[0];
+    if (MINI_I18N[base]) return base;
+  }
+  return 'ru';
+}
+
+// Читаем язык: CloudStorage (выбранный в боте) → Telegram → navigator
+applyLang(detectLangFallback());
+if (tg && tg.CloudStorage) {
+  tg.CloudStorage.getItem('nutrio_lang', (err, val) => {
+    if (!err && val) applyLang(val);
+    document.addEventListener('DOMContentLoaded', applyTranslations);
+  });
+} else {
+  document.addEventListener('DOMContentLoaded', applyTranslations);
+}
+
+function applyTranslations() {
+  const tabScan = document.getElementById('tab-scanner');
+  const tabManual = document.getElementById('tab-manual');
+  const tabGame = document.getElementById('tab-game');
+  if (tabScan) tabScan.textContent = i18n.tab_scan;
+  if (tabManual) tabManual.textContent = i18n.tab_manual;
+  if (tabGame) tabGame.textContent = i18n.game;
+  const h2 = document.querySelector('.scanner-hero h2');
+  const p = document.querySelector('.scanner-hero p');
+  if (h2) h2.textContent = i18n.scan_title;
+  if (p) p.textContent = i18n.scan_sub;
+  const scanBtn = document.getElementById('scan-btn');
+  if (scanBtn) scanBtn.textContent = i18n.open_cam;
+  document.querySelectorAll('select').forEach(sel => {
+    const keys = ['meal_breakfast','meal_lunch','meal_dinner','meal_snack'];
+    sel.querySelectorAll('option').forEach((opt, idx) => { if (keys[idx]) opt.textContent = i18n[keys[idx]]; });
+  });
+}
+
 let currentProduct = null;
 let stream = null;
 let detecting = false;
@@ -733,7 +794,7 @@ function sendManual() {
 }
 
 // Применяем переводы к UI
-document.addEventListener('DOMContentLoaded', () => {
+function applyTranslations() {
   document.getElementById('tab-scanner').textContent = '📦 ' + (LANG !== 'ru' ? 'Scan' : 'Штрихкод');
   document.getElementById('tab-manual').textContent = '✍️ ' + (LANG !== 'ru' ? 'Manual' : 'Вручную');
   document.getElementById('tab-game').textContent = i18n.game;
@@ -750,10 +811,9 @@ document.addEventListener('DOMContentLoaded', () => {
   mealSelects.forEach(sel => {
     const opts = sel.querySelectorAll('option');
     const mealKeys = ['meal_breakfast','meal_lunch','meal_dinner','meal_snack'];
-    const mealVals = ['завтрак','обед','ужин','перекус'];
     opts.forEach((opt, idx) => { if(mealKeys[idx]) opt.textContent = i18n[mealKeys[idx]]; });
   });
-});
+}
 </script>
 </body>
 </html>
