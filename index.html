@@ -375,9 +375,9 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('scanner')">📦 Штрихкод</button>
-  <button class="tab" onclick="switchTab('manual')">✍️ Вручную</button>
-  <button class="tab" onclick="switchTab('game')">🎮 Игра</button>
+  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
+  <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
+  <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
 </div>
 
 <div class="content">
@@ -732,6 +732,28 @@ function sendManual() {
   else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
 
+// Применяем переводы к UI
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tab-scanner').textContent = '📦 ' + (LANG !== 'ru' ? 'Scan' : 'Штрихкод');
+  document.getElementById('tab-manual').textContent = '✍️ ' + (LANG !== 'ru' ? 'Manual' : 'Вручную');
+  document.getElementById('tab-game').textContent = i18n.game;
+  const scannerHero = document.querySelector('.scanner-hero h2');
+  if (scannerHero) scannerHero.textContent = i18n.scan_title;
+  const scannerSub = document.querySelector('.scanner-hero p');
+  if (scannerSub) scannerSub.textContent = i18n.scan_sub;
+  const scanBtn = document.getElementById('scan-btn');
+  if (scanBtn) scanBtn.textContent = i18n.open_cam;
+  const stopBtn = document.getElementById('stop-btn');
+  if (stopBtn) stopBtn.innerHTML = '⏹ ' + i18n.stop.replace('⏹ ','');
+  // Meal options
+  const mealSelects = document.querySelectorAll('select');
+  mealSelects.forEach(sel => {
+    const opts = sel.querySelectorAll('option');
+    const mealKeys = ['meal_breakfast','meal_lunch','meal_dinner','meal_snack'];
+    const mealVals = ['завтрак','обед','ужин','перекус'];
+    opts.forEach((opt, idx) => { if(mealKeys[idx]) opt.textContent = i18n[mealKeys[idx]]; });
+  });
+});
 </script>
 </body>
 </html>
