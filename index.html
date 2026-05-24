@@ -378,6 +378,7 @@
   <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
   <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
+  <button class="tab" onclick="toggleLang()" id="tab-lang" style="font-size:18px; min-width:44px;">🇷🇺</button>
 </div>
 
 <div class="content">
@@ -475,7 +476,7 @@
   <!-- GAME PAGE -->
   <div class="page" id="page-game">
     <div style="text-align:center; margin-bottom:8px;">
-      <span id="game-score-display" style="font-size:15px; font-weight:700; color:var(--text2);">Очки: 0</span>
+      <span id="game-score-display" style="font-size:15px; font-weight:700; color:var(--text2);">⭐ 0</span>
       &nbsp;&nbsp;
       <span id="game-fat-display" style="font-size:13px; color:var(--text2);">⚖️ 50%</span>
     </div>
@@ -484,7 +485,7 @@
       <button class="btn btn-secondary" id="btn-left" style="flex:1; padding:18px; font-size:24px; user-select:none;">👈</button>
       <button class="btn btn-secondary" id="btn-right" style="flex:1; padding:18px; font-size:24px; user-select:none;">👉</button>
     </div>
-    <p style="text-align:center; font-size:11px; color:var(--text2); margin-top:6px;">Лови 🥦🍎🥕 — худеешь | Избегай 🍕🍔🧁 — толстеешь</p>
+    <p style="text-align:center; font-size:11px; color:var(--text2); margin-top:6px;"></p>
   </div>
 
 </div>
@@ -603,36 +604,46 @@ function toggleLang(){
 function applyTranslations(){
   const byId = (id) => document.getElementById(id);
   const set  = (id, val) => { const el=byId(id); if(el) el.textContent=val; };
-  set("tab-scanner",  i18n.tab_scan);
-  set("tab-manual",   i18n.tab_manual);
-  set("tab-game",     i18n.tab_game);
+
+  // Вкладки
+  set("tab-scanner", i18n.tab_scan);
+  set("tab-manual",  i18n.tab_manual);
+  set("tab-game",    i18n.tab_game);
+  const langBtn = byId("tab-lang");
+  if(langBtn) langBtn.textContent = LANG==="ru" ? "🇷🇺" : "🇬🇧";
+
+  // Сканер
   const h2 = document.querySelector(".scanner-hero h2");
   const p  = document.querySelector(".scanner-hero p");
   if(h2) h2.textContent = i18n.scan_title;
   if(p)  p.textContent  = i18n.scan_sub;
   const scanBtn = byId("scan-btn"); if(scanBtn) scanBtn.textContent = i18n.open_cam;
-  const stopBtn = byId("stop-btn"); if(stopBtn) stopBtn.innerHTML   = "⏹ " + i18n.stop.replace("⏹ ","");
-  // Выпадающие меню приёмов пищи
+  const stopBtn = byId("stop-btn"); if(stopBtn) stopBtn.innerHTML = i18n.stop;
+
+  // Кнопки действий
+  const writeBtn  = document.querySelector("[onclick='saveProduct()']");
+  const rescanBtn = document.querySelector("[onclick='resetScanner()']");
+  const addBtn    = document.querySelector("[onclick='sendManual()']");
+  if(writeBtn)  writeBtn.textContent  = i18n.write;
+  if(rescanBtn) rescanBtn.textContent = i18n.rescan;
+  if(addBtn)    addBtn.textContent    = i18n.add;
+
+  // Приёмы пищи в select
   document.querySelectorAll("select").forEach(sel => {
     const keys = ["meal_breakfast","meal_lunch","meal_dinner","meal_snack"];
     sel.querySelectorAll("option").forEach((opt,idx) => { if(keys[idx]) opt.textContent = i18n[keys[idx]]; });
   });
-  // Кнопка записи
-  const writeBtn = document.querySelector(".btn-primary[onclick='saveProduct()']");
-  if(writeBtn) writeBtn.textContent = i18n.write;
-  const rescanBtn = document.querySelector(".btn-danger[onclick='resetScanner()']");
-  if(rescanBtn) rescanBtn.textContent = i18n.rescan;
-  const addBtn = document.querySelector(".btn-primary[onclick='sendManual()']");
-  if(addBtn) addBtn.textContent = i18n.add;
-  // Метки КБЖУ
+
+  // КБЖУ метки
   const labels = document.querySelectorAll(".macro-label");
   const macroKeys = ["kcal","protein","fat","carbs"];
   labels.forEach((el,i) => { if(macroKeys[i]) el.textContent = i18n[macroKeys[i]]; });
-  // Вес порции
-  const wl = document.querySelector("label[for='weight-input']") || document.querySelector(".weight-label");
+
+  // Плейсхолдеры и лейблы
+  const nameInput   = byId("manual-name");   if(nameInput)   nameInput.placeholder   = i18n.name_ph;
+  const weightInput = byId("weight-input");  if(weightInput) weightInput.placeholder = i18n.weight_ph;
+  const wl = document.querySelector("label[for='weight-input']");
   if(wl) wl.textContent = i18n.weight_label;
-  // Плейсхолдеры
-  const nameInput = byId("manual-name"); if(nameInput) nameInput.placeholder = i18n.name_ph;
 }
 
 // Запускаем переводы когда DOM готов
@@ -651,8 +662,10 @@ let animFrame = null;
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('page-' + tab).classList.add('active');
+  const tabBtn = document.querySelector(`.tab[onclick*="${tab}"]`);
+  if (tabBtn) tabBtn.classList.add('active');
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
   if (tab !== 'scanner') stopScanner();
 }
 
@@ -882,24 +895,6 @@ function sendManual() {
 
 // Применяем переводы к UI
 function applyTranslations() {
-  document.getElementById('tab-scanner').textContent = '📦 ' + (LANG !== 'ru' ? 'Scan' : 'Штрихкод');
-  document.getElementById('tab-manual').textContent = '✍️ ' + (LANG !== 'ru' ? 'Manual' : 'Вручную');
-  document.getElementById('tab-game').textContent = i18n.game;
-  const scannerHero = document.querySelector('.scanner-hero h2');
-  if (scannerHero) scannerHero.textContent = i18n.scan_title;
-  const scannerSub = document.querySelector('.scanner-hero p');
-  if (scannerSub) scannerSub.textContent = i18n.scan_sub;
-  const scanBtn = document.getElementById('scan-btn');
-  if (scanBtn) scanBtn.textContent = i18n.open_cam;
-  const stopBtn = document.getElementById('stop-btn');
-  if (stopBtn) stopBtn.innerHTML = '⏹ ' + i18n.stop.replace('⏹ ','');
-  // Meal options
-  const mealSelects = document.querySelectorAll('select');
-  mealSelects.forEach(sel => {
-    const opts = sel.querySelectorAll('option');
-    const mealKeys = ['meal_breakfast','meal_lunch','meal_dinner','meal_snack'];
-    opts.forEach((opt, idx) => { if(mealKeys[idx]) opt.textContent = i18n[mealKeys[idx]]; });
-  });
 }
 </script>
 </body>
@@ -1758,7 +1753,17 @@ function gameLoop(){
   if(SCREEN==='over')drawOver(ctx,gs);
 }
 
-const _origST=switchTab;switchTab=function(tab){_origST(tab);if(tab==='game')setTimeout(initGame,50);};
+const _origST=switchTab;
+switchTab=function(tab){
+  _origST(tab);
+  if(tab==='game'){
+    // Ждём пока страница станет видимой
+    setTimeout(()=>{
+      const page=document.getElementById('page-game');
+      if(page&&page.classList.contains('active')) initGame();
+    }, 80);
+  }
+};
 </script>
 </body>
 </html>
