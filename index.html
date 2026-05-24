@@ -707,14 +707,16 @@ let detecting = false;
 let animFrame = null;
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const tabBtn = document.getElementById('tab-' + tab);
-  if (tabBtn) tabBtn.classList.add('active');
-  const page = document.getElementById('page-' + tab);
-  if (page) page.classList.add('active');
-  if (tab !== 'scanner') stopScanner();
-  if (tab === 'game') setTimeout(initGame, 100);
+  try {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const tabBtn = document.getElementById('tab-' + tab);
+    if (tabBtn) tabBtn.classList.add('active');
+    const page = document.getElementById('page-' + tab);
+    if (page) page.classList.add('active');
+    if (tab !== 'scanner') stopScanner();
+    if (tab === 'game') setTimeout(initGame, 150);
+  } catch(e) { console.error('switchTab error:', e); }
 }
 
 function showToast(msg, color) {
@@ -795,16 +797,18 @@ async function startScanner() {
 }
 
 function stopScanner() {
-  detecting = false;
-  if (animFrame) { clearTimeout(animFrame); animFrame = null; }
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  const video = document.getElementById('scanner-video');
-  video.srcObject = null;
-  document.getElementById('video-container').style.display = 'none';
-  document.getElementById('scan-btn').style.display = 'flex';
-  document.getElementById('stop-btn').style.display = 'none';
-  document.getElementById('scanner-hero').style.display = 'block';
-  setStatus(null);
+  try {
+    detecting = false;
+    if (typeof animFrame !== 'undefined' && animFrame) { clearTimeout(animFrame); animFrame = null; }
+    if (typeof stream !== 'undefined' && stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    const video = document.getElementById('scanner-video');
+    if (video) video.srcObject = null;
+    const vc = document.getElementById('video-container'); if (vc) vc.style.display = 'none';
+    const sb = document.getElementById('scan-btn');        if (sb) sb.style.display = 'flex';
+    const st = document.getElementById('stop-btn');        if (st) st.style.display = 'none';
+    const sh = document.getElementById('scanner-hero');    if (sh) sh.style.display = 'block';
+    if (typeof setStatus === 'function') setStatus(null);
+  } catch(e) {}
 }
 
 async function lookupBarcode(code) {
