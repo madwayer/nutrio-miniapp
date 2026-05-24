@@ -378,7 +378,7 @@
   <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
   <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
-  <button class="tab" onclick="toggleLang()" id="tab-lang" style="font-size:18px; min-width:44px;">🇷🇺</button>
+  <button class="tab" id="tab-lang" style="font-size:18px; min-width:44px;">🇷🇺</button>
 </div>
 
 <div class="content">
@@ -646,11 +646,16 @@ function applyTranslations(){
   if(wl) wl.textContent = i18n.weight_label;
 }
 
-// Запускаем переводы когда DOM готов
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", applyTranslations);
+// Запускаем переводы + вешаем кнопку языка когда DOM готов
+function _initUI(){
+  applyTranslations();
+  const lb = document.getElementById('tab-lang');
+  if(lb) lb.addEventListener('click', function(){ toggleLang(); });
+}
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", _initUI);
 } else {
-  applyTranslations(); // DOM уже готов
+  _initUI();
 }
 
 
@@ -1753,17 +1758,19 @@ function gameLoop(){
   if(SCREEN==='over')drawOver(ctx,gs);
 }
 
-const _origST=switchTab;
-switchTab=function(tab){
-  _origST(tab);
-  if(tab==='game'){
-    // Ждём пока страница станет видимой
-    setTimeout(()=>{
-      const page=document.getElementById('page-game');
-      if(page&&page.classList.contains('active')) initGame();
-    }, 80);
-  }
-};
+// Переключение вкладок — финальный патч
+(function(){
+  const orig = switchTab;
+  window.switchTab = function(tab){
+    orig(tab);
+    if(tab === 'game'){
+      setTimeout(() => {
+        const page = document.getElementById('page-game');
+        if(page && page.classList.contains('active')) initGame();
+      }, 100);
+    }
+  };
+})();
 </script>
 </body>
 </html>
