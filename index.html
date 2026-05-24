@@ -596,6 +596,8 @@ function toggleLang(){
   i18n = MINI_I18N[LANG];
   try { localStorage.setItem("nutrio_lang", LANG); } catch(e){}
   applyTranslations();
+  // Если в настройках — перерисовываем canvas (игра)
+  if(GS && SCREEN==="settings") { /* canvas перерисуется в следующем кадре */ }
 }
 
 function applyTranslations(){
@@ -633,7 +635,12 @@ function applyTranslations(){
   const nameInput = byId("manual-name"); if(nameInput) nameInput.placeholder = i18n.name_ph;
 }
 
-document.addEventListener("DOMContentLoaded", applyTranslations);
+// Запускаем переводы когда DOM готов
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", applyTranslations);
+} else {
+  applyTranslations(); // DOM уже готов
+}
 
 
 let currentProduct = null;
