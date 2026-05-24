@@ -375,10 +375,10 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" data-tab="scanner" id="tab-scanner">📦</button>
-  <button class="tab" data-tab="manual" id="tab-manual">✍️</button>
-  <button class="tab" data-tab="game" id="tab-game">🎮</button>
-  <button class="tab" data-tab="lang" id="tab-lang" style="font-size:18px; min-width:44px;">🇷🇺</button>
+  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
+  <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
+  <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
+  <button class="tab" onclick="showLangPicker()" id="tab-lang" style="font-size:18px; min-width:44px;">🇷🇺</button>
 </div>
 
 <div class="content">
@@ -693,10 +693,6 @@ function showLangPicker(){
 
 function _initUI(){
   applyTranslations();
-  // Вешаем события на вкладки
-  document.querySelectorAll('.tab[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
 }
 if(document.readyState === "loading"){
   document.addEventListener("DOMContentLoaded", _initUI);
@@ -711,7 +707,6 @@ let detecting = false;
 let animFrame = null;
 
 function switchTab(tab) {
-  if (tab === 'lang') { showLangPicker(); return; }
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const tabBtn = document.getElementById('tab-' + tab);
