@@ -652,7 +652,7 @@ const LANG_FLAGS = {
   ru:'🇷🇺 Русский', en:'🇬🇧 English', uk:'🇺🇦 Українська',
   de:'🇩🇪 Deutsch', fr:'🇫🇷 Français', es:'🇪🇸 Español',
   it:'🇮🇹 Italiano', pt:'🇧🇷 Português', tr:'🇹🇷 Türkçe',
-  pl:'🇵🇱 Polski', kk:'🇰🇿 Қазақша', uz:'🇺🇿 O'zbek',
+  pl:'🇵🇱 Polski', kk:'🇰🇿 Қазақша', uz:"🇺🇿 O'zbek",
   be:'🇧🇾 Беларуская', ar:'🇸🇦 العربية', he:'🇮🇱 עברית',
   zh:'🇨🇳 中文', ja:'🇯🇵 日本語', ko:'🇰🇷 한국어',
 };
@@ -943,10 +943,6 @@ function sendManual() {
   const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
   if (tg) { tg.sendData(JSON.stringify(data)); }
   else { showToast(`✅ ${name} ${weight}г добавлен!`); }
-}
-
-// Применяем переводы к UI
-function applyTranslations() {
 }
 </script>
 </body>
