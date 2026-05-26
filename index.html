@@ -423,7 +423,7 @@ if(document.readyState === 'loading'){
 <div class="header">
   <div>
     <div class="logo">NutriO</div>
-    <div class="header-sub">Умный дневник питания</div>
+    <div class="header-sub" id="app-subtitle">Умный дневник питания</div>
   </div>
   <span style="font-size:28px">🥗</span>
 </div>
@@ -553,6 +553,7 @@ if (tg) { tg.ready(); tg.expand(); }
 // ── Переводы Mini App (ru / en) ──────────────────────────────────
 const MINI_I18N = {
   ru: {
+    subtitle:"Умный дневник питания",
     tab_scan:"📦 Штрихкод", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
     scan_title:"Сканер штрихкодов",
     scan_sub:"Наведи камеру на штрихкод упаковки — бот найдёт КБЖУ автоматически",
@@ -633,6 +634,7 @@ const MINI_I18N = {
     slot_labels_f:["Гол. убор","Причёска","Блузка","Юбка","Обувь","Очки"],
   },
   en: {
+    subtitle:"Smart nutrition diary",
     tab_scan:"📦 Barcode", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
     scan_title:"Barcode scanner",
     scan_sub:"Point camera at barcode — bot finds nutrition automatically",
@@ -713,6 +715,7 @@ const MINI_I18N = {
     slot_labels_f:["Headwear","Hair","Top","Skirt","Shoes","Glasses"],
   },
   uk: {
+    subtitle:"Розумний щоденник харчування",
     tab_scan:"📦 Штрихкод",
     tab_manual:"✍️ Вручну",
     tab_game:"🎮 Гра",
@@ -851,6 +854,7 @@ const MINI_I18N = {
     glass_mask:"Маска",
   },
   de: {
+    subtitle:"Smartes Ernährungstagebuch",
     tab_scan:"📦 Barcode",
     tab_manual:"✍️ Manuell",
     tab_game:"🎮 Spiel",
@@ -989,6 +993,7 @@ const MINI_I18N = {
     glass_mask:"Maske",
   },
   fr: {
+    subtitle:"Journal nutritionnel intelligent",
     tab_scan:"📦 Code-barres",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Jeu",
@@ -1127,6 +1132,7 @@ const MINI_I18N = {
     glass_mask:"Masque",
   },
   es: {
+    subtitle:"Diario nutricional inteligente",
     tab_scan:"📦 Código",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Juego",
@@ -1265,6 +1271,7 @@ const MINI_I18N = {
     glass_mask:"Máscara",
   },
   it: {
+    subtitle:"Diario nutrizionale smart",
     tab_scan:"📦 Codice",
     tab_manual:"✍️ Manuale",
     tab_game:"🎮 Gioco",
@@ -1359,6 +1366,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Riprendi",
   },
   pt: {
+    subtitle:"Diário nutricional inteligente",
     tab_scan:"📦 Código",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Jogo",
@@ -1453,6 +1461,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Continuar",
   },
   tr: {
+    subtitle:"Akıllı beslenme günlüğü",
     tab_scan:"📦 Barkod",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Oyun",
@@ -1547,6 +1556,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Devam",
   },
   pl: {
+    subtitle:"Inteligentny dziennik żywienia",
     tab_scan:"📦 Kod",
     tab_manual:"✍️ Ręcznie",
     tab_game:"🎮 Gra",
@@ -1641,6 +1651,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Wznów",
   },
   kk: {
+    subtitle:"Ақылды тамақтану күнделігі",
     tab_scan:"📦 Штрих-код",
     tab_manual:"✍️ Қолмен",
     tab_game:"🎮 Ойын",
@@ -1735,6 +1746,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Жалғастыру",
   },
   uz: {
+    subtitle:"Aqlli ovqatlanish kundaligi",
     tab_scan:"📦 Shtrix-kod",
     tab_manual:"✍️ Qo'lda",
     tab_game:"🎮 O'yin",
@@ -1829,6 +1841,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Davom etish",
   },
   ar: {
+    subtitle:"مذكرة التغذية الذكية",
     tab_scan:"📦 الباركود",
     tab_manual:"✍️ يدوي",
     tab_game:"🎮 لعبة",
@@ -1923,6 +1936,7 @@ const MINI_I18N = {
     resume_lbl:"▶ استمرار",
   },
   he: {
+    subtitle:"יומן תזונה חכם",
     tab_scan:"📦 ברקוד",
     tab_manual:"✍️ ידני",
     tab_game:"🎮 משחק",
@@ -2017,6 +2031,7 @@ const MINI_I18N = {
     resume_lbl:"▶ המשך",
   },
   zh: {
+    subtitle:"智能营养日记",
     tab_scan:"📦 条形码",
     tab_manual:"✍️ 手动",
     tab_game:"🎮 游戏",
@@ -2111,6 +2126,7 @@ const MINI_I18N = {
     resume_lbl:"▶ 继续",
   },
   ja: {
+    subtitle:"スマート栄養日記",
     tab_scan:"📦 バーコード",
     tab_manual:"✍️ 手動",
     tab_game:"🎮 ゲーム",
@@ -2205,6 +2221,7 @@ const MINI_I18N = {
     resume_lbl:"▶ 再開",
   },
   ko: {
+    subtitle:"스마트 영양 일기",
     tab_scan:"📦 바코드",
     tab_manual:"✍️ 수동",
     tab_game:"🎮 게임",
@@ -2380,6 +2397,7 @@ function applyTranslations(){
   // Settings button under game
   const sbl = byId("settings-btn-lbl");
   if(sbl) sbl.textContent = LANG==="ru"?"Настройки":"Settings";
+  var _sub = document.getElementById("app-subtitle"); if(_sub) _sub.textContent = i18n.subtitle||(CIS.has(LANG)?"Умный дневник питания":"Smart nutrition diary");
 }
 
 // Запускаем переводы + вешаем кнопку языка когда DOM готов
