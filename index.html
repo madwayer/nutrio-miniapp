@@ -543,16 +543,19 @@ if(document.readyState === 'loading'){
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <button class="btn btn-primary" onclick="addWater(150)" style="padding:14px 0;font-size:15px;">💧 150</button>
-      <button class="btn btn-primary" onclick="addWater(200)" style="padding:14px 0;font-size:15px;">💧 200</button>
-      <button class="btn btn-primary" onclick="addWater(250)" style="padding:14px 0;font-size:15px;">💧 250</button>
-      <button class="btn btn-primary" onclick="addWater(330)" style="padding:14px 0;font-size:15px;">💧 330</button>
-      <button class="btn btn-primary" onclick="addWater(500)" style="padding:14px 0;font-size:15px;">💧 500</button>
-      <button class="btn btn-primary" onclick="addWater(1000)" style="padding:14px 0;font-size:15px;">💧 1 л</button>
+      <button class="btn btn-primary" onclick="addWater(150)" style="padding:14px 0;font-size:14px;">💧 +150 мл</button>
+      <button class="btn btn-primary" onclick="addWater(200)" style="padding:14px 0;font-size:14px;">💧 +200 мл</button>
+      <button class="btn btn-primary" onclick="addWater(250)" style="padding:14px 0;font-size:14px;">💧 +250 мл</button>
+      <button class="btn btn-primary" onclick="addWater(330)" style="padding:14px 0;font-size:14px;">💧 +330 мл</button>
+      <button class="btn btn-primary" onclick="addWater(500)" style="padding:14px 0;font-size:14px;">💧 +500 мл</button>
+      <button class="btn btn-primary" onclick="addWater(1000)" style="padding:14px 0;font-size:14px;">💧 +1 л</button>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-      <input type="number" id="water-custom" class="text-input" placeholder="мл" style="flex:1;min-width:0;color:#fff;background:var(--surface);">
-      <button class="btn btn-secondary" onclick="addWaterCustom()" style="min-width:44px;padding:0 12px;font-size:20px;flex-shrink:0;">+</button>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+      <input type="number" id="water-custom" class="text-input" placeholder="Свой объём (мл)"
+             style="flex:1;min-width:0;font-size:15px;padding:10px 12px;
+                    background:var(--surface);color:#ffffff;border-radius:10px;border:1px solid rgba(255,255,255,0.15);">
+      <button class="btn btn-secondary" onclick="addWaterCustom()"
+              style="width:44px;height:44px;padding:0;font-size:22px;flex-shrink:0;border-radius:10px;">+</button>
     </div>
     <div id="water-log" style="margin-top:12px;"></div>
   </div>
@@ -3618,9 +3621,19 @@ function _drawPause(gs){
 
 function _saveGameSettings(){
   try{
+    // Сохраняем настройки текущего пола отдельно
+    var g = S.char.gender;
+    var key = g === 'male' ? 'slots_m' : 'slots_f';
+    var pkey = g === 'male' ? 'palette_m' : 'palette_f';
+    S[key] = S.char.slots.slice();
+    S[pkey] = S.char.palette.slice();
     localStorage.setItem('nutrio_game_settings', JSON.stringify({
       bg: S.bg, diff: S.diff,
-      char: {gender:S.char.gender, slots:S.char.slots.slice(), palette:S.char.palette.slice()}
+      gender: S.char.gender,
+      slots_m: S.slots_m || [0,0,0,0,0,0],
+      palette_m: S.palette_m || [0,0,0,0,0,0],
+      slots_f: S.slots_f || [0,0,0,0,0,0],
+      palette_f: S.palette_f || [0,0,0,0,0,0],
     }));
   }catch(e){}
 }
@@ -3632,11 +3645,17 @@ function _loadGameSettings(){
     var d = JSON.parse(saved);
     if(d.bg !== undefined) S.bg = d.bg;
     if(d.diff !== undefined) S.diff = d.diff;
-    if(d.char){
-      if(d.char.gender) S.char.gender = d.char.gender;
-      if(d.char.slots && d.char.slots.length === S.char.slots.length) S.char.slots = d.char.slots;
-      if(d.char.palette && d.char.palette.length === S.char.palette.length) S.char.palette = d.char.palette;
-    }
+    // Загружаем оба набора кастомизации
+    S.slots_m   = d.slots_m   || [0,0,0,0,0,0];
+    S.palette_m = d.palette_m || [0,0,0,0,0,0];
+    S.slots_f   = d.slots_f   || [0,0,0,0,0,0];
+    S.palette_f = d.palette_f || [0,0,0,0,0,0];
+    // Восстанавливаем текущий пол
+    if(d.gender) S.char.gender = d.gender;
+    // Применяем слоты для текущего пола
+    var isM = S.char.gender === 'male';
+    S.char.slots   = (isM ? S.slots_m   : S.slots_f).slice();
+    S.char.palette = (isM ? S.palette_m : S.palette_f).slice();
   }catch(e){}
 }
 
