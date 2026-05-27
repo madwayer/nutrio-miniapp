@@ -2696,7 +2696,9 @@ const CIS = new Set(["ru","uk","be","kk","uz","hy","az","ka","tg","ky","mn"]);
 function applyLang(code) {
   const base = (code||"ru").toLowerCase().split("-")[0].split("_")[0];
   LANG = CIS.has(base) ? "ru" : (MINI_I18N[base] ? base : "en");
-  i18n = MINI_I18N[LANG];
+  // Мержим: берём en как базу, поверх накладываем выбранный язык
+  const baseI18n = CIS.has(base) ? MINI_I18N.ru : MINI_I18N.en;
+  i18n = Object.assign({}, baseI18n, MINI_I18N[LANG]||{});
 }
 
 let LANG = "ru", i18n = MINI_I18N.ru;
@@ -4009,6 +4011,8 @@ function initWaterPage(){
     if(gSaved) waterGoal = parseInt(gSaved)||2000;
   } catch(e){}
   renderWater();
+  // Обновляем переводы для элементов этой страницы
+  _translateWaterPage();
 }
 
 function _todayKey(){
@@ -4090,6 +4094,7 @@ function initProgressPage(){
     var saved = localStorage.getItem('nutrio_progress');
     if(saved){ progressData = JSON.parse(saved); renderProgress(); }
   }catch(e){}
+  _translateProgressPage();
 }
 
 function renderProgress(){
