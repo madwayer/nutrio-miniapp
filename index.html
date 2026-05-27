@@ -543,8 +543,8 @@ if(document.readyState === 'loading'){
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <button class="btn btn-primary" onclick="addWater(200)" style="font-size:18px;padding:18px 0;">💧 +200 мл</button>
-      <button class="btn btn-primary" onclick="addWater(300)" style="font-size:18px;padding:18px 0;">💧 +300 мл</button>
+      <button class="btn btn-primary" onclick="addWater(200)" id="water-btn-200" style="font-size:18px;padding:18px 0;">💧 +200 мл</button>
+      <button class="btn btn-primary" onclick="addWater(250)" id="water-btn-250" style="font-size:18px;padding:18px 0;">💧 +250 мл</button>
       <button class="btn btn-primary" onclick="addWater(500)" style="font-size:18px;padding:18px 0;">💧 +500 мл</button>
       <button class="btn btn-primary" onclick="addWater(1000)" style="font-size:18px;padding:18px 0;">💧 +1 л</button>
     </div>
@@ -3724,17 +3724,19 @@ function addWater(ml){
   waterLog.push({ml:ml, time: now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes()});
   saveWaterLocal();
   renderWater();
-  // Отправляем в бот
-  if(tg) try{ tg.sendData(JSON.stringify({action:'add_water', ml:ml})); }catch(e){}
-  showToast('+' + ml + (i18n&&i18n.weight_label&&i18n.weight_label.includes('g')?' ml':' мл') + ' 💧');
+  var unit = (i18n&&i18n.weight_label&&i18n.weight_label.includes('g')) ? ' ml' : ' мл';
+  showToast('+' + ml + unit + ' 💧');
 }
 
 function addWaterCustom(){
   var inp = document.getElementById('water-custom');
-  var ml = parseInt(inp.value);
-  if(!ml || ml <= 0 || ml > 5000) return;
+  var ml = parseInt(inp ? inp.value : 0);
+  if(!ml || ml <= 0 || ml > 5000){
+    showToast(i18n&&i18n.fill_all?i18n.fill_all:'Enter valid amount', 'var(--accent2)');
+    return;
+  }
   addWater(ml);
-  inp.value = '';
+  if(inp) inp.value = '';
 }
 
 // ── Прогресс ─────────────────────────────────────────────────────
@@ -3791,11 +3793,15 @@ function renderProgress(){
 }
 
 function requestProgressData(){
-  // Запрашиваем данные через sendData
-  if(tg) try{ tg.sendData(JSON.stringify({action:'get_progress'})); }catch(e){}
   var btn = document.getElementById('sync-btn');
-  if(btn) btn.textContent = '⏳ Синхронизация...';
-  setTimeout(function(){ if(btn) btn.textContent = '🔄 Загрузить данные из бота'; }, 3000);
+  if(btn) btn.textContent = '⏳...';
+  // Show instruction - progress sync requires opening app from bot button
+  var note = document.getElementById('progress-note');
+  var msg = (i18n&&LANG==='ru')
+    ? '💡 Закрой Mini App и нажми кнопку 📈 Прогресс в боте — данные загрузятся автоматически'
+    : '💡 Close Mini App and tap 📈 Progress button in the bot — data will load automatically';
+  if(note) note.textContent = msg;
+  if(btn) setTimeout(function(){ btn.textContent = '🔄 ' + (LANG==='ru'?'Обновить':'Refresh'); }, 1500);
 }
 
 // Получаем данные от бота (если он передал их при открытии)
