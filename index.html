@@ -532,7 +532,7 @@ if(document.readyState === 'loading'){
 
   <!-- WATER PAGE -->
   <div class="page" id="page-water">
-    <div class="section-title" id="water-page-title">💧 Вода</div>
+    <div class="section-title" id="water-page-title">💧 <span id="lbl-water-title"></span></div>
     <div id="water-progress-block" style="margin-bottom:18px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span id="water-amount-lbl" style="font-size:22px;font-weight:700;color:var(--accent);">0 мл</span>
@@ -543,12 +543,12 @@ if(document.readyState === 'loading'){
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <button class="btn btn-primary" onclick="addWater(150)" style="padding:14px 0;font-size:14px;">💧 +150 мл</button>
-      <button class="btn btn-primary" onclick="addWater(200)" style="padding:14px 0;font-size:14px;">💧 +200 мл</button>
-      <button class="btn btn-primary" onclick="addWater(250)" style="padding:14px 0;font-size:14px;">💧 +250 мл</button>
-      <button class="btn btn-primary" onclick="addWater(330)" style="padding:14px 0;font-size:14px;">💧 +330 мл</button>
-      <button class="btn btn-primary" onclick="addWater(500)" style="padding:14px 0;font-size:14px;">💧 +500 мл</button>
-      <button class="btn btn-primary" onclick="addWater(1000)" style="padding:14px 0;font-size:14px;">💧 +1 л</button>
+      <button class="btn btn-primary" onclick="addWater(150)" style="padding:14px 0;font-size:14px;">💧 +150 <span class="wunit">мл</span></button>
+      <button class="btn btn-primary" onclick="addWater(200)" style="padding:14px 0;font-size:14px;">💧 +200 <span class="wunit">мл</span></button>
+      <button class="btn btn-primary" onclick="addWater(250)" style="padding:14px 0;font-size:14px;">💧 +250 <span class="wunit">мл</span></button>
+      <button class="btn btn-primary" onclick="addWater(330)" style="padding:14px 0;font-size:14px;">💧 +330 <span class="wunit">мл</span></button>
+      <button class="btn btn-primary" onclick="addWater(500)" style="padding:14px 0;font-size:14px;">💧 +500 <span class="wunit">мл</span></button>
+      <button class="btn btn-primary" onclick="addWater(1000)" style="padding:14px 0;font-size:14px;">💧 +1 <span class="wunit-l">л</span></button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
       <input type="number" id="water-custom" class="text-input" placeholder="Свой объём (мл)"
@@ -562,40 +562,40 @@ if(document.readyState === 'loading'){
 
   <!-- PROGRESS PAGE -->
   <div class="page" id="page-progress">
-    <div class="section-title" id="progress-page-title">📈 Прогресс</div>
+    <div class="section-title" id="progress-page-title">📈 <span id="lbl-progress-title"></span></div>
 
     <!-- Стрик -->
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;">
       <div style="font-size:36px;" id="streak-emoji">🔥</div>
       <div id="streak-value" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
-      <div id="streak-label" style="font-size:12px;color:var(--text2);margin-top:2px;">дней подряд</div>
+      <div id="streak-label" style="font-size:12px;color:var(--text2);margin-top:2px;"></div>
     </div>
 
     <!-- КБЖУ сегодня -->
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;">
-      <div id="today-kcal-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;">СЕГОДНЯ</div>
+      <div id="today-kcal-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;"></div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
         <div>
           <div id="prog-kcal" style="font-size:20px;font-weight:700;color:var(--accent);">—</div>
-          <div class="macro-label" style="font-size:10px;color:var(--text2);">ККАЛ</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);" id="lbl-kcal"></div>
         </div>
         <div>
           <div id="prog-prot" style="font-size:20px;font-weight:700;color:#81c784;">—</div>
-          <div class="macro-label" style="font-size:10px;color:var(--text2);">БЕЛКИ</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);" id="lbl-prot"></div>
         </div>
         <div>
           <div id="prog-fat" style="font-size:20px;font-weight:700;color:#ffb74d;">—</div>
-          <div class="macro-label" style="font-size:10px;color:var(--text2);">ЖИРЫ</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);" id="lbl-fat"></div>
         </div>
         <div>
           <div id="prog-carb" style="font-size:20px;font-weight:700;color:#64b5f6;">—</div>
-          <div class="macro-label" style="font-size:10px;color:var(--text2);">УГЛЕВ</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);" id="lbl-carb"></div>
         </div>
       </div>
       <!-- Прогресс-бар калорий -->
       <div style="margin-top:10px;">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
-          <span id="kcal-progress-lbl">0 / 2000 ккал</span>
+          <span id="kcal-progress-lbl">0 / 2000</span>
           <span id="kcal-progress-pct">0%</span>
         </div>
         <div style="background:rgba(255,255,255,0.1);border-radius:6px;height:8px;overflow:hidden;">
@@ -606,19 +606,15 @@ if(document.readyState === 'loading'){
 
     <!-- Достижения -->
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;">
-      <div id="achievements-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;">ДОСТИЖЕНИЯ</div>
+      <div id="achievements-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;"></div>
       <div id="achievements-list" style="display:flex;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:12px;color:var(--text2);" id="achievements-placeholder">Загрузи данные ↓</div>
+        <div style="font-size:12px;color:var(--text2);" id="achievements-placeholder"></div>
       </div>
     </div>
 
     <!-- Кнопка синхронизации -->
-    <button class="btn btn-secondary" onclick="requestProgressData()" id="sync-btn" style="width:100%;">
-      🔄 Загрузить данные из бота
-    </button>
-    <div id="progress-note" style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px;">
-      Данные синхронизируются при открытии через кнопку в боте
-    </div>
+    <button class="btn btn-secondary" onclick="requestProgressData()" id="sync-btn" style="width:100%;"></button>
+    <div id="progress-note" style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px;"></div>
   </div>
 
   <!-- GAME PAGE -->
@@ -647,6 +643,21 @@ if (tg) { tg.ready(); tg.expand(); }
 // ── Переводы Mini App (ru / en) ──────────────────────────────────
 const MINI_I18N = {
   ru: {
+    water_title:"Вода",
+    progress_title:"Прогресс",
+    today_lbl:"СЕГОДНЯ",
+    kcal_lbl:"ККАЛ",
+    prot_lbl:"БЕЛКИ",
+    fat_lbl:"ЖИРЫ",
+    carb_lbl:"УГЛЕВ",
+    achievements_lbl:"ДОСТИЖЕНИЯ",
+    load_data_btn:"🔄 Загрузить данные из бота",
+    sync_note:"Открой бота и нажми кнопку 📈 Прогресс",
+    days_row:"дней подряд",
+    water_unit:"мл",
+    water_unit_l:"л",
+    no_data_yet:"Нет данных",
+    history_3day:"История за 3 дня:",
     subtitle:"Умный дневник питания",
     tab_scan:"📦 Штрихкод", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
     scan_title:"Сканер штрихкодов",
@@ -732,6 +743,21 @@ const MINI_I18N = {
     slot_labels_f:["Гол. убор","Причёска","Блузка","Юбка","Обувь","Очки"],
   },
   en: {
+    water_title:"Water",
+    progress_title:"Progress",
+    today_lbl:"TODAY",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEIN",
+    fat_lbl:"FAT",
+    carb_lbl:"CARBS",
+    achievements_lbl:"ACHIEVEMENTS",
+    load_data_btn:"🔄 Load data from bot",
+    sync_note:"Open bot and tap 📈 Progress button",
+    days_row:"days in a row",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"No data yet",
+    history_3day:"3-day history:",
     subtitle:"Smart nutrition diary",
     tab_scan:"📦 Barcode", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
     scan_title:"Barcode scanner",
@@ -817,6 +843,21 @@ const MINI_I18N = {
     slot_labels_f:["Headwear","Hair","Top","Skirt","Shoes","Glasses"],
   },
   uk: {
+    water_title:"Вода",
+    progress_title:"Прогрес",
+    today_lbl:"СЬОГОДНІ",
+    kcal_lbl:"ККАЛ",
+    prot_lbl:"БІЛКИ",
+    fat_lbl:"ЖИРИ",
+    carb_lbl:"ВУГЛЕВ",
+    achievements_lbl:"ДОСЯГНЕННЯ",
+    load_data_btn:"🔄 Завантажити дані з бота",
+    sync_note:"Відкрий бота і натисни 📈 Прогрес",
+    days_row:"днів поспіль",
+    water_unit:"мл",
+    water_unit_l:"л",
+    no_data_yet:"Немає даних",
+    history_3day:"Історія за 3 дні:",
     tab_water:"💧 Вода",
     tab_progress:"📈 Прогрес",
     water_goal_lbl:"ціль: ",
@@ -965,6 +1006,21 @@ const MINI_I18N = {
     glass_mask:"Маска",
   },
   de: {
+    water_title:"Wasser",
+    progress_title:"Fortschritt",
+    today_lbl:"HEUTE",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEIN",
+    fat_lbl:"FETT",
+    carb_lbl:"KOHLENHYDR",
+    achievements_lbl:"ERFOLGE",
+    load_data_btn:"🔄 Daten vom Bot laden",
+    sync_note:"Bot öffnen und 📈 Fortschritt tippen",
+    days_row:"Tage in Folge",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Keine Daten",
+    history_3day:"3-Tage-Verlauf:",
     tab_water:"💧 Wasser",
     tab_progress:"📈 Fortschritt",
     water_goal_lbl:"Ziel: ",
@@ -1109,6 +1165,21 @@ const MINI_I18N = {
     glass_mask:"Maske",
   },
   fr: {
+    water_title:"Eau",
+    progress_title:"Progrès",
+    today_lbl:"AUJOURD'HUI",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTÉINES",
+    fat_lbl:"LIPIDES",
+    carb_lbl:"GLUCIDES",
+    achievements_lbl:"SUCCÈS",
+    load_data_btn:"🔄 Charger données du bot",
+    sync_note:"Ouvre le bot et appuie 📈 Progrès",
+    days_row:"jours consécutifs",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Pas de données",
+    history_3day:"Historique 3 jours:",
     tab_water:"💧 Eau",
     tab_progress:"📈 Progrès",
     water_goal_lbl:"objectif: ",
@@ -1253,6 +1324,21 @@ const MINI_I18N = {
     glass_mask:"Masque",
   },
   es: {
+    water_title:"Agua",
+    progress_title:"Progreso",
+    today_lbl:"HOY",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEÍNA",
+    fat_lbl:"GRASA",
+    carb_lbl:"CARBS",
+    achievements_lbl:"LOGROS",
+    load_data_btn:"🔄 Cargar datos del bot",
+    sync_note:"Abre el bot y toca 📈 Progreso",
+    days_row:"días seguidos",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Sin datos",
+    history_3day:"Historial 3 días:",
     tab_water:"💧 Agua",
     tab_progress:"📈 Progreso",
     water_goal_lbl:"meta: ",
@@ -1397,6 +1483,21 @@ const MINI_I18N = {
     glass_mask:"Máscara",
   },
   it: {
+    water_title:"Acqua",
+    progress_title:"Progresso",
+    today_lbl:"OGGI",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEINE",
+    fat_lbl:"GRASSI",
+    carb_lbl:"CARBOIDR",
+    achievements_lbl:"OBIETTIVI",
+    load_data_btn:"🔄 Carica dati dal bot",
+    sync_note:"Apri il bot e tocca 📈 Progresso",
+    days_row:"giorni di fila",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Nessun dato",
+    history_3day:"Storico 3 giorni:",
     tab_water:"💧 Acqua",
     tab_progress:"📈 Progresso",
     water_goal_lbl:"obiettivo: ",
@@ -1497,6 +1598,21 @@ const MINI_I18N = {
     resume_lbl:"▶ Riprendi",
   },
   pt: {
+    water_title:"Água",
+    progress_title:"Progresso",
+    today_lbl:"HOJE",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEÍNA",
+    fat_lbl:"GORDURA",
+    carb_lbl:"CARBOIDR",
+    achievements_lbl:"CONQUISTAS",
+    load_data_btn:"🔄 Carregar dados do bot",
+    sync_note:"Abra o bot e toque 📈 Progresso",
+    days_row:"dias seguidos",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Sem dados",
+    history_3day:"Histórico 3 dias:",
     tab_water:"💧 Água",
     tab_progress:"📈 Progresso",
     water_goal_lbl:"meta: ",
@@ -1597,6 +1713,21 @@ const MINI_I18N = {
     resume_lbl:"▶ Continuar",
   },
   tr: {
+    water_title:"Su",
+    progress_title:"İlerleme",
+    today_lbl:"BUGÜN",
+    kcal_lbl:"KCAL",
+    prot_lbl:"PROTEİN",
+    fat_lbl:"YAĞ",
+    carb_lbl:"KARB",
+    achievements_lbl:"BAŞARILAR",
+    load_data_btn:"🔄 Bottan veri yükle",
+    sync_note:"Botu aç ve 📈 İlerleme'ye dokun",
+    days_row:"gün üst üste",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Veri yok",
+    history_3day:"3 günlük geçmiş:",
     tab_water:"💧 Su",
     tab_progress:"📈 İlerleme",
     water_goal_lbl:"hedef: ",
@@ -1697,6 +1828,21 @@ const MINI_I18N = {
     resume_lbl:"▶ Devam",
   },
   pl: {
+    water_title:"Woda",
+    progress_title:"Postęp",
+    today_lbl:"DZIŚ",
+    kcal_lbl:"KCAL",
+    prot_lbl:"BIAŁKO",
+    fat_lbl:"TŁUSZCZ",
+    carb_lbl:"WĘGL",
+    achievements_lbl:"OSIĄGNIĘCIA",
+    load_data_btn:"🔄 Załaduj dane z bota",
+    sync_note:"Otwórz bota i dotknij 📈 Postęp",
+    days_row:"dni z rzędu",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"Brak danych",
+    history_3day:"Historia 3 dni:",
     tab_water:"💧 Woda",
     tab_progress:"📈 Postęp",
     water_goal_lbl:"cel: ",
@@ -1797,6 +1943,21 @@ const MINI_I18N = {
     resume_lbl:"▶ Wznów",
   },
   kk: {
+    water_title:"Су",
+    progress_title:"Прогресс",
+    today_lbl:"БҮГІН",
+    kcal_lbl:"ККАЛ",
+    prot_lbl:"АҚУЫЗ",
+    fat_lbl:"МАЙ",
+    carb_lbl:"КӨМІРСУ",
+    achievements_lbl:"ЖЕТІСТІКТЕР",
+    load_data_btn:"🔄 Деректерді жүктеу",
+    sync_note:"Ботты ашып 📈 Прогресс басыңыз",
+    days_row:"күн қатарынан",
+    water_unit:"мл",
+    water_unit_l:"л",
+    no_data_yet:"Деректер жоқ",
+    history_3day:"3 күн тарихы:",
     tab_water:"💧 Су",
     tab_progress:"📈 Прогресс",
     water_goal_lbl:"мақсат: ",
@@ -2182,6 +2343,21 @@ const MINI_I18N = {
     resume_lbl:"▶ המשך",
   },
   zh: {
+    water_title:"水",
+    progress_title:"进度",
+    today_lbl:"今日",
+    kcal_lbl:"卡路里",
+    prot_lbl:"蛋白质",
+    fat_lbl:"脂肪",
+    carb_lbl:"碳水",
+    achievements_lbl:"成就",
+    load_data_btn:"🔄 从机器人加载数据",
+    sync_note:"打开机器人并点击📈进度",
+    days_row:"天连续",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"暂无数据",
+    history_3day:"3天记录:",
     tab_water:"💧 水",
     tab_progress:"📈 进度",
     water_goal_lbl:"目标: ",
@@ -2282,6 +2458,21 @@ const MINI_I18N = {
     resume_lbl:"▶ 继续",
   },
   ja: {
+    water_title:"水",
+    progress_title:"進捗",
+    today_lbl:"今日",
+    kcal_lbl:"カロリー",
+    prot_lbl:"タンパク質",
+    fat_lbl:"脂質",
+    carb_lbl:"炭水化物",
+    achievements_lbl:"実績",
+    load_data_btn:"🔄 ボットからデータを読込",
+    sync_note:"ボットを開いて📈進捗をタップ",
+    days_row:"日連続",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"データなし",
+    history_3day:"3日間の記録:",
     tab_water:"💧 水",
     tab_progress:"📈 進捗",
     water_goal_lbl:"目標: ",
@@ -2382,6 +2573,21 @@ const MINI_I18N = {
     resume_lbl:"▶ 再開",
   },
   ko: {
+    water_title:"물",
+    progress_title:"진행",
+    today_lbl:"오늘",
+    kcal_lbl:"칼로리",
+    prot_lbl:"단백질",
+    fat_lbl:"지방",
+    carb_lbl:"탄수화물",
+    achievements_lbl:"업적",
+    load_data_btn:"🔄 봇에서 데이터 로드",
+    sync_note:"봇을 열고 📈 진행 버튼을 탭",
+    days_row:"일 연속",
+    water_unit:"ml",
+    water_unit_l:"L",
+    no_data_yet:"데이터 없음",
+    history_3day:"3일 기록:",
     tab_water:"💧 물",
     tab_progress:"📈 진행",
     water_goal_lbl:"목표: ",
@@ -3815,7 +4021,7 @@ function saveWaterLocal(){
 
 function renderWater(){
   var pct = Math.min(100, Math.round(waterToday/waterGoal*100));
-  var unit = (i18n && i18n.weight_label && i18n.weight_label.includes('g')) ? 'ml' : 'мл';
+  var unit = (i18n && i18n.water_unit) ? i18n.water_unit : ((i18n && i18n.weight_label && i18n.weight_label.includes('g')) ? 'ml' : 'мл');
   var el = document.getElementById('water-amount-lbl');
   if(el) el.textContent = waterToday + ' ' + unit;
   var gl = document.getElementById('water-goal-lbl');
@@ -3825,7 +4031,7 @@ function renderWater(){
     bar.style.background = pct >= 100 ? '#4caf50' : pct >= 60 ? '#2196f3' : '#90caf9'; }
 
   // История за 3 дня из localStorage
-  var logEl = document.getElementById('water-log');
+  var logEl = document.getElementById('water-today-log');
   if(!logEl) return;
   var allEntries = [];
   for(var d=0; d<3; d++){
@@ -3839,7 +4045,7 @@ function renderWater(){
                        d===1?(i18n&&LANG==='ru'?'Вчера':'Yesterday'):
                        dt.toLocaleDateString(LANG==='ru'?'ru-RU':'en-US',{weekday:'short'});
         if(data.log&&data.log.length){
-          allEntries.push('<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;font-weight:600;">'+dayLabel+' — '+data.total+' '+unit+'</div>');
+          allEntries.push('<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;font-weight:600;">'+dayLabel+' — '+data.total+' '+(i18n&&i18n.water_unit||unit)+'</div>');
           data.log.slice().reverse().forEach(function(e){
             allEntries.push('<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;">'+
               '<span>💧 +'+e.ml+' '+unit+'</span>'+
@@ -3850,7 +4056,7 @@ function renderWater(){
     }catch(e){}
   }
   logEl.innerHTML = allEntries.length
-    ? '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">'+(LANG==='ru'?'История за 3 дня:':'3-day history:')+'</div>'+allEntries.join('')
+    ? '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">'+(i18n&&i18n['history_3day']||'3-day history:')+'</div>'+allEntries.join('')
     : '';
 }
 
@@ -3899,6 +4105,8 @@ function renderProgress(){
 
   // КБЖУ
   var set2 = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val||'0'; };
+  var unit2 = i18n&&i18n.water_unit||'мл';
+  var kcal_unit = i18n&&i18n.kcal_lbl||'kcal';
   set2('prog-kcal', d.today_kcal||'—');
   set2('prog-prot', d.today_prot?Math.round(d.today_prot)+'г':'—');
   set2('prog-fat',  d.today_fat?Math.round(d.today_fat)+'г':'—');
@@ -3911,7 +4119,7 @@ function renderProgress(){
   var bar  = document.getElementById('kcal-bar');
   if(bar){ bar.style.width=pct+'%'; bar.style.background = pct>105?'#ef5350':pct>85?'var(--accent)':'#66bb6a'; }
   var lbl = document.getElementById('kcal-progress-lbl');
-  if(lbl) lbl.textContent = kcal + ' / ' + goal + ' ккал';
+  if(lbl) lbl.textContent = kcal + ' / ' + goal + ' ' + (i18n&&i18n.kcal_lbl||'kcal');
   var pctEl = document.getElementById('kcal-progress-pct');
   if(pctEl) pctEl.textContent = pct + '%';
 
@@ -3937,7 +4145,7 @@ function requestProgressData(){
     ? '💡 Закрой Mini App и нажми кнопку 📈 Прогресс в боте — данные загрузятся автоматически'
     : '💡 Close Mini App and tap 📈 Progress button in the bot — data will load automatically';
   if(note) note.textContent = msg;
-  if(btn) setTimeout(function(){ btn.textContent = '🔄 ' + (LANG==='ru'?'Обновить':'Refresh'); }, 1500);
+  if(btn) setTimeout(function(){ btn.textContent = i18n&&i18n.load_data_btn||'🔄 Refresh'; }, 1500);
 }
 
 // Получаем данные от бота (если он передал их при открытии)
