@@ -542,17 +542,19 @@ if(document.readyState === 'loading'){
         <div id="water-bar" style="height:100%;background:linear-gradient(90deg,#4fc3f7,#0288d1);width:0%;border-radius:10px;transition:width 0.4s;"></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <button class="btn btn-primary" onclick="addWater(200)" id="water-btn-200" style="font-size:18px;padding:18px 0;">💧 +200 мл</button>
-      <button class="btn btn-primary" onclick="addWater(250)" id="water-btn-250" style="font-size:18px;padding:18px 0;">💧 +250 мл</button>
-      <button class="btn btn-primary" onclick="addWater(500)" style="font-size:18px;padding:18px 0;">💧 +500 мл</button>
-      <button class="btn btn-primary" onclick="addWater(1000)" style="font-size:18px;padding:18px 0;">💧 +1 л</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="addWater(150)" style="padding:14px 0;font-size:15px;">💧 150</button>
+      <button class="btn btn-primary" onclick="addWater(200)" style="padding:14px 0;font-size:15px;">💧 200</button>
+      <button class="btn btn-primary" onclick="addWater(250)" style="padding:14px 0;font-size:15px;">💧 250</button>
+      <button class="btn btn-primary" onclick="addWater(330)" style="padding:14px 0;font-size:15px;">💧 330</button>
+      <button class="btn btn-primary" onclick="addWater(500)" style="padding:14px 0;font-size:15px;">💧 500</button>
+      <button class="btn btn-primary" onclick="addWater(1000)" style="padding:14px 0;font-size:15px;">💧 1 л</button>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="number" id="water-custom" class="text-input" placeholder="Свой объём (мл)" style="flex:1;">
-      <button class="btn btn-secondary" onclick="addWaterCustom()" style="white-space:nowrap;">➕</button>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+      <input type="number" id="water-custom" class="text-input" placeholder="мл" style="flex:1;min-width:0;color:#fff;background:var(--surface);">
+      <button class="btn btn-secondary" onclick="addWaterCustom()" style="min-width:44px;padding:0 12px;font-size:20px;flex-shrink:0;">+</button>
     </div>
-    <div id="water-today-log" style="margin-top:16px;"></div>
+    <div id="water-log" style="margin-top:12px;"></div>
   </div>
 
   <!-- PROGRESS PAGE -->
@@ -812,6 +814,11 @@ const MINI_I18N = {
     slot_labels_f:["Headwear","Hair","Top","Skirt","Shoes","Glasses"],
   },
   uk: {
+    tab_water:"💧 Вода",
+    tab_progress:"📈 Прогрес",
+    water_goal_lbl:"ціль: ",
+    water_history:"Сьогодні:",
+
     subtitle:"Розумний щоденник харчування",
     tab_scan:"📦 Штрихкод",
     tab_manual:"✍️ Вручну",
@@ -955,6 +962,11 @@ const MINI_I18N = {
     glass_mask:"Маска",
   },
   de: {
+    tab_water:"💧 Wasser",
+    tab_progress:"📈 Fortschritt",
+    water_goal_lbl:"Ziel: ",
+    water_history:"Heute:",
+
     subtitle:"Smartes Ernährungstagebuch",
     tab_scan:"📦 Barcode",
     tab_manual:"✍️ Manuell",
@@ -1094,6 +1106,11 @@ const MINI_I18N = {
     glass_mask:"Maske",
   },
   fr: {
+    tab_water:"💧 Eau",
+    tab_progress:"📈 Progrès",
+    water_goal_lbl:"objectif: ",
+    water_history:"Aujourd'hui:",
+
     subtitle:"Journal nutritionnel intelligent",
     tab_scan:"📦 Code-barres",
     tab_manual:"✍️ Manuel",
@@ -1233,6 +1250,11 @@ const MINI_I18N = {
     glass_mask:"Masque",
   },
   es: {
+    tab_water:"💧 Agua",
+    tab_progress:"📈 Progreso",
+    water_goal_lbl:"meta: ",
+    water_history:"Hoy:",
+
     subtitle:"Diario nutricional inteligente",
     tab_scan:"📦 Código",
     tab_manual:"✍️ Manual",
@@ -1372,6 +1394,11 @@ const MINI_I18N = {
     glass_mask:"Máscara",
   },
   it: {
+    tab_water:"💧 Acqua",
+    tab_progress:"📈 Progresso",
+    water_goal_lbl:"obiettivo: ",
+    water_history:"Oggi:",
+
     subtitle:"Diario nutrizionale smart",
     tab_scan:"📦 Codice",
     tab_manual:"✍️ Manuale",
@@ -1467,6 +1494,11 @@ const MINI_I18N = {
     resume_lbl:"▶ Riprendi",
   },
   pt: {
+    tab_water:"💧 Água",
+    tab_progress:"📈 Progresso",
+    water_goal_lbl:"meta: ",
+    water_history:"Hoje:",
+
     subtitle:"Diário nutricional inteligente",
     tab_scan:"📦 Código",
     tab_manual:"✍️ Manual",
@@ -1562,6 +1594,11 @@ const MINI_I18N = {
     resume_lbl:"▶ Continuar",
   },
   tr: {
+    tab_water:"💧 Su",
+    tab_progress:"📈 İlerleme",
+    water_goal_lbl:"hedef: ",
+    water_history:"Bugün:",
+
     subtitle:"Akıllı beslenme günlüğü",
     tab_scan:"📦 Barkod",
     tab_manual:"✍️ Manuel",
@@ -1657,6 +1694,11 @@ const MINI_I18N = {
     resume_lbl:"▶ Devam",
   },
   pl: {
+    tab_water:"💧 Woda",
+    tab_progress:"📈 Postęp",
+    water_goal_lbl:"cel: ",
+    water_history:"Dziś:",
+
     subtitle:"Inteligentny dziennik żywienia",
     tab_scan:"📦 Kod",
     tab_manual:"✍️ Ręcznie",
@@ -1752,6 +1794,11 @@ const MINI_I18N = {
     resume_lbl:"▶ Wznów",
   },
   kk: {
+    tab_water:"💧 Су",
+    tab_progress:"📈 Прогресс",
+    water_goal_lbl:"мақсат: ",
+    water_history:"Бүгін:",
+
     subtitle:"Ақылды тамақтану күнделігі",
     tab_scan:"📦 Штрих-код",
     tab_manual:"✍️ Қолмен",
@@ -2132,6 +2179,11 @@ const MINI_I18N = {
     resume_lbl:"▶ המשך",
   },
   zh: {
+    tab_water:"💧 水",
+    tab_progress:"📈 进度",
+    water_goal_lbl:"目标: ",
+    water_history:"今天:",
+
     subtitle:"智能营养日记",
     tab_scan:"📦 条形码",
     tab_manual:"✍️ 手动",
@@ -2227,6 +2279,11 @@ const MINI_I18N = {
     resume_lbl:"▶ 继续",
   },
   ja: {
+    tab_water:"💧 水",
+    tab_progress:"📈 進捗",
+    water_goal_lbl:"目標: ",
+    water_history:"今日:",
+
     subtitle:"スマート栄養日記",
     tab_scan:"📦 バーコード",
     tab_manual:"✍️ 手動",
@@ -2322,6 +2379,11 @@ const MINI_I18N = {
     resume_lbl:"▶ 再開",
   },
   ko: {
+    tab_water:"💧 물",
+    tab_progress:"📈 진행",
+    water_goal_lbl:"목표: ",
+    water_history:"오늘:",
+
     subtitle:"스마트 영양 일기",
     tab_scan:"📦 바코드",
     tab_manual:"✍️ 수동",
@@ -3554,6 +3616,30 @@ function _drawPause(gs){
   ctx.fillText(i18n&&i18n.resume_lbl?i18n.resume_lbl:'▶ Resume',W/2,by+22);
 }
 
+function _saveGameSettings(){
+  try{
+    localStorage.setItem('nutrio_game_settings', JSON.stringify({
+      bg: S.bg, diff: S.diff,
+      char: {gender:S.char.gender, slots:S.char.slots.slice(), palette:S.char.palette.slice()}
+    }));
+  }catch(e){}
+}
+
+function _loadGameSettings(){
+  try{
+    var saved = localStorage.getItem('nutrio_game_settings');
+    if(!saved) return;
+    var d = JSON.parse(saved);
+    if(d.bg !== undefined) S.bg = d.bg;
+    if(d.diff !== undefined) S.diff = d.diff;
+    if(d.char){
+      if(d.char.gender) S.char.gender = d.char.gender;
+      if(d.char.slots && d.char.slots.length === S.char.slots.length) S.char.slots = d.char.slots;
+      if(d.char.palette && d.char.palette.length === S.char.palette.length) S.char.palette = d.char.palette;
+    }
+  }catch(e){}
+}
+
 function initGame(){
   const canvas=document.getElementById('gameCanvas');if(!canvas)return;
   if(GS&&GS.raf){cancelAnimationFrame(GS.raf);GS.raf=null;}
@@ -3595,7 +3681,7 @@ function handleClick(cx,cy){
         }
       });
     }
-    if(settingsTab==='diff'){DIFFICULTY.forEach((d,i)=>{const by=84+i*66;if(cy>by&&cy<by+56){S.diff=i;saveS('diff');}});}
+    if(settingsTab==='diff'){DIFFICULTY.forEach((d,i)=>{const by=84+i*66;if(cy>by&&cy<by+56){S.diff=i;_saveGameSettings();saveS('diff');}});}
     // Назад
     if(cy>H-52&&cy<H-18&&cx>W*0.52&&cx<W)SCREEN='start';
 
@@ -3698,24 +3784,43 @@ function saveWaterLocal(){
 
 function renderWater(){
   var pct = Math.min(100, Math.round(waterToday/waterGoal*100));
+  var unit = (i18n && i18n.weight_label && i18n.weight_label.includes('g')) ? 'ml' : 'мл';
   var el = document.getElementById('water-amount-lbl');
-  var unit = i18n && i18n.weight_label && i18n.weight_label.includes('g') ? 'ml' : 'мл';
   if(el) el.textContent = waterToday + ' ' + unit;
   var gl = document.getElementById('water-goal-lbl');
-  if(gl) gl.textContent = (i18n&&i18n.water_goal_lbl?i18n.water_goal_lbl:'цель: ') + waterGoal + ' ' + unit;
+  if(gl) gl.textContent = (i18n&&i18n.water_goal_lbl||'цель: ') + waterGoal + ' ' + unit;
   var bar = document.getElementById('water-bar');
-  if(bar) bar.style.width = pct + '%';
-  // Лог
-  var log = document.getElementById('water-today-log');
-  if(log && waterLog.length){
-    log.innerHTML = '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">' +
-      (i18n&&i18n.water_history?i18n.water_history:'История за сегодня:') + '</div>' +
-      waterLog.slice(-8).reverse().map(function(e){
-        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
-          '<span>💧 +' + e.ml + ' ' + unit + '</span>' +
-          '<span style="color:var(--text2);">' + e.time + '</span></div>';
-      }).join('');
+  if(bar){ bar.style.width = pct + '%';
+    bar.style.background = pct >= 100 ? '#4caf50' : pct >= 60 ? '#2196f3' : '#90caf9'; }
+
+  // История за 3 дня из localStorage
+  var logEl = document.getElementById('water-log');
+  if(!logEl) return;
+  var allEntries = [];
+  for(var d=0; d<3; d++){
+    var dt = new Date(); dt.setDate(dt.getDate()-d);
+    var key = 'nutrio_water_' + dt.getFullYear()+'-'+(dt.getMonth()+1)+'-'+dt.getDate();
+    try{
+      var saved = localStorage.getItem(key);
+      if(saved){
+        var data = JSON.parse(saved);
+        var dayLabel = d===0?(i18n&&LANG==='ru'?'Сегодня':'Today'):
+                       d===1?(i18n&&LANG==='ru'?'Вчера':'Yesterday'):
+                       dt.toLocaleDateString(LANG==='ru'?'ru-RU':'en-US',{weekday:'short'});
+        if(data.log&&data.log.length){
+          allEntries.push('<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;font-weight:600;">'+dayLabel+' — '+data.total+' '+unit+'</div>');
+          data.log.slice().reverse().forEach(function(e){
+            allEntries.push('<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;">'+
+              '<span>💧 +'+e.ml+' '+unit+'</span>'+
+              '<span style="color:var(--text2);">'+e.time+'</span></div>');
+          });
+        }
+      }
+    }catch(e){}
   }
+  logEl.innerHTML = allEntries.length
+    ? '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">'+(LANG==='ru'?'История за 3 дня:':'3-day history:')+'</div>'+allEntries.join('')
+    : '';
 }
 
 function addWater(ml){
