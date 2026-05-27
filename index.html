@@ -431,6 +431,8 @@ if(document.readyState === 'loading'){
 <div class="tabs">
   <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
+  <button class="tab" onclick="switchTab('water')" id="tab-water">💧</button>
+  <button class="tab" onclick="switchTab('progress')" id="tab-progress">📈</button>
   <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
   <button class="tab" onclick="showLangPicker()" id="tab-lang" style="font-size:18px;min-width:44px;">🌍</button>
 </div>
@@ -527,6 +529,93 @@ if(document.readyState === 'loading'){
   </div>
 
 
+
+  <!-- WATER PAGE -->
+  <div class="page" id="page-water">
+    <div class="section-title" id="water-page-title">💧 Вода</div>
+    <div id="water-progress-block" style="margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span id="water-amount-lbl" style="font-size:22px;font-weight:700;color:var(--accent);">0 мл</span>
+        <span id="water-goal-lbl" style="font-size:13px;color:var(--text2);">цель: 2000 мл</span>
+      </div>
+      <div style="background:var(--surface);border-radius:10px;height:12px;overflow:hidden;">
+        <div id="water-bar" style="height:100%;background:linear-gradient(90deg,#4fc3f7,#0288d1);width:0%;border-radius:10px;transition:width 0.4s;"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="addWater(200)" style="font-size:18px;padding:18px 0;">💧 +200 мл</button>
+      <button class="btn btn-primary" onclick="addWater(300)" style="font-size:18px;padding:18px 0;">💧 +300 мл</button>
+      <button class="btn btn-primary" onclick="addWater(500)" style="font-size:18px;padding:18px 0;">💧 +500 мл</button>
+      <button class="btn btn-primary" onclick="addWater(1000)" style="font-size:18px;padding:18px 0;">💧 +1 л</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="number" id="water-custom" class="text-input" placeholder="Свой объём (мл)" style="flex:1;">
+      <button class="btn btn-secondary" onclick="addWaterCustom()" style="white-space:nowrap;">➕</button>
+    </div>
+    <div id="water-today-log" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- PROGRESS PAGE -->
+  <div class="page" id="page-progress">
+    <div class="section-title" id="progress-page-title">📈 Прогресс</div>
+
+    <!-- Стрик -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:36px;" id="streak-emoji">🔥</div>
+      <div id="streak-value" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
+      <div id="streak-label" style="font-size:12px;color:var(--text2);margin-top:2px;">дней подряд</div>
+    </div>
+
+    <!-- КБЖУ сегодня -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;">
+      <div id="today-kcal-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;">СЕГОДНЯ</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+        <div>
+          <div id="prog-kcal" style="font-size:20px;font-weight:700;color:var(--accent);">—</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);">ККАЛ</div>
+        </div>
+        <div>
+          <div id="prog-prot" style="font-size:20px;font-weight:700;color:#81c784;">—</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);">БЕЛКИ</div>
+        </div>
+        <div>
+          <div id="prog-fat" style="font-size:20px;font-weight:700;color:#ffb74d;">—</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);">ЖИРЫ</div>
+        </div>
+        <div>
+          <div id="prog-carb" style="font-size:20px;font-weight:700;color:#64b5f6;">—</div>
+          <div class="macro-label" style="font-size:10px;color:var(--text2);">УГЛЕВ</div>
+        </div>
+      </div>
+      <!-- Прогресс-бар калорий -->
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
+          <span id="kcal-progress-lbl">0 / 2000 ккал</span>
+          <span id="kcal-progress-pct">0%</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.1);border-radius:6px;height:8px;overflow:hidden;">
+          <div id="kcal-bar" style="height:100%;background:var(--accent);width:0%;border-radius:6px;transition:width 0.4s;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Достижения -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;">
+      <div id="achievements-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;">ДОСТИЖЕНИЯ</div>
+      <div id="achievements-list" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:12px;color:var(--text2);" id="achievements-placeholder">Загрузи данные ↓</div>
+      </div>
+    </div>
+
+    <!-- Кнопка синхронизации -->
+    <button class="btn btn-secondary" onclick="requestProgressData()" id="sync-btn" style="width:100%;">
+      🔄 Загрузить данные из бота
+    </button>
+    <div id="progress-note" style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px;">
+      Данные синхронизируются при открытии через кнопку в боте
+    </div>
+  </div>
+
   <!-- GAME PAGE -->
   <div class="page" id="page-game">
     <div style="text-align:center; margin-bottom:8px;">
@@ -599,7 +688,11 @@ const MINI_I18N = {
     catch_food:"Лови — худеешь, зарабатываешь очки", avoid_food:"Избегай — набираешь вес",
     powerup_magnet:"🧲 Магнит", powerup_shield:"🛡️ Щит", powerup_pill:"💊 Таблетка",
     powerup_x2:"⭐ x2 очки", powerup_life:"❤️ +Жизнь", powerup_detox:"🍃 Детокс", powerup_combo:"💪 Комбо",
-    pause_lbl:"⏸ ПАУЗА", resume_lbl:"▶ Продолжить",
+    pause_lbl:"⏸ ПАУЗА",
+    // Вода и прогресс
+    tab_water:"💧 Вода", tab_progress:"📈 Прогресс",
+    water_goal_lbl:"цель: ", water_history:"История за сегодня:",
+    streak_days_text:"дней подряд", streak_days_lbl:"", resume_lbl:"▶ Продолжить",
     hat_none:"Нет", hat_cap:"Кепка", hat_beanie:"Шапка", hat_fedora:"Шляпа",
     hat_hood:"Капюшон", hat_crown:"Корона", hat_headband:"Ободок", hat_beret:"Берет",
     hat_wreath:"Венок", hat_pill:"Шляпка", hat_tiara:"Диадема",
@@ -680,7 +773,11 @@ const MINI_I18N = {
     catch_food:"Catch — lose weight, earn points", avoid_food:"Avoid — gain weight",
     powerup_magnet:"🧲 Magnet", powerup_shield:"🛡️ Shield", powerup_pill:"💊 Pill",
     powerup_x2:"⭐ x2 pts", powerup_life:"❤️ +Life", powerup_detox:"🍃 Detox", powerup_combo:"💪 Combo",
-    pause_lbl:"⏸ PAUSED", resume_lbl:"▶ Resume",
+    pause_lbl:"⏸ PAUSED",
+    // Water and progress
+    tab_water:"💧 Water", tab_progress:"📈 Progress",
+    water_goal_lbl:"goal: ", water_history:"Today's log:",
+    streak_days_text:"days in a row", streak_days_lbl:"", resume_lbl:"▶ Resume",
     hat_none:"None", hat_cap:"Cap", hat_beanie:"Beanie", hat_fedora:"Fedora",
     hat_hood:"Hood", hat_crown:"Crown", hat_headband:"Headband", hat_beret:"Beret",
     hat_wreath:"Wreath", hat_pill:"Pill hat", hat_tiara:"Tiara",
@@ -807,6 +904,10 @@ const MINI_I18N = {
     powerup_detox:"🍃 Детокс",
     powerup_combo:"💪 Комбо",
     pause_lbl:"⏸ ПАУЗА",
+    // Вода и прогресс
+    tab_water:"💧 Вода", tab_progress:"📈 Прогресс",
+    water_goal_lbl:"цель: ", water_history:"История за сегодня:",
+    streak_days_text:"дней подряд", streak_days_lbl:"",
     resume_lbl:"▶ Продовжити",
     hat_none:"Немає",
     hat_cap:"Кепка",
@@ -2353,9 +2454,11 @@ function applyTranslations(){
   const set  = (id, val) => { const el=byId(id); if(el) el.textContent=val; };
 
   // Вкладки
-  set("tab-scanner", i18n.tab_scan);
-  set("tab-manual",  i18n.tab_manual);
-  set("tab-game",    i18n.tab_game);
+  set("tab-scanner",  i18n.tab_scan);
+  set("tab-manual",   i18n.tab_manual);
+  set("tab-water",    i18n.tab_water||"💧");
+  set("tab-progress", i18n.tab_progress||"📈");
+  set("tab-game",     i18n.tab_game);
   const langBtn = byId("tab-lang");
   if(langBtn){
     const _F={ru:"🇷🇺",en:"🇬🇧",uk:"🇺🇦",de:"🇩🇪",fr:"🇫🇷",es:"🇪🇸",it:"🇮🇹",pt:"🇧🇷",tr:"🇹🇷",pl:"🇵🇱",kk:"🇰🇿",uz:"🇺🇿",be:"🇧🇾",ar:"🇸🇦",he:"🇮🇱",zh:"🇨🇳",ja:"🇯🇵",ko:"🇰🇷"};
@@ -2468,7 +2571,9 @@ function switchTab(tab) {
   const page = document.getElementById('page-' + tab);
   if (page) page.classList.add('active');
   if (tab !== 'scanner') stopScanner();
-  if (tab === 'game') setTimeout(initGame, 100);
+  if (tab === 'game')     setTimeout(initGame, 100);
+  if (tab === 'water')    initWaterPage();
+  if (tab === 'progress') initProgressPage();
 }
 
 function showToast(msg, color) {
@@ -3567,6 +3672,147 @@ function gameLoop(){
 }
 
 
+
+// ── Вода ─────────────────────────────────────────────────────────
+var waterToday = 0;
+var waterGoal  = 2000;
+var waterLog   = []; // [{time, ml}]
+
+function initWaterPage(){
+  try {
+    var saved = localStorage.getItem('nutrio_water_' + _todayKey());
+    if(saved){ var d = JSON.parse(saved); waterToday = d.total||0; waterLog = d.log||[]; }
+    var gSaved = localStorage.getItem('nutrio_water_goal');
+    if(gSaved) waterGoal = parseInt(gSaved)||2000;
+  } catch(e){}
+  renderWater();
+}
+
+function _todayKey(){
+  var d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+
+function saveWaterLocal(){
+  try{ localStorage.setItem('nutrio_water_'+_todayKey(), JSON.stringify({total:waterToday,log:waterLog})); }catch(e){}
+}
+
+function renderWater(){
+  var pct = Math.min(100, Math.round(waterToday/waterGoal*100));
+  var el = document.getElementById('water-amount-lbl');
+  var unit = i18n && i18n.weight_label && i18n.weight_label.includes('g') ? 'ml' : 'мл';
+  if(el) el.textContent = waterToday + ' ' + unit;
+  var gl = document.getElementById('water-goal-lbl');
+  if(gl) gl.textContent = (i18n&&i18n.water_goal_lbl?i18n.water_goal_lbl:'цель: ') + waterGoal + ' ' + unit;
+  var bar = document.getElementById('water-bar');
+  if(bar) bar.style.width = pct + '%';
+  // Лог
+  var log = document.getElementById('water-today-log');
+  if(log && waterLog.length){
+    log.innerHTML = '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">' +
+      (i18n&&i18n.water_history?i18n.water_history:'История за сегодня:') + '</div>' +
+      waterLog.slice(-8).reverse().map(function(e){
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+          '<span>💧 +' + e.ml + ' ' + unit + '</span>' +
+          '<span style="color:var(--text2);">' + e.time + '</span></div>';
+      }).join('');
+  }
+}
+
+function addWater(ml){
+  waterToday += ml;
+  var now = new Date();
+  waterLog.push({ml:ml, time: now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes()});
+  saveWaterLocal();
+  renderWater();
+  // Отправляем в бот
+  if(tg) try{ tg.sendData(JSON.stringify({action:'add_water', ml:ml})); }catch(e){}
+  showToast('+' + ml + (i18n&&i18n.weight_label&&i18n.weight_label.includes('g')?' ml':' мл') + ' 💧');
+}
+
+function addWaterCustom(){
+  var inp = document.getElementById('water-custom');
+  var ml = parseInt(inp.value);
+  if(!ml || ml <= 0 || ml > 5000) return;
+  addWater(ml);
+  inp.value = '';
+}
+
+// ── Прогресс ─────────────────────────────────────────────────────
+var progressData = null;
+
+function initProgressPage(){
+  // Пробуем загрузить из localStorage
+  try{
+    var saved = localStorage.getItem('nutrio_progress');
+    if(saved){ progressData = JSON.parse(saved); renderProgress(); }
+  }catch(e){}
+}
+
+function renderProgress(){
+  if(!progressData) return;
+  var d = progressData;
+  // Стрик
+  var sv = document.getElementById('streak-value');
+  var sl = document.getElementById('streak-label');
+  var se = document.getElementById('streak-emoji');
+  if(sv) sv.textContent = (d.streak||0) + ' ' + (i18n&&i18n.streak_days_lbl?i18n.streak_days_lbl:'');
+  if(sl) sl.textContent = i18n&&i18n.streak_days_text?i18n.streak_days_text:'дней подряд';
+  if(se) se.textContent = (d.streak||0) >= 7 ? '🔥' : (d.streak||0) >= 3 ? '⚡' : '🌱';
+
+  // КБЖУ
+  var set2 = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val||'0'; };
+  set2('prog-kcal', d.today_kcal||'—');
+  set2('prog-prot', d.today_prot?Math.round(d.today_prot)+'г':'—');
+  set2('prog-fat',  d.today_fat?Math.round(d.today_fat)+'г':'—');
+  set2('prog-carb', d.today_carb?Math.round(d.today_carb)+'г':'—');
+
+  // Прогресс-бар
+  var goal = d.daily_goal || 2000;
+  var kcal = d.today_kcal || 0;
+  var pct  = Math.min(110, Math.round(kcal/goal*100));
+  var bar  = document.getElementById('kcal-bar');
+  if(bar){ bar.style.width=pct+'%'; bar.style.background = pct>105?'#ef5350':pct>85?'var(--accent)':'#66bb6a'; }
+  var lbl = document.getElementById('kcal-progress-lbl');
+  if(lbl) lbl.textContent = kcal + ' / ' + goal + ' ккал';
+  var pctEl = document.getElementById('kcal-progress-pct');
+  if(pctEl) pctEl.textContent = pct + '%';
+
+  // Достижения
+  if(d.achievements && d.achievements.length){
+    var list = document.getElementById('achievements-list');
+    var ph = document.getElementById('achievements-placeholder');
+    if(ph) ph.style.display='none';
+    if(list){
+      list.innerHTML = d.achievements.map(function(a){
+        return '<span title="'+a.name+'" style="font-size:24px;cursor:default;">'+a.emoji+'</span>';
+      }).join('');
+    }
+  }
+}
+
+function requestProgressData(){
+  // Запрашиваем данные через sendData
+  if(tg) try{ tg.sendData(JSON.stringify({action:'get_progress'})); }catch(e){}
+  var btn = document.getElementById('sync-btn');
+  if(btn) btn.textContent = '⏳ Синхронизация...';
+  setTimeout(function(){ if(btn) btn.textContent = '🔄 Загрузить данные из бота'; }, 3000);
+}
+
+// Получаем данные от бота (если он передал их при открытии)
+try {
+  var startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  if(startParam){
+    try{
+      var parsed = JSON.parse(decodeURIComponent(startParam));
+      if(parsed.progress){
+        progressData = parsed.progress;
+        try{ localStorage.setItem('nutrio_progress', JSON.stringify(progressData)); }catch(e){}
+      }
+      if(parsed.water_goal) waterGoal = parsed.water_goal;
+      if(parsed.water_today) waterToday = parsed.water_today;
+    }catch(e){}
+  }
+}catch(e){}
 </script>
 </body>
 </html>
