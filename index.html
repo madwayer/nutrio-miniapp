@@ -49,6 +49,7 @@ function showLangPicker(){
   document.body.appendChild(modal);
 }
 
+window.applyTranslations = applyTranslations;
 function _initUI(){
   applyTranslations();
 
@@ -2821,6 +2822,7 @@ function showLangPicker(){
   document.body.appendChild(modal);
 }
 
+window.applyTranslations = applyTranslations;
 function _initUI(){
   applyTranslations();
 }
@@ -2845,8 +2847,8 @@ function switchTab(tab) {
   if (page) page.classList.add('active');
   if (tab !== 'scanner') stopScanner();
   if (tab === 'game')     setTimeout(initGame, 100);
-  if (tab === 'water')    initWaterPage();
-  if (tab === 'progress') initProgressPage();
+  if (tab === 'water')    { initWaterPage(); applyTranslations(); }
+  if (tab === 'progress') { initProgressPage(); applyTranslations(); }
 }
 
 function showToast(msg, color) {
