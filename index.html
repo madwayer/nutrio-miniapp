@@ -2627,7 +2627,7 @@ async function startScanner() {
             const code = barcodes[0].rawValue;
             detecting = false;
             stopScanner();
-            setStatus('scanning', `Штрихкод: ${code} — ищу...`);
+            setStatus('scanning', `🔍 ${i18n.searching||'Searching...'} ${code}`);
             await lookupBarcode(code);
             return;
           }
@@ -2667,7 +2667,7 @@ function stopScanner() {
 }
 
 async function lookupBarcode(code) {
-  setStatus('scanning', `🔍 Ищу в базах данных...`);
+  setStatus('scanning', `🔍 ${i18n.searching||'Searching...'}`); 
 
   let product = await tryOpenFoodFacts(code);
   if (!product) product = await tryUPCItemDB(code);
@@ -2777,7 +2777,7 @@ function saveProduct() {
     if (tg && tg.sendData) {
       tg.sendData(JSON.stringify(data));
     } else {
-      showToast(`✅ ${currentProduct.name} ${weight}г записан!`);
+      showToast(`✅ ${currentProduct.name} ${weight}${LANG==='ru'?'г':'g'} `+(i18n.write||'saved')+`!`);
     }
   } catch(e) {
     showToast('Ошибка отправки: ' + e.message, 'var(--accent2)');
@@ -2794,7 +2794,7 @@ function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
-  if (!name || !weight) { showToast('Заполни название и вес', 'var(--accent2)'); return; }
+  if (!name || !weight) { showToast(i18n.fill_all||'Fill name and weight', 'var(--accent2)'); return; }
   const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
   if (tg) { tg.sendData(JSON.stringify(data)); }
   else { showToast(`✅ ${name} ${weight}г добавлен!`); }
