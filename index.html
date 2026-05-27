@@ -3683,7 +3683,19 @@ function handleClick(cx,cy){
     if(settingsTab==='char'){
       const g=S.gender||'male';
       // Пол
-      if(cy>68&&cy<88){const ng=cx<W*0.63?'male':'female';if(ng!==S.gender){S.gender=ng;saveS('gender');Object.keys(DFLT).filter(k=>k.includes('_')).forEach(k=>{S[k]=0;saveS(k);});}}
+      if(cy>68&&cy<88){const ng=cx<W*0.63?'male':'female';if(ng!==S.gender){
+          // Сохраняем кастомизацию текущего пола
+          const oldG=S.gender||'male';
+          Object.keys(DFLT).filter(k=>k.includes('_')).forEach(k=>{
+            STORE.set(oldG+'_'+k, S[k]);
+          });
+          // Переключаем пол
+          S.gender=ng; saveS('gender');
+          // Загружаем кастомизацию нового пола
+          Object.keys(DFLT).filter(k=>k.includes('_')).forEach(k=>{
+            S[k]=STORE.get(ng+'_'+k, DFLT[k]); saveS(k);
+          });
+        }}
       // Слоты
       const sx0=W*0.48,sw=(W*0.49)/6;
       SLOT_ICONS.forEach((_,i)=>{const bx=sx0+i*sw;if(cx>bx&&cx<bx+sw-2&&cy>92&&cy<114){if(charSlot!==i){charSlot=i;charSubtab='style';}}});
