@@ -4011,8 +4011,17 @@ function initWaterPage(){
     if(gSaved) waterGoal = parseInt(gSaved)||2000;
   } catch(e){}
   renderWater();
-  // Обновляем переводы для элементов этой страницы
-  _translateWaterPage();
+  // Переводы вкладки Вода
+  var _u = i18n&&i18n.water_unit||'мл';
+  var _ul = i18n&&i18n.water_unit_l||'л';
+  var _wt = document.getElementById('lbl-water-title');
+  if(_wt) _wt.textContent = i18n&&i18n.water_title||'Water';
+  document.querySelectorAll('.wunit').forEach(function(el){ el.textContent=' '+_u; });
+  document.querySelectorAll('.wunit-l').forEach(function(el){ el.textContent=' '+_ul; });
+  var _inp = document.getElementById('water-custom');
+  if(_inp) _inp.placeholder = _u;
+  var _wgl = document.getElementById('water-goal-lbl');
+  if(_wgl) _wgl.textContent = (i18n&&i18n.water_goal_lbl||'цель: ')+waterGoal+' '+_u;
 }
 
 function _todayKey(){
@@ -4094,7 +4103,20 @@ function initProgressPage(){
     var saved = localStorage.getItem('nutrio_progress');
     if(saved){ progressData = JSON.parse(saved); renderProgress(); }
   }catch(e){}
-  _translateProgressPage();
+
+  // Переводы вкладки Прогресс
+  var _s = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  _s('lbl-progress-title', i18n&&i18n.progress_title||'Progress');
+  _s('today-kcal-title',   i18n&&i18n.today_lbl||'TODAY');
+  _s('lbl-kcal',           i18n&&i18n.kcal_lbl||'KCAL');
+  _s('lbl-prot',           i18n&&i18n.prot_lbl||'PROTEIN');
+  _s('lbl-fat',            i18n&&i18n.fat_lbl||'FAT');
+  _s('lbl-carb',           i18n&&i18n.carb_lbl||'CARBS');
+  _s('achievements-title', i18n&&i18n.achievements_lbl||'ACHIEVEMENTS');
+  _s('achievements-placeholder', i18n&&i18n.no_data_yet||'No data yet');
+  _s('streak-label',       i18n&&i18n.days_row||'days in a row');
+  _s('sync-btn',           i18n&&i18n.load_data_btn||'🔄 Load data from bot');
+  _s('progress-note',      i18n&&i18n.sync_note||'Open bot and tap Progress');
 }
 
 function renderProgress(){
