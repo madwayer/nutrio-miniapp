@@ -670,6 +670,7 @@ if (tg) { tg.ready(); tg.expand(); }
 // ── Переводы Mini App (ru / en) ──────────────────────────────────
 const MINI_I18N = {
   ru: {
+    water_custom_ph:"мл",
     water_title:"Вода",
     progress_title:"Прогресс",
     today_lbl:"СЕГОДНЯ",
@@ -770,6 +771,7 @@ const MINI_I18N = {
     slot_labels_f:["Гол. убор","Причёска","Блузка","Юбка","Обувь","Очки"],
   },
   en: {
+    water_custom_ph:"ml",
     water_title:"Water",
     progress_title:"Progress",
     today_lbl:"TODAY",
@@ -870,6 +872,7 @@ const MINI_I18N = {
     slot_labels_f:["Headwear","Hair","Top","Skirt","Shoes","Glasses"],
   },
   uk: {
+    water_custom_ph:"мл",
     water_title:"Вода",
     progress_title:"Прогрес",
     today_lbl:"СЬОГОДНІ",
@@ -1033,6 +1036,7 @@ const MINI_I18N = {
     glass_mask:"Маска",
   },
   de: {
+    water_custom_ph:"ml",
     water_title:"Wasser",
     progress_title:"Fortschritt",
     today_lbl:"HEUTE",
@@ -1192,6 +1196,7 @@ const MINI_I18N = {
     glass_mask:"Maske",
   },
   fr: {
+    water_custom_ph:"ml",
     water_title:"Eau",
     progress_title:"Progrès",
     today_lbl:"AUJOURD'HUI",
@@ -1351,6 +1356,7 @@ const MINI_I18N = {
     glass_mask:"Masque",
   },
   es: {
+    water_custom_ph:"ml",
     water_title:"Agua",
     progress_title:"Progreso",
     today_lbl:"HOY",
@@ -1510,6 +1516,7 @@ const MINI_I18N = {
     glass_mask:"Máscara",
   },
   it: {
+    water_custom_ph:"ml",
     water_title:"Acqua",
     progress_title:"Progresso",
     today_lbl:"OGGI",
@@ -1625,6 +1632,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Riprendi",
   },
   pt: {
+    water_custom_ph:"ml",
     water_title:"Água",
     progress_title:"Progresso",
     today_lbl:"HOJE",
@@ -1740,6 +1748,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Continuar",
   },
   tr: {
+    water_custom_ph:"ml",
     water_title:"Su",
     progress_title:"İlerleme",
     today_lbl:"BUGÜN",
@@ -1855,6 +1864,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Devam",
   },
   pl: {
+    water_custom_ph:"ml",
     water_title:"Woda",
     progress_title:"Postęp",
     today_lbl:"DZIŚ",
@@ -1970,6 +1980,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Wznów",
   },
   kk: {
+    water_custom_ph:"мл",
     water_title:"Су",
     progress_title:"Прогресс",
     today_lbl:"БҮГІН",
@@ -2085,6 +2096,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Жалғастыру",
   },
   uz: {
+    water_custom_ph:"ml",
     subtitle:"Aqlli ovqatlanish kundaligi",
     tab_scan:"📦 Shtrix-kod",
     tab_manual:"✍️ Qo'lda",
@@ -2180,6 +2192,7 @@ const MINI_I18N = {
     resume_lbl:"▶ Davom etish",
   },
   ar: {
+    water_custom_ph:"ml",
     subtitle:"مذكرة التغذية الذكية",
     tab_scan:"📦 الباركود",
     tab_manual:"✍️ يدوي",
@@ -2275,6 +2288,7 @@ const MINI_I18N = {
     resume_lbl:"▶ استمرار",
   },
   he: {
+    water_custom_ph:"ml",
     subtitle:"יומן תזונה חכם",
     tab_scan:"📦 ברקוד",
     tab_manual:"✍️ ידני",
@@ -2370,6 +2384,7 @@ const MINI_I18N = {
     resume_lbl:"▶ המשך",
   },
   zh: {
+    water_custom_ph:"ml",
     water_title:"水",
     progress_title:"进度",
     today_lbl:"今日",
@@ -2485,6 +2500,7 @@ const MINI_I18N = {
     resume_lbl:"▶ 继续",
   },
   ja: {
+    water_custom_ph:"ml",
     water_title:"水",
     progress_title:"進捗",
     today_lbl:"今日",
@@ -2600,6 +2616,7 @@ const MINI_I18N = {
     resume_lbl:"▶ 再開",
   },
   ko: {
+    water_custom_ph:"ml",
     water_title:"물",
     progress_title:"진행",
     today_lbl:"오늘",
@@ -2745,8 +2762,8 @@ let LANG = "ru", i18n = MINI_I18N.ru;
 })();
 
 function toggleLang(){
-  LANG = LANG==="ru" ? "en" : "ru";
-  i18n = MINI_I18N[LANG];
+  const newLang = LANG==="ru" ? "en" : "ru";
+  applyLang(newLang);
   try { localStorage.setItem("nutrio_lang", LANG); } catch(e){}
   applyTranslations();
   // Если в настройках — перерисовываем canvas (игра)
@@ -2805,6 +2822,32 @@ function applyTranslations(){
   const sbl = byId("settings-btn-lbl");
   if(sbl) sbl.textContent = LANG==="ru"?"Настройки":"Settings";
   var _sub = document.getElementById("app-subtitle"); if(_sub) _sub.textContent = i18n.subtitle||(CIS.has(LANG)?"Умный дневник питания":"Smart nutrition diary");
+
+  // ── Вода ──────────────────────────────────────────────────────
+  var _u = i18n.water_unit||"мл";
+  var _ul = i18n.water_unit_l||"л";
+  var _wt = document.getElementById("lbl-water-title");
+  if(_wt) _wt.textContent = i18n.water_title||"Water";
+  document.querySelectorAll(".wunit").forEach(function(el){ el.textContent=" "+_u; });
+  document.querySelectorAll(".wunit-l").forEach(function(el){ el.textContent=" "+_ul; });
+  var _wcp = document.getElementById("water-custom");
+  if(_wcp) _wcp.placeholder = i18n.water_custom_ph||_u;
+  var _wgl = document.getElementById("water-goal-lbl");
+  if(_wgl) _wgl.textContent = (i18n.water_goal_lbl||"goal: ")+(typeof waterGoal!=="undefined"?waterGoal:2000)+" "+_u;
+
+  // ── Прогресс ───────────────────────────────────────────────────
+  var _s2 = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  _s2("lbl-progress-title", i18n.progress_title||"Progress");
+  _s2("today-kcal-title",   i18n.today_lbl||"TODAY");
+  _s2("lbl-kcal",           i18n.kcal_lbl||"KCAL");
+  _s2("lbl-prot",           i18n.prot_lbl||"PROTEIN");
+  _s2("lbl-fat",            i18n.fat_lbl||"FAT");
+  _s2("lbl-carb",           i18n.carb_lbl||"CARBS");
+  _s2("achievements-title", i18n.achievements_lbl||"ACHIEVEMENTS");
+  _s2("achievements-placeholder", i18n.no_data_yet||"No data yet");
+  _s2("streak-label",       i18n.days_row||"days in a row");
+  _s2("sync-btn",           i18n.load_data_btn||"🔄 Load data from bot");
+  _s2("progress-note",      i18n.sync_note||"Open bot and tap Progress");
 }
 
 // Запускаем переводы + вешаем кнопку языка когда DOM готов
@@ -4246,31 +4289,26 @@ function renderProgress(){
 function requestProgressData(){
   var btn = document.getElementById('sync-btn');
   var note = document.getElementById('progress-note');
-  if(btn){ btn.textContent = '⏳...'; btn.disabled = true; }
-
-  // Получаем user_id из Telegram WebApp
-  var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  if(btn){ btn.textContent='⏳...'; btn.disabled=true; }
+  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(!userId){
-    if(note) note.textContent = 'Open from Telegram bot to load data';
-    if(btn){ btn.disabled = false; btn.textContent = i18n&&i18n.load_data_btn||'🔄 Load data'; }
+    if(note) note.textContent = i18n&&i18n.sync_note||'Open from Telegram to load data';
+    if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
     return;
   }
-
-  fetch('https://nutrio-api.duckdns.org/api/progress?user_id=' + userId)
+  fetch('https://nutrio-api.duckdns.org/api/progress?user_id='+userId)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error){ throw new Error(data.error); }
       progressData = data;
       try{ localStorage.setItem('nutrio_progress', JSON.stringify(data)); }catch(e){}
       renderProgress();
-      if(btn){ btn.disabled = false; btn.textContent = '✅ ' + (i18n&&i18n.load_data_btn||'Updated'); }
-      setTimeout(function(){
-        if(btn) btn.textContent = i18n&&i18n.load_data_btn||'🔄 Load data from bot';
-      }, 2000);
+      if(btn){ btn.disabled=false; btn.textContent='✅'; }
+      setTimeout(function(){ if(btn) btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; },2000);
     })
     .catch(function(err){
-      if(note) note.textContent = '❌ ' + (err.message||'Error');
-      if(btn){ btn.disabled = false; btn.textContent = i18n&&i18n.load_data_btn||'🔄 Load data'; }
+      if(note) note.textContent='❌ '+(err.message||'Error');
+      if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
     });
 }
 
