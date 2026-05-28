@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <meta name="nutrio-version" content="v28may2026-final">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
@@ -2949,16 +2950,19 @@ function applyLang(code) {
 let LANG = "ru", i18n = MINI_I18N.ru;
 
 (function initLang(){
-  // Всегда приоритет Telegram language_code — он актуальнее localStorage
+  // 1. Ручной выбор пользователя — ВЫСШИЙ приоритет
+  try {
+    const saved = localStorage.getItem("nutrio_lang");
+    if(saved){ applyLang(saved); return; }
+  } catch(e){}
+  // 2. Telegram language_code — для первого запуска
   const tgLang = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code;
   if(tgLang){
     applyLang(tgLang);
     try{ localStorage.setItem("nutrio_lang", LANG); }catch(e){}
     return;
   }
-  // Потом localStorage
-  try { const s=localStorage.getItem("nutrio_lang"); if(s){ applyLang(s); return; } } catch(e){}
-  // Потом браузер
+  // 3. Язык браузера — fallback
   applyLang(navigator.language || "ru");
 })();
 
