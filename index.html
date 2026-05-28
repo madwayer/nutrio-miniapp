@@ -49,6 +49,32 @@ function showLangPicker(){
   document.body.appendChild(modal);
 }
 
+  // ── Вода (если вкладка уже открыта) ─────────────────────────
+  var _gi = function(id){ return document.getElementById(id); };
+  var _u  = i18n.water_unit||'мл';
+  var _ul = i18n.water_unit_l||'л';
+  var _wt2 = _gi('lbl-water-title');
+  if(_wt2) _wt2.textContent = i18n.water_title||'Water';
+  document.querySelectorAll('.wunit').forEach(function(el){ el.textContent=' '+_u; });
+  document.querySelectorAll('.wunit-l').forEach(function(el){ el.textContent=' '+_ul; });
+  var _wcp = _gi('water-custom');
+  if(_wcp) _wcp.placeholder = _u;
+  var _wgl2 = _gi('water-goal-lbl');
+  if(_wgl2) _wgl2.textContent = (i18n.water_goal_lbl||'goal: ')+(typeof waterGoal!=='undefined'?waterGoal:2000)+' '+_u;
+  // ── Прогресс (если вкладка уже открыта) ───────────────────────
+  var _spp = function(id,v){ var e=_gi(id); if(e) e.textContent=v; };
+  _spp('lbl-progress-title', i18n.progress_title||'Progress');
+  _spp('today-kcal-title',   i18n.today_lbl||'TODAY');
+  _spp('lbl-kcal',           i18n.kcal_lbl||'KCAL');
+  _spp('lbl-prot',           i18n.prot_lbl||'PROTEIN');
+  _spp('lbl-fat',            i18n.fat_lbl||'FAT');
+  _spp('lbl-carb',           i18n.carb_lbl||'CARBS');
+  _spp('achievements-title', i18n.achievements_lbl||'ACHIEVEMENTS');
+  _spp('achievements-placeholder', i18n.no_data_yet||'No data yet');
+  _spp('streak-label',       i18n.days_row||'days in a row');
+  _spp('sync-btn',           i18n.load_data_btn||'🔄 Load data from bot');
+  _spp('progress-note',      i18n.sync_note||'Open bot and tap Progress');
+
 window.applyTranslations = applyTranslations;
 function _initUI(){
   applyTranslations();
@@ -2705,12 +2731,16 @@ function applyLang(code) {
 let LANG = "ru", i18n = MINI_I18N.ru;
 
 (function initLang(){
-  // 1. localStorage (ручной выбор) — всегда через applyLang для правильного мержа
+  // Всегда приоритет Telegram language_code — он актуальнее localStorage
+  const tgLang = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code;
+  if(tgLang){
+    applyLang(tgLang);
+    try{ localStorage.setItem("nutrio_lang", LANG); }catch(e){}
+    return;
+  }
+  // Потом localStorage
   try { const s=localStorage.getItem("nutrio_lang"); if(s){ applyLang(s); return; } } catch(e){}
-  // 2. Telegram language_code
-  const tgLang = tg?.initDataUnsafe?.user?.language_code || "";
-  if(tgLang){ applyLang(tgLang); return; }
-  // 3. Browser
+  // Потом браузер
   applyLang(navigator.language || "ru");
 })();
 
@@ -2822,6 +2852,32 @@ function showLangPicker(){
   document.body.appendChild(modal);
 }
 
+  // ── Вода (если вкладка уже открыта) ─────────────────────────
+  var _gi = function(id){ return document.getElementById(id); };
+  var _u  = i18n.water_unit||'мл';
+  var _ul = i18n.water_unit_l||'л';
+  var _wt2 = _gi('lbl-water-title');
+  if(_wt2) _wt2.textContent = i18n.water_title||'Water';
+  document.querySelectorAll('.wunit').forEach(function(el){ el.textContent=' '+_u; });
+  document.querySelectorAll('.wunit-l').forEach(function(el){ el.textContent=' '+_ul; });
+  var _wcp = _gi('water-custom');
+  if(_wcp) _wcp.placeholder = _u;
+  var _wgl2 = _gi('water-goal-lbl');
+  if(_wgl2) _wgl2.textContent = (i18n.water_goal_lbl||'goal: ')+(typeof waterGoal!=='undefined'?waterGoal:2000)+' '+_u;
+  // ── Прогресс (если вкладка уже открыта) ───────────────────────
+  var _spp = function(id,v){ var e=_gi(id); if(e) e.textContent=v; };
+  _spp('lbl-progress-title', i18n.progress_title||'Progress');
+  _spp('today-kcal-title',   i18n.today_lbl||'TODAY');
+  _spp('lbl-kcal',           i18n.kcal_lbl||'KCAL');
+  _spp('lbl-prot',           i18n.prot_lbl||'PROTEIN');
+  _spp('lbl-fat',            i18n.fat_lbl||'FAT');
+  _spp('lbl-carb',           i18n.carb_lbl||'CARBS');
+  _spp('achievements-title', i18n.achievements_lbl||'ACHIEVEMENTS');
+  _spp('achievements-placeholder', i18n.no_data_yet||'No data yet');
+  _spp('streak-label',       i18n.days_row||'days in a row');
+  _spp('sync-btn',           i18n.load_data_btn||'🔄 Load data from bot');
+  _spp('progress-note',      i18n.sync_note||'Open bot and tap Progress');
+
 window.applyTranslations = applyTranslations;
 function _initUI(){
   applyTranslations();
@@ -2849,22 +2905,21 @@ function switchTab(tab) {
   if (tab === 'game')     setTimeout(initGame, 100);
   if (tab === 'water')    {
     initWaterPage();
-    // Переводы вкладки Вода — здесь, в script 1, где доступен i18n
+    var _g = function(id){ return document.getElementById(id); };
     var _u = i18n&&i18n.water_unit||'мл';
     var _ul = i18n&&i18n.water_unit_l||'л';
-    var _wt = byId('lbl-water-title');
+    var _wt = _g('lbl-water-title');
     if(_wt) _wt.textContent = i18n&&i18n.water_title||'Water';
     document.querySelectorAll('.wunit').forEach(function(el){ el.textContent=' '+_u; });
     document.querySelectorAll('.wunit-l').forEach(function(el){ el.textContent=' '+_ul; });
-    var _inp = byId('water-custom');
+    var _inp = _g('water-custom');
     if(_inp) _inp.placeholder = _u;
-    var _wgl = byId('water-goal-lbl');
-    if(_wgl) _wgl.textContent = (i18n&&i18n.water_goal_lbl||'цель: ')+'2000 '+_u;
+    var _wgl = _g('water-goal-lbl');
+    if(_wgl) _wgl.textContent = (i18n&&i18n.water_goal_lbl||'goal: ')+waterGoal+' '+_u;
   }
   if (tab === 'progress') {
     initProgressPage();
-    // Переводы вкладки Прогресс — здесь, в script 1
-    var _sp = function(id,v){ var e=byId(id); if(e) e.textContent=v; };
+    var _sp = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
     _sp('lbl-progress-title', i18n&&i18n.progress_title||'Progress');
     _sp('today-kcal-title',   i18n&&i18n.today_lbl||'TODAY');
     _sp('lbl-kcal',           i18n&&i18n.kcal_lbl||'KCAL');
