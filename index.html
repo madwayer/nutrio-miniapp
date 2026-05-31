@@ -445,6 +445,7 @@ if(document.readyState === 'loading'){
     50% { opacity: 0.3; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 </head>
 <body>
 
@@ -3182,11 +3183,6 @@ function setStatus(type, text) {
 }
 
 async function startScanner() {
-  if (!('BarcodeDetector' in window)) {
-    showToast('Сканер не поддерживается на этом устройстве', 'var(--accent2)');
-    return;
-  }
-
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
@@ -3197,7 +3193,12 @@ async function startScanner() {
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        focusMode: { ideal: 'continuous' }
+      }
     });
 
     const video = document.getElementById('scanner-video');
@@ -3205,38 +3206,93 @@ async function startScanner() {
     video.srcObject = stream;
     await video.play();
 
-    const detector = new BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
-    });
-
-    const scan = async () => {
-      if (!detecting) return;
-      try {
-        if (video.readyState >= 2) {
-          const barcodes = await detector.detect(video);
-          if (barcodes.length > 0) {
-            const code = barcodes[0].rawValue;
-            detecting = false;
-            stopScanner();
-            setStatus('scanning', `🔍 ${i18n.searching||'Searching...'} ${code}`);
-            await lookupBarcode(code);
-            return;
-          }
-        }
-      } catch(e) {}
-      animFrame = setTimeout(scan, 150);
-    };
-
-    const startDetecting = () => {
-      if (video.readyState >= 2 && video.currentTime > 0) {
-        animFrame = requestAnimationFrame(scan);
-      } else {
-        setTimeout(startDetecting, 100);
+    // Пробуем включить автофокус
+    try {
+      const track = stream.getVideoTracks()[0];
+      if (track && track.applyConstraints) {
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
       }
-    };
-    video.addEventListener('playing', startDetecting, { once: true });
-    // На случай если 'playing' уже было
-    if (!video.paused) startDetecting();
+    } catch(e) {}
+
+    // Используем ZXing для надёжного чтения EAN-13
+    if (typeof ZXing !== 'undefined') {
+      const hints = new Map();
+      const formats = [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.QR_CODE,
+      ];
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      const reader = new ZXing.MultiFormatReader();
+      reader.setHints(hints);
+
+      const canvas = document.createElement('canvas');
+      const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+
+      const scan = () => {
+        if (!detecting) return;
+        try {
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx2d.drawImage(video, 0, 0);
+            const imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
+            const luminanceSource = new ZXing.RGBLuminanceSource(imageData.data, canvas.width, canvas.height);
+            const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
+            try {
+              const result = reader.decode(binaryBitmap);
+              if (result) {
+                const code = result.getText();
+                detecting = false;
+                stopScanner();
+                setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${code}`);
+                lookupBarcode(code);
+                return;
+              }
+            } catch(e) {
+              // NotFoundException — штрихкод ещё не найден, продолжаем
+            }
+          }
+        } catch(e) {}
+        animFrame = setTimeout(scan, 100);
+      };
+
+      video.addEventListener('playing', () => { animFrame = setTimeout(scan, 300); }, { once: true });
+      if (!video.paused) animFrame = setTimeout(scan, 300);
+
+    } else {
+      // Fallback: браузерный BarcodeDetector (Chrome Android)
+      if (!('BarcodeDetector' in window)) {
+        showToast('Обновите браузер для работы сканера', 'var(--accent2)');
+        resetScanner();
+        return;
+      }
+      const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] });
+      const scan = async () => {
+        if (!detecting) return;
+        try {
+          if (video.readyState >= 2) {
+            const barcodes = await detector.detect(video);
+            if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue;
+              detecting = false;
+              stopScanner();
+              setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${code}`);
+              await lookupBarcode(code);
+              return;
+            }
+          }
+        } catch(e) {}
+        animFrame = setTimeout(scan, 150);
+      };
+      video.addEventListener('playing', () => { animFrame = setTimeout(scan, 300); }, { once: true });
+      if (!video.paused) animFrame = setTimeout(scan, 300);
+    }
 
   } catch(e) {
     showToast('Нет доступа к камере', 'var(--accent2)');
@@ -3258,13 +3314,20 @@ function stopScanner() {
 }
 
 async function lookupBarcode(code) {
-  setStatus('scanning', `🔍 ${i18n.searching||'Searching...'}`); 
+  setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'}`);
 
+  // 1. Open Food Facts (международная)
   let product = await tryOpenFoodFacts(code);
+  // 2. UPC Item DB
   if (!product) product = await tryUPCItemDB(code);
+  // 3. Наша база 5.7M штрихкодов через бот API
+  if (!product) product = await tryBotBarcodeDB(code);
 
   if (!product) {
-    setStatus('scanning', `Штрихкод ${code} не найден 😔`);
+    const notFound = (LANG === 'ru')
+      ? `Штрихкод ${code} не найден 😔\nПопробуй добавить вручную`
+      : `Barcode ${code} not found 😔\nTry adding manually`;
+    setStatus('scanning', notFound);
     document.getElementById('scan-btn').style.display = 'flex';
     document.getElementById('stop-btn').style.display = 'none';
     return;
@@ -3331,6 +3394,26 @@ async function tryUPCItemDB(code) {
       prot: Math.round((n.protein || 0) * 10) / 10,
       fat: Math.round((n.fat || 0) * 10) / 10,
       carb: Math.round((n.carbohydrate || 0) * 10) / 10,
+    };
+  } catch(e) { return null; }
+}
+
+async function tryBotBarcodeDB(code) {
+  try {
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+    const apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+    const res = await fetch(`${apiBase}/api/barcode?code=${code}&user_id=${userId||0}`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.name) return null;
+    return {
+      name: data.name,
+      cal: data.calories || 0,
+      prot: data.protein || 0,
+      fat: data.fat || 0,
+      carb: data.carbs || 0,
     };
   } catch(e) { return null; }
 }
@@ -4405,7 +4488,7 @@ function addWater(ml){
   // Отправляем на сервер
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(userId){
-    fetch((window.NUTRIO_API_BASE||'https://nutrio-api.duckdns.org')+'/api/water?user_id='+userId,{
+    fetch((window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy')+'/api/water?user_id='+userId,{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ml:ml})
     }).catch(function(){});
@@ -4491,7 +4574,7 @@ function requestProgressData(){
     if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
     return;
   }
-  fetch((window.NUTRIO_API_BASE||'https://nutrio-api.duckdns.org')+'/api/progress?user_id='+userId)
+  fetch((window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy')+'/api/progress?user_id='+userId)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error){ throw new Error(data.error); }
@@ -4540,5 +4623,8 @@ try {
 </script>
 </body>
 </html>
-< ! - -   v 3 - f o r c e - d e p l o y   - - >  
+< ! - -   v 3 - f o r c e - d e p l o y   - - > 
+ 
+ < ! - -   v 3 - f o r c e - d e p l o y   - - > 
+ 
  
