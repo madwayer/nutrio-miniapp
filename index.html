@@ -586,7 +586,7 @@ if(document.readyState === 'loading'){
       <button class="btn btn-secondary" onclick="addWaterCustom()"
               style="width:44px;height:44px;padding:0;font-size:22px;flex-shrink:0;border-radius:10px;">+</button>
     </div>
-    <div id="water-today-log" style="margin-top:12px;"></div>
+    <div id="water-log" style="margin-top:12px;"></div>
   </div>
 
   <!-- PROGRESS PAGE -->
@@ -3401,7 +3401,7 @@ async function tryUPCItemDB(code) {
 async function tryBotBarcodeDB(code) {
   try {
     const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-    const apiBase = window.NUTRIO_API_BASE || 'https://147.45.162.38';
+    const apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
     const res = await fetch(`${apiBase}/api/barcode?code=${code}&user_id=${userId||0}`, {
       signal: AbortSignal.timeout(8000)
     });
@@ -4488,7 +4488,7 @@ function addWater(ml){
   // Отправляем на сервер
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(userId){
-    fetch((window.NUTRIO_API_BASE||'https://147.45.162.38')+'/api/water?user_id='+userId,{
+    fetch((window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy')+'/api/water?user_id='+userId,{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ml:ml})
     }).catch(function(){});
@@ -4569,14 +4569,12 @@ function requestProgressData(){
   var note = document.getElementById('progress-note');
   if(btn){ btn.textContent='⏳...'; btn.disabled=true; }
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
-  if(userId){ try{ localStorage.setItem('nutrio_user_id', String(userId)); }catch(e){} }
   if(!userId){
     if(note) note.textContent = i18n&&i18n.sync_note||'Open from Telegram to load data';
     if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
     return;
   }
-  fetch((window.NUTRIO_API_BASE||'https://147.45.162.38')+'/api/progress?user_id='+userId)
+  fetch((window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy')+'/api/progress?user_id='+userId)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error){ throw new Error(data.error); }
