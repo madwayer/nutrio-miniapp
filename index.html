@@ -458,7 +458,7 @@ if(document.readyState === 'loading'){
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📦</button>
+  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📷</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
   <button class="tab" onclick="switchTab('water')" id="tab-water">💧</button>
   <button class="tab" onclick="switchTab('progress')" id="tab-progress">📈</button>
@@ -472,9 +472,21 @@ if(document.readyState === 'loading'){
   <div class="page active" id="page-scanner">
 
     <div class="scanner-hero" id="scanner-hero">
-      <span class="scanner-icon">📦</span>
-      <h2>Сканер штрихкодов</h2>
-      <p>Наведи камеру на штрихкод упаковки — бот найдёт КБЖУ автоматически</p>
+      <span class="scanner-icon">📷</span>
+      <h2>Камера</h2>
+      <p>Штрихкод или фото еды — найдём КБЖУ автоматически</p>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-secondary" id="mode-barcode-btn" onclick="setCameraMode('barcode')" style="flex:1;font-size:13px;">📦 Штрихкод</button>
+      <button class="btn btn-primary" id="mode-photo-btn" onclick="setCameraMode('photo')" style="flex:1;font-size:13px;">🍽 Еда по фото</button>
+    </div>
+    <div id="photo-meal-select" style="display:none;margin-bottom:10px;">
+      <select class="meal-select" id="photo-meal-type">
+        <option value="завтрак">🌅 Завтрак</option>
+        <option value="обед">☀️ Обед</option>
+        <option value="ужин">🌙 Ужин</option>
+        <option value="перекус">🍎 Перекус</option>
+      </select>
     </div>
 
     <div id="status-area"></div>
@@ -531,6 +543,21 @@ if(document.readyState === 'loading'){
     <button class="btn btn-secondary" id="stop-btn" onclick="stopScanner()" style="display:none">
       ⏹ Остановить
     </button>
+    <button class="btn btn-primary" id="capture-btn" onclick="capturePhoto()" style="display:none;margin-top:8px;">
+      📸 Сфотографировать
+    </button>
+    <!-- Результат распознавания фото -->
+    <div id="photo-result" style="display:none;margin-top:12px;background:var(--surface);border-radius:14px;padding:16px;">
+      <div id="photo-result-name" style="font-size:16px;font-weight:700;margin-bottom:8px;"></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px;">
+        <div><div id="pr-cal" style="font-size:18px;font-weight:700;color:var(--accent);">—</div><div style="font-size:10px;color:var(--text2);">ккал</div></div>
+        <div><div id="pr-prot" style="font-size:18px;font-weight:700;color:#81c784;">—</div><div style="font-size:10px;color:var(--text2);">белки</div></div>
+        <div><div id="pr-fat" style="font-size:18px;font-weight:700;color:#ffb74d;">—</div><div style="font-size:10px;color:var(--text2);">жиры</div></div>
+        <div><div id="pr-carb" style="font-size:18px;font-weight:700;color:#e57373;">—</div><div style="font-size:10px;color:var(--text2);">углев</div></div>
+      </div>
+      <button class="btn btn-primary" onclick="savePhotoResult()" style="width:100%;">✅ Записать в дневник</button>
+      <button class="btn btn-secondary" onclick="resetPhotoResult()" style="width:100%;margin-top:8px;">🔄 Сфотографировать снова</button>
+    </div>
 
   </div>
 
@@ -3204,7 +3231,7 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-async function startScanner() {
+async function _startBarcodeScanner() {
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-btn').style.display = 'flex';
   document.getElementById('scanner-hero').style.display = 'none';
@@ -3484,6 +3511,137 @@ function resetScanner() {
   currentProduct = null;
   document.getElementById('product-card').classList.remove('show');
   startScanner();
+}
+
+
+// ═══════════════════════════════════════════════
+// РЕЖИМ КАМЕРЫ: штрихкод vs фото еды
+// ═══════════════════════════════════════════════
+var cameraMode = 'barcode';
+var photoResultData = null;
+
+function setCameraMode(mode) {
+  cameraMode = mode;
+  var barcodeBtn = document.getElementById('mode-barcode-btn');
+  var photoBtn   = document.getElementById('mode-photo-btn');
+  var mealSel    = document.getElementById('photo-meal-select');
+  var captureBtn = document.getElementById('capture-btn');
+  var scanBtn    = document.getElementById('scan-btn');
+  var stopBtn    = document.getElementById('stop-btn');
+
+  if (mode === 'barcode') {
+    if(barcodeBtn){ barcodeBtn.className='btn btn-primary'; }
+    if(photoBtn){   photoBtn.className='btn btn-secondary'; }
+    if(mealSel)  mealSel.style.display = 'none';
+    if(captureBtn) captureBtn.style.display = 'none';
+    document.getElementById('photo-result') && (document.getElementById('photo-result').style.display='none');
+  } else {
+    if(barcodeBtn){ barcodeBtn.className='btn btn-secondary'; }
+    if(photoBtn){   photoBtn.className='btn btn-primary'; }
+    if(mealSel)  mealSel.style.display = 'block';
+    // Stop barcode scanner if running
+    if(typeof stopScanner === 'function') stopScanner();
+  }
+  // Stop camera and reset
+  stopScanner && stopScanner();
+  if(scanBtn) { scanBtn.style.display = 'block'; scanBtn.textContent = '📷 Открыть камеру'; }
+  if(stopBtn)  stopBtn.style.display = 'none';
+  if(captureBtn) captureBtn.style.display = 'none';
+}
+
+function startScanner() {
+  if (cameraMode === 'photo') {
+    // Photo mode - start camera for capture
+    var video = document.getElementById('scanner-video');
+    var container = document.getElementById('video-container');
+    var scanBtn = document.getElementById('scan-btn');
+    var stopBtn = document.getElementById('stop-btn');
+    var captureBtn = document.getElementById('capture-btn');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(function(stream) {
+        video.srcObject = stream;
+        if(container) container.style.display = 'block';
+        if(scanBtn) scanBtn.style.display = 'none';
+        if(stopBtn) { stopBtn.style.display = 'block'; }
+        if(captureBtn) captureBtn.style.display = 'block';
+      })
+      .catch(function(e) { showToast('❌ Нет доступа к камере', 'var(--accent2)'); });
+    return;
+  }
+  // Barcode mode — original logic handled by ZXing
+  _startBarcodeScanner();
+}
+
+function capturePhoto() {
+  var video = document.getElementById('scanner-video');
+  if (!video || !video.srcObject) { showToast('❌ Камера не запущена', 'var(--accent2)'); return; }
+  
+  var canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  var imageB64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  
+  showToast('🔍 Распознаю еду...');
+  document.getElementById('capture-btn').disabled = true;
+  document.getElementById('capture-btn').textContent = '⏳ Анализирую...';
+
+  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
+  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
+  var mealType = document.getElementById('photo-meal-type').value || 'другое';
+
+  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/photo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId||0, image: imageB64, meal_type: mealType, save: false })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    var captureBtn = document.getElementById('capture-btn');
+    if(captureBtn){ captureBtn.disabled=false; captureBtn.textContent='📸 Сфотографировать'; }
+    if (d.error) { showToast('❌ ' + d.error, 'var(--accent2)'); return; }
+    photoResultData = d;
+    document.getElementById('photo-result-name').textContent = d.name + ' — ' + d.weight + 'г';
+    document.getElementById('pr-cal').textContent  = d.calories;
+    document.getElementById('pr-prot').textContent = d.protein;
+    document.getElementById('pr-fat').textContent  = d.fat;
+    document.getElementById('pr-carb').textContent = d.carbs;
+    document.getElementById('photo-result').style.display = 'block';
+    stopScanner && stopScanner();
+  })
+  .catch(function(e) {
+    var captureBtn = document.getElementById('capture-btn');
+    if(captureBtn){ captureBtn.disabled=false; captureBtn.textContent='📸 Сфотографировать'; }
+    showToast('❌ Ошибка подключения', 'var(--accent2)');
+  });
+}
+
+function savePhotoResult() {
+  if (!photoResultData) return;
+  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
+  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
+  if(!userId){ showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
+  var mealType = document.getElementById('photo-meal-type').value || 'другое';
+  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/manual', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ user_id: userId, food_name: photoResultData.name, meal_type: mealType, weight: photoResultData.weight, calories: photoResultData.calories, protein: photoResultData.protein, fat: photoResultData.fat, carbs: photoResultData.carbs })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ showToast('✅ Записано в дневник!'); resetPhotoResult(); }
+    else { showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)'); }
+  })
+  .catch(function(){ showToast('❌ Ошибка подключения', 'var(--accent2)'); });
+}
+
+function resetPhotoResult() {
+  photoResultData = null;
+  document.getElementById('photo-result').style.display = 'none';
+  var captureBtn = document.getElementById('capture-btn');
+  if(captureBtn) captureBtn.style.display = 'block';
 }
 
 function sendManual() {
