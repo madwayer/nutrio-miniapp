@@ -586,7 +586,7 @@ if(document.readyState === 'loading'){
       <button class="btn btn-secondary" onclick="addWaterCustom()"
               style="width:44px;height:44px;padding:0;font-size:22px;flex-shrink:0;border-radius:10px;">+</button>
     </div>
-    <div id="water-log" style="margin-top:12px;"></div>
+    <div id="water-today-log" style="margin-top:12px;"></div>
   </div>
 
   <!-- PROGRESS PAGE -->
@@ -4569,6 +4569,8 @@ function requestProgressData(){
   var note = document.getElementById('progress-note');
   if(btn){ btn.textContent='⏳...'; btn.disabled=true; }
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
+  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
+  if(userId){ try{ localStorage.setItem('nutrio_user_id', String(userId)); }catch(e){} }
   if(!userId){
     if(note) note.textContent = i18n&&i18n.sync_note||'Open from Telegram to load data';
     if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
