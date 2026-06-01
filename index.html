@@ -536,25 +536,25 @@ if(document.readyState === 'loading'){
 
   <!-- MANUAL PAGE -->
   <div class="page" id="page-manual">
-    <div class="section-title">Добавить вручную</div>
+    <div class="section-title" id="lbl-manual-title"></div>
     <div class="input-group">
-      <label>Название продукта</label>
-      <input type="text" class="text-input" id="manual-name" placeholder="Например: Курица">
+      <label id="lbl-manual-name"></label>
+      <input type="text" class="text-input" id="manual-name" placeholder="">
     </div>
     <div class="input-group">
-      <label>Вес (г)</label>
+      <label id="lbl-manual-weight"></label>
       <input type="number" class="text-input" id="manual-weight" placeholder="200">
     </div>
     <div class="input-group">
-      <label>Приём пищи</label>
+      <label id="lbl-manual-meal"></label>
       <select class="meal-select" id="meal-select-manual">
-        <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед">☀️ Обед</option>
-        <option value="ужин">🌙 Ужин</option>
-        <option value="перекус">🍎 Перекус</option>
+        <option value="завтрак" id="opt-breakfast"></option>
+        <option value="обед" id="opt-lunch"></option>
+        <option value="ужин" id="opt-dinner"></option>
+        <option value="перекус" id="opt-snack"></option>
       </select>
     </div>
-    <button class="btn btn-primary" onclick="sendManual()">✅ Добавить</button>
+    <button class="btn btn-primary" id="lbl-manual-add" onclick="sendManual()"></button>
   </div>
 
 
@@ -3062,6 +3062,18 @@ function applyTranslations(){
   _s2("achievements-title", i18n.achievements_lbl||"ACHIEVEMENTS");
   _s2("achievements-placeholder", i18n.no_data_yet||"No data yet");
   _s2("streak-label",       i18n.days_row||"days in a row");
+  _s2("lbl-manual-title",  i18n.manual_title||"✍️ Вручную");
+  _s2("lbl-manual-name",   i18n.name_ph ? "Название продукта" : "Food name");
+  _s2("lbl-manual-weight", i18n.weight_label||"Вес (г)");
+  _s2("lbl-manual-meal",   "Приём пищи");
+  _s2("opt-breakfast", i18n.meal_breakfast||"🌅 Завтрак");
+  _s2("opt-lunch",     i18n.meal_lunch||"☀️ Обед");
+  _s2("opt-dinner",    i18n.meal_dinner||"🌙 Ужин");
+  _s2("opt-snack",     i18n.meal_snack||"🍎 Перекус");
+  _s2("lbl-manual-add", i18n.add||"✅ Добавить");
+  // manual placeholder
+  var _mn = document.getElementById("manual-name");
+  if(_mn) _mn.placeholder = i18n.name_ph||"Например: Курица";
   _s2("sync-btn",           i18n.load_data_btn||"🔄 Load data from bot");
   _s2("progress-note",      i18n.sync_note||"Open bot and tap Progress");
 }
@@ -3469,25 +3481,9 @@ function sendManual() {
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
   if (!name || !weight) { showToast(i18n.fill_all||'Fill name and weight', 'var(--accent2)'); return; }
-  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
-  if(!userId){ showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
-  const apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
-  fetch(apiBase + '/api/manual', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ user_id: userId, food_name: name, meal_type: meal, weight: parseInt(weight) })
-  }).then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d.ok || d.status === 'ok'){
-        showToast('✅ ' + name + ' ' + weight + 'г добавлен!');
-        document.getElementById('manual-name').value = '';
-        document.getElementById('manual-weight').value = '';
-      } else {
-        showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)');
-      }
-    })
-    .catch(function(e){ showToast('❌ Ошибка подключения', 'var(--accent2)'); });
+  const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
+  if (tg) { tg.sendData(JSON.stringify(data)); }
+  else { showToast(`✅ ${name} ${weight}г добавлен!`); }
 }
 
 // Применяем переводы к UI
