@@ -3469,9 +3469,25 @@ function sendManual() {
   const weight = document.getElementById('manual-weight').value;
   const meal = document.getElementById('meal-select-manual').value;
   if (!name || !weight) { showToast(i18n.fill_all||'Fill name and weight', 'var(--accent2)'); return; }
-  const data = { action: 'add_manual', food_name: name, meal_type: meal, weight: parseInt(weight) };
-  if (tg) { tg.sendData(JSON.stringify(data)); }
-  else { showToast(`✅ ${name} ${weight}г добавлен!`); }
+  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
+  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
+  if(!userId){ showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
+  const apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/manual', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ user_id: userId, food_name: name, meal_type: meal, weight: parseInt(weight) })
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok || d.status === 'ok'){
+        showToast('✅ ' + name + ' ' + weight + 'г добавлен!');
+        document.getElementById('manual-name').value = '';
+        document.getElementById('manual-weight').value = '';
+      } else {
+        showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)');
+      }
+    })
+    .catch(function(e){ showToast('❌ Ошибка подключения', 'var(--accent2)'); });
 }
 
 // Применяем переводы к UI
