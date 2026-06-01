@@ -4569,8 +4569,6 @@ function requestProgressData(){
   var note = document.getElementById('progress-note');
   if(btn){ btn.textContent='⏳...'; btn.disabled=true; }
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }
-  if(userId){ localStorage.setItem('nutrio_user_id', userId); }
   if(!userId){
     if(note) note.textContent = i18n&&i18n.sync_note||'Open from Telegram to load data';
     if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
@@ -4625,8 +4623,3 @@ try {
 </script>
 </body>
 </html>
-< ! - -   v 3 - f o r c e - d e p l o y   - - > 
- 
- < ! - -   v 3 - f o r c e - d e p l o y   - - > 
- 
- 
