@@ -458,7 +458,7 @@ if(document.readyState === 'loading'){
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📷</button>
+  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">🔍</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
   <button class="tab" onclick="switchTab('water')" id="tab-water">💧</button>
   <button class="tab" onclick="switchTab('progress')" id="tab-progress">📈</button>
@@ -472,21 +472,13 @@ if(document.readyState === 'loading'){
   <div class="page active" id="page-scanner">
 
     <div class="scanner-hero" id="scanner-hero">
-      <span class="scanner-icon">📷</span>
-      <h2>Камера</h2>
-      <p>Штрихкод или фото еды — найдём КБЖУ автоматически</p>
+      <span class="scanner-icon">🔍</span>
+      <h2>Умный сканер еды</h2>
+      <p>Штрихкод или фото блюда — найдём КБЖУ автоматически</p>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button class="btn btn-secondary" id="mode-barcode-btn" onclick="setCameraMode('barcode')" style="flex:1;font-size:13px;">📦 Штрихкод</button>
-      <button class="btn btn-primary" id="mode-photo-btn" onclick="setCameraMode('photo')" style="flex:1;font-size:13px;">🍽 Еда по фото</button>
-    </div>
-    <div id="photo-meal-select" style="display:none;margin-bottom:10px;">
-      <select class="meal-select" id="photo-meal-type">
-        <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед">☀️ Обед</option>
-        <option value="ужин">🌙 Ужин</option>
-        <option value="перекус">🍎 Перекус</option>
-      </select>
+      <button class="btn btn-primary"   id="mode-photo-btn"   onclick="setCameraMode('photo')"   style="flex:1;font-size:13px;">🍽 Еда по фото</button>
     </div>
 
     <div id="status-area"></div>
@@ -546,16 +538,23 @@ if(document.readyState === 'loading'){
     <button class="btn btn-primary" id="capture-btn" onclick="capturePhoto()" style="display:none;margin-top:8px;">
       📸 Сфотографировать
     </button>
-    <!-- Результат распознавания фото -->
     <div id="photo-result" style="display:none;margin-top:12px;background:var(--surface);border-radius:14px;padding:16px;">
       <div id="photo-result-name" style="font-size:16px;font-weight:700;margin-bottom:8px;"></div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px;">
-        <div><div id="pr-cal" style="font-size:18px;font-weight:700;color:var(--accent);">—</div><div style="font-size:10px;color:var(--text2);">ккал</div></div>
+        <div><div id="pr-cal"  style="font-size:18px;font-weight:700;color:var(--accent);">—</div><div style="font-size:10px;color:var(--text2);">ккал</div></div>
         <div><div id="pr-prot" style="font-size:18px;font-weight:700;color:#81c784;">—</div><div style="font-size:10px;color:var(--text2);">белки</div></div>
-        <div><div id="pr-fat" style="font-size:18px;font-weight:700;color:#ffb74d;">—</div><div style="font-size:10px;color:var(--text2);">жиры</div></div>
+        <div><div id="pr-fat"  style="font-size:18px;font-weight:700;color:#ffb74d;">—</div><div style="font-size:10px;color:var(--text2);">жиры</div></div>
         <div><div id="pr-carb" style="font-size:18px;font-weight:700;color:#e57373;">—</div><div style="font-size:10px;color:var(--text2);">углев</div></div>
       </div>
-      <button class="btn btn-primary" onclick="savePhotoResult()" style="width:100%;">✅ Записать в дневник</button>
+      <div style="margin-bottom:10px;">
+        <select class="meal-select" id="photo-result-meal-type">
+          <option value="завтрак">🌅 Завтрак</option>
+          <option value="обед" selected>☀️ Обед</option>
+          <option value="ужин">🌙 Ужин</option>
+          <option value="перекус">🍎 Перекус</option>
+        </select>
+      </div>
+      <button class="btn btn-primary"   onclick="savePhotoResult()"  style="width:100%;">✅ Записать в дневник</button>
       <button class="btn btn-secondary" onclick="resetPhotoResult()" style="width:100%;margin-top:8px;">🔄 Сфотографировать снова</button>
     </div>
 
@@ -716,7 +715,7 @@ const MINI_I18N = {
     no_data_yet:"Нет данных",
     history_3day:"История за 3 дня:",
     subtitle:"Умный дневник питания",
-    tab_scan:"📦 Штрихкод", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
+    tab_scan:"🔍 Умный сканер", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
     scan_title:"Сканер штрихкодов",
     scan_sub:"Наведи камеру на штрихкод упаковки — бот найдёт КБЖУ автоматически",
     open_cam:"📷 Открыть камеру", stop:"⏹ Остановить", searching:"Ищу штрихкод...",
@@ -824,7 +823,7 @@ const MINI_I18N = {
     no_data_yet:"No data yet",
     history_3day:"3-day history:",
     subtitle:"Smart nutrition diary",
-    tab_scan:"📦 Barcode", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
+    tab_scan:"🔍 Умный сканер", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
     scan_title:"Barcode scanner",
     scan_sub:"Point camera at barcode — bot finds nutrition automatically",
     open_cam:"📷 Open camera", stop:"⏹ Stop", searching:"Scanning...",
@@ -937,7 +936,7 @@ const MINI_I18N = {
     water_history:"Сьогодні:",
 
     subtitle:"Розумний щоденник харчування",
-    tab_scan:"📦 Штрихкод",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Вручну",
     tab_game:"🎮 Гра",
     scan_title:"Сканер штрихкодів",
@@ -1108,7 +1107,7 @@ const MINI_I18N = {
     water_history:"Heute:",
 
     subtitle:"Smartes Ernährungstagebuch",
-    tab_scan:"📦 Barcode",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manuell",
     tab_game:"🎮 Spiel",
     scan_title:"Barcode-Scanner",
@@ -1277,7 +1276,7 @@ const MINI_I18N = {
     water_history:"Aujourd'hui:",
 
     subtitle:"Journal nutritionnel intelligent",
-    tab_scan:"📦 Code-barres",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Jeu",
     scan_title:"Scanner code-barres",
@@ -1446,7 +1445,7 @@ const MINI_I18N = {
     water_history:"Hoy:",
 
     subtitle:"Diario nutricional inteligente",
-    tab_scan:"📦 Código",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Juego",
     scan_title:"Escáner de código",
@@ -1615,7 +1614,7 @@ const MINI_I18N = {
     water_history:"Oggi:",
 
     subtitle:"Diario nutrizionale smart",
-    tab_scan:"📦 Codice",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manuale",
     tab_game:"🎮 Gioco",
     scan_title:"Scanner codice",
@@ -1740,7 +1739,7 @@ const MINI_I18N = {
     water_history:"Hoje:",
 
     subtitle:"Diário nutricional inteligente",
-    tab_scan:"📦 Código",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Jogo",
     scan_title:"Scanner de código",
@@ -1865,7 +1864,7 @@ const MINI_I18N = {
     water_history:"Bugün:",
 
     subtitle:"Akıllı beslenme günlüğü",
-    tab_scan:"📦 Barkod",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Oyun",
     scan_title:"Barkod tarayıcı",
@@ -1990,7 +1989,7 @@ const MINI_I18N = {
     water_history:"Dziś:",
 
     subtitle:"Inteligentny dziennik żywienia",
-    tab_scan:"📦 Kod",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Ręcznie",
     tab_game:"🎮 Gra",
     scan_title:"Skaner kodów",
@@ -2115,7 +2114,7 @@ const MINI_I18N = {
     water_history:"Бүгін:",
 
     subtitle:"Ақылды тамақтану күнделігі",
-    tab_scan:"📦 Штрих-код",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Қолмен",
     tab_game:"🎮 Ойын",
     scan_title:"Штрих-код сканері",
@@ -2220,7 +2219,7 @@ const MINI_I18N = {
   uz: {
     water_custom_ph:"ml",
     subtitle:"Aqlli ovqatlanish kundaligi",
-    tab_scan:"📦 Shtrix-kod",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ Qo'lda",
     tab_game:"🎮 O'yin",
     scan_title:"Shtrix-kod skaneri",
@@ -2343,7 +2342,7 @@ const MINI_I18N = {
   ar: {
     water_custom_ph:"ml",
     subtitle:"مذكرة التغذية الذكية",
-    tab_scan:"📦 الباركود",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ يدوي",
     tab_game:"🎮 لعبة",
     scan_title:"ماسح الباركود",
@@ -2466,7 +2465,7 @@ const MINI_I18N = {
   he: {
     water_custom_ph:"ml",
     subtitle:"יומן תזונה חכם",
-    tab_scan:"📦 ברקוד",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ ידני",
     tab_game:"🎮 משחק",
     scan_title:"סורק ברקוד",
@@ -2609,7 +2608,7 @@ const MINI_I18N = {
     water_history:"今天:",
 
     subtitle:"智能营养日记",
-    tab_scan:"📦 条形码",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ 手动",
     tab_game:"🎮 游戏",
     scan_title:"条形码扫描器",
@@ -2734,7 +2733,7 @@ const MINI_I18N = {
     water_history:"今日:",
 
     subtitle:"スマート栄養日記",
-    tab_scan:"📦 バーコード",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ 手動",
     tab_game:"🎮 ゲーム",
     scan_title:"バーコードスキャナー",
@@ -2859,7 +2858,7 @@ const MINI_I18N = {
     water_history:"오늘:",
 
     subtitle:"스마트 영양 일기",
-    tab_scan:"📦 바코드",
+    tab_scan:"🔍 Умный сканер",
     tab_manual:"✍️ 수동",
     tab_game:"🎮 게임",
     scan_title:"바코드 스캐너",
@@ -3514,134 +3513,105 @@ function resetScanner() {
 }
 
 
-// ═══════════════════════════════════════════════
-// РЕЖИМ КАМЕРЫ: штрихкод vs фото еды
-// ═══════════════════════════════════════════════
 var cameraMode = 'barcode';
 var photoResultData = null;
 
 function setCameraMode(mode) {
   cameraMode = mode;
-  var barcodeBtn = document.getElementById('mode-barcode-btn');
-  var photoBtn   = document.getElementById('mode-photo-btn');
-  var mealSel    = document.getElementById('photo-meal-select');
-  var captureBtn = document.getElementById('capture-btn');
-  var scanBtn    = document.getElementById('scan-btn');
-  var stopBtn    = document.getElementById('stop-btn');
-
+  var bb = document.getElementById('mode-barcode-btn');
+  var pb = document.getElementById('mode-photo-btn');
   if (mode === 'barcode') {
-    if(barcodeBtn){ barcodeBtn.className='btn btn-primary'; }
-    if(photoBtn){   photoBtn.className='btn btn-secondary'; }
-    if(mealSel)  mealSel.style.display = 'none';
-    if(captureBtn) captureBtn.style.display = 'none';
+    if(bb) bb.className='btn btn-primary';
+    if(pb) pb.className='btn btn-secondary';
+    document.getElementById('capture-btn') && (document.getElementById('capture-btn').style.display='none');
     document.getElementById('photo-result') && (document.getElementById('photo-result').style.display='none');
   } else {
-    if(barcodeBtn){ barcodeBtn.className='btn btn-secondary'; }
-    if(photoBtn){   photoBtn.className='btn btn-primary'; }
-    if(mealSel)  mealSel.style.display = 'block';
-    // Stop barcode scanner if running
-    if(typeof stopScanner === 'function') stopScanner();
+    if(bb) bb.className='btn btn-secondary';
+    if(pb) pb.className='btn btn-primary';
   }
-  // Stop camera and reset
-  stopScanner && stopScanner();
-  if(scanBtn) { scanBtn.style.display = 'block'; scanBtn.textContent = '📷 Открыть камеру'; }
-  if(stopBtn)  stopBtn.style.display = 'none';
-  if(captureBtn) captureBtn.style.display = 'none';
+  if(typeof stopScanner==='function') stopScanner();
+  var sb=document.getElementById('scan-btn'); if(sb){sb.style.display='block'; sb.textContent='📷 Открыть камеру';}
+  var st=document.getElementById('stop-btn'); if(st) st.style.display='none';
+  var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='none';
 }
 
 function startScanner() {
   if (cameraMode === 'photo') {
-    // Photo mode - start camera for capture
     var video = document.getElementById('scanner-video');
     var container = document.getElementById('video-container');
-    var scanBtn = document.getElementById('scan-btn');
-    var stopBtn = document.getElementById('stop-btn');
-    var captureBtn = document.getElementById('capture-btn');
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(function(stream) {
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+      .then(function(stream){
         video.srcObject = stream;
-        if(container) container.style.display = 'block';
-        if(scanBtn) scanBtn.style.display = 'none';
-        if(stopBtn) { stopBtn.style.display = 'block'; }
-        if(captureBtn) captureBtn.style.display = 'block';
+        if(container) container.style.display='block';
+        var sb=document.getElementById('scan-btn'); if(sb) sb.style.display='none';
+        var st=document.getElementById('stop-btn'); if(st) st.style.display='block';
+        var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='block';
       })
-      .catch(function(e) { showToast('❌ Нет доступа к камере', 'var(--accent2)'); });
+      .catch(function(){ showToast('❌ Нет доступа к камере','var(--accent2)'); });
     return;
   }
-  // Barcode mode — original logic handled by ZXing
   _startBarcodeScanner();
 }
 
 function capturePhoto() {
   var video = document.getElementById('scanner-video');
-  if (!video || !video.srcObject) { showToast('❌ Камера не запущена', 'var(--accent2)'); return; }
-  
+  if(!video || !video.srcObject){ showToast('❌ Камера не запущена','var(--accent2)'); return; }
   var canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  var imageB64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-  
-  showToast('🔍 Распознаю еду...');
-  document.getElementById('capture-btn').disabled = true;
-  document.getElementById('capture-btn').textContent = '⏳ Анализирую...';
-
+  canvas.width = video.videoWidth||640; canvas.height = video.videoHeight||480;
+  canvas.getContext('2d').drawImage(video,0,0);
+  var imageB64 = canvas.toDataURL('image/jpeg',0.8).split(',')[1];
+  var cb = document.getElementById('capture-btn');
+  if(cb){cb.disabled=true; cb.textContent='⏳ Анализирую...';}
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
-  var mealType = document.getElementById('photo-meal-type').value || 'другое';
-
-  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
-  fetch(apiBase + '/api/photo', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId||0, image: imageB64, meal_type: mealType, save: false })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d) {
-    var captureBtn = document.getElementById('capture-btn');
-    if(captureBtn){ captureBtn.disabled=false; captureBtn.textContent='📸 Сфотографировать'; }
-    if (d.error) { showToast('❌ ' + d.error, 'var(--accent2)'); return; }
-    photoResultData = d;
-    document.getElementById('photo-result-name').textContent = d.name + ' — ' + d.weight + 'г';
-    document.getElementById('pr-cal').textContent  = d.calories;
-    document.getElementById('pr-prot').textContent = d.protein;
-    document.getElementById('pr-fat').textContent  = d.fat;
-    document.getElementById('pr-carb').textContent = d.carbs;
-    document.getElementById('photo-result').style.display = 'block';
-    stopScanner && stopScanner();
-  })
-  .catch(function(e) {
-    var captureBtn = document.getElementById('capture-btn');
-    if(captureBtn){ captureBtn.disabled=false; captureBtn.textContent='📸 Сфотографировать'; }
-    showToast('❌ Ошибка подключения', 'var(--accent2)');
-  });
+  if(!userId){try{var _up=new URLSearchParams(window.location.search);userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id');}catch(e){}}
+  var apiBase = window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase+'/api/photo',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user_id:userId||0, image:imageB64, meal_type:'другое', save:false})
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
+      if(d.error){showToast('❌ '+d.error,'var(--accent2)');return;}
+      photoResultData = d;
+      document.getElementById('photo-result-name').textContent = d.name+' — '+d.weight+'г';
+      document.getElementById('pr-cal').textContent  = d.calories;
+      document.getElementById('pr-prot').textContent = d.protein;
+      document.getElementById('pr-fat').textContent  = d.fat;
+      document.getElementById('pr-carb').textContent = d.carbs;
+      document.getElementById('photo-result').style.display='block';
+      if(typeof stopScanner==='function') stopScanner();
+    })
+    .catch(function(){
+      if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
+      showToast('❌ Ошибка подключения','var(--accent2)');
+    });
 }
 
 function savePhotoResult() {
-  if (!photoResultData) return;
+  if(!photoResultData) return;
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
-  if(!userId){ showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
-  var mealType = document.getElementById('photo-meal-type').value || 'другое';
-  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
-  fetch(apiBase + '/api/manual', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ user_id: userId, food_name: photoResultData.name, meal_type: mealType, weight: photoResultData.weight, calories: photoResultData.calories, protein: photoResultData.protein, fat: photoResultData.fat, carbs: photoResultData.carbs })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    if(d.ok){ showToast('✅ Записано в дневник!'); resetPhotoResult(); }
-    else { showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)'); }
-  })
-  .catch(function(){ showToast('❌ Ошибка подключения', 'var(--accent2)'); });
+  if(!userId){try{var _up=new URLSearchParams(window.location.search);userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id');}catch(e){}}
+  if(!userId){showToast('❌ Открой из Telegram','var(--accent2)');return;}
+  var mealSel = document.getElementById('photo-result-meal-type');
+  var mealType = (mealSel&&mealSel.value)||'другое';
+  var apiBase = window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase+'/api/manual',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user_id:userId, food_name:photoResultData.name, meal_type:mealType, weight:photoResultData.weight, calories:photoResultData.calories, protein:photoResultData.protein, fat:photoResultData.fat, carbs:photoResultData.carbs})
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if(d.ok){showToast('✅ Записано в дневник!'); resetPhotoResult();}
+      else{showToast('❌ '+(d.error||'Ошибка'),'var(--accent2)');}
+    })
+    .catch(function(){showToast('❌ Ошибка подключения','var(--accent2)');});
 }
 
 function resetPhotoResult() {
   photoResultData = null;
-  document.getElementById('photo-result').style.display = 'none';
-  var captureBtn = document.getElementById('capture-btn');
-  if(captureBtn) captureBtn.style.display = 'block';
+  var pr = document.getElementById('photo-result');
+  if(pr) pr.style.display='none';
+  var cb = document.getElementById('capture-btn');
+  if(cb) cb.style.display='block';
 }
 
 function sendManual() {
