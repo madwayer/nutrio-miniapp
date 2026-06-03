@@ -446,6 +446,7 @@ if(document.readyState === 'loading'){
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 </head>
 <body>
 
@@ -3262,51 +3263,85 @@ async function _startBarcodeScanner() {
       }
     } catch(e) {}
 
-    // Сканирование через jsQR (стабильно в мобильном браузере)
-    const canvas = document.createElement('canvas');
-    const ctx2d  = canvas.getContext('2d', { willReadFrequently: true });
+    // Останавливаем getUserMedia — Quagga управляет камерой сам
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
 
-    const scan = () => {
+    const videoContainer = document.getElementById('video-container');
+
+    if (typeof Quagga === 'undefined') {
+      showToast('❌ Библиотека сканера не загружена', 'var(--accent2)');
+      resetScanner();
+      return;
+    }
+
+    Quagga.init({
+      inputStream: {
+        name: 'Live',
+        type: 'LiveStream',
+        target: videoContainer,
+        constraints: {
+          facingMode: 'environment',
+          width:  { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      },
+      decoder: {
+        readers: [
+          'ean_reader',       // EAN-13 — основной формат продуктов
+          'ean_8_reader',     // EAN-8
+          'upc_reader',       // UPC-A
+          'upc_e_reader',     // UPC-E
+          'code_128_reader',  // Code 128
+          'code_39_reader',   // Code 39
+        ],
+        multiple: false,
+      },
+      locate: true,
+      numOfWorkers: 0,  // 0 = без воркеров, работает в WebView
+      frequency: 10,
+    }, function(err) {
+      if (err) {
+        showToast('❌ Нет доступа к камере', 'var(--accent2)');
+        resetScanner();
+        return;
+      }
+      Quagga.start();
+    });
+
+    Quagga.onDetected(function(result) {
       if (!detecting) return;
-      try {
-        if (video.readyState >= 2 && video.videoWidth > 0) {
-          canvas.width  = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx2d.drawImage(video, 0, 0);
-          const imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
+      const code = result.codeResult.code;
+      if (!code) return;
+      detecting = false;
+      Quagga.stop();
+      setStatus('scanning', \`🔍 \${i18n.searching||'Поиск...'} \${code}\`);
+      lookupBarcode(code);
+    });
 
-          // jsQR — QR коды
-          if (typeof jsQR !== 'undefined') {
-            const qr = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
-            if (qr && qr.data) {
-              detecting = false;
-              stopScanner();
-              setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${qr.data}`);
-              lookupBarcode(qr.data);
-              return;
-            }
-          }
-
-          // Браузерный BarcodeDetector — штрихкоды EAN/UPC (Chrome Android)
-          if ('BarcodeDetector' in window) {
-            const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] });
-            detector.detect(video).then(function(barcodes) {
-              if (barcodes.length > 0 && detecting) {
-                const code = barcodes[0].rawValue;
-                detecting = false;
-                stopScanner();
-                setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${code}`);
-                lookupBarcode(code);
-              }
-            }).catch(function(){});
-          }
+    // Также пробуем jsQR для QR кодов параллельно
+    const canvas2 = document.createElement('canvas');
+    const ctx2    = canvas2.getContext('2d', { willReadFrequently: true });
+    const scanQR  = () => {
+      if (!detecting) return;
+      if (video.readyState >= 2 && video.videoWidth > 0 && typeof jsQR !== 'undefined') {
+        canvas2.width  = video.videoWidth;
+        canvas2.height = video.videoHeight;
+        ctx2.drawImage(video, 0, 0);
+        const imgData = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+        const qr = jsQR(imgData.data, canvas2.width, canvas2.height);
+        if (qr && qr.data && detecting) {
+          detecting = false;
+          Quagga.stop();
+          stopScanner();
+          setStatus('scanning', \`🔍 \${i18n.searching||'Поиск...'} \${qr.data}\`);
+          lookupBarcode(qr.data);
+          return;
         }
-      } catch(e) {}
-      animFrame = setTimeout(scan, 150);
+      }
+      animFrame = setTimeout(scanQR, 300);
     };
-
-    video.addEventListener('playing', () => { animFrame = setTimeout(scan, 500); }, { once: true });
-    if (!video.paused) animFrame = setTimeout(scan, 500);
+    video.addEventListener('playing', () => { animFrame = setTimeout(scanQR, 500); }, { once: true });
 
     if (false) {
       // (заглушка для старого else-блока)
@@ -3341,9 +3376,14 @@ async function _startBarcodeScanner() {
 function stopScanner() {
   detecting = false;
   if (animFrame) { clearTimeout(animFrame); animFrame = null; }
+  // Останавливаем Quagga если запущен
+  try { if (typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const video = document.getElementById('scanner-video');
-  video.srcObject = null;
+  if (video) video.srcObject = null;
+  // Убираем видео которое Quagga мог добавить в video-container
+  const vc = document.getElementById('video-container');
+  if (vc) { const vids = vc.querySelectorAll('video'); vids.forEach(v => { if(v.id !== 'scanner-video') v.remove(); }); }
   document.getElementById('video-container').style.display = 'none';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
