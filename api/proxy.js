@@ -14,7 +14,7 @@ export default function handler(req, res) {
   }
 
   const options = {
-    hostname: '147.45.162.38',
+    hostname: process.env.BOT_HOST || '147.45.162.38',
     port: 443,
     path: path,
     method: req.method,
