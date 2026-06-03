@@ -445,7 +445,7 @@ if(document.readyState === 'loading'){
     50% { opacity: 0.3; }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 
@@ -484,7 +484,7 @@ if(document.readyState === 'loading'){
     <div id="status-area"></div>
     <div id="video-container">
       <video id="scanner-video" autoplay playsinline muted></video>
-      <div class="scan-overlay">
+      <div class="scan-overlay" id="scan-overlay">
         <div class="scan-frame">
           <div class="scan-line"></div>
         </div>
@@ -3262,66 +3262,56 @@ async function _startBarcodeScanner() {
       }
     } catch(e) {}
 
-    // Используем ZXing для надёжного чтения EAN-13
-    if (typeof ZXing !== 'undefined') {
-      const hints = new Map();
-      const formats = [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.QR_CODE,
-      ];
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const reader = new ZXing.MultiFormatReader();
-      reader.setHints(hints);
+    // Сканирование через jsQR (стабильно в мобильном браузере)
+    const canvas = document.createElement('canvas');
+    const ctx2d  = canvas.getContext('2d', { willReadFrequently: true });
 
-      const canvas = document.createElement('canvas');
-      const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+    const scan = () => {
+      if (!detecting) return;
+      try {
+        if (video.readyState >= 2 && video.videoWidth > 0) {
+          canvas.width  = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx2d.drawImage(video, 0, 0);
+          const imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
 
-      const scan = () => {
-        if (!detecting) return;
-        try {
-          if (video.readyState >= 2 && video.videoWidth > 0) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx2d.drawImage(video, 0, 0);
-            const imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
-            const luminanceSource = new ZXing.RGBLuminanceSource(imageData.data, canvas.width, canvas.height);
-            const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
-            try {
-              const result = reader.decode(binaryBitmap);
-              if (result) {
-                const code = result.getText();
+          // jsQR — QR коды
+          if (typeof jsQR !== 'undefined') {
+            const qr = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
+            if (qr && qr.data) {
+              detecting = false;
+              stopScanner();
+              setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${qr.data}`);
+              lookupBarcode(qr.data);
+              return;
+            }
+          }
+
+          // Браузерный BarcodeDetector — штрихкоды EAN/UPC (Chrome Android)
+          if ('BarcodeDetector' in window) {
+            const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] });
+            detector.detect(video).then(function(barcodes) {
+              if (barcodes.length > 0 && detecting) {
+                const code = barcodes[0].rawValue;
                 detecting = false;
                 stopScanner();
                 setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${code}`);
                 lookupBarcode(code);
-                return;
               }
-            } catch(e) {
-              // NotFoundException — штрихкод ещё не найден, продолжаем
-            }
+            }).catch(function(){});
           }
-        } catch(e) {}
-        animFrame = setTimeout(scan, 100);
-      };
+        }
+      } catch(e) {}
+      animFrame = setTimeout(scan, 150);
+    };
 
-      video.addEventListener('playing', () => { animFrame = setTimeout(scan, 300); }, { once: true });
-      if (!video.paused) animFrame = setTimeout(scan, 300);
+    video.addEventListener('playing', () => { animFrame = setTimeout(scan, 500); }, { once: true });
+    if (!video.paused) animFrame = setTimeout(scan, 500);
 
-    } else {
-      // Fallback: браузерный BarcodeDetector (Chrome Android)
-      if (!('BarcodeDetector' in window)) {
-        showToast('Обновите браузер для работы сканера', 'var(--accent2)');
-        resetScanner();
-        return;
-      }
-      const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] });
-      const scan = async () => {
+    if (false) {
+      // (заглушка для старого else-блока)
+      const detector = new BarcodeDetector({ formats: ['ean_13'] });
+      const scan2 = async () => {
         if (!detecting) return;
         try {
           if (video.readyState >= 2) {
@@ -3520,14 +3510,17 @@ function setCameraMode(mode) {
   cameraMode = mode;
   var bb = document.getElementById('mode-barcode-btn');
   var pb = document.getElementById('mode-photo-btn');
+  var overlay = document.getElementById('scan-overlay');
   if (mode === 'barcode') {
     if(bb) bb.className='btn btn-primary';
     if(pb) pb.className='btn btn-secondary';
     document.getElementById('capture-btn') && (document.getElementById('capture-btn').style.display='none');
     document.getElementById('photo-result') && (document.getElementById('photo-result').style.display='none');
+    if(overlay) overlay.style.display='flex';  // показываем прицел для штрихкода
   } else {
     if(bb) bb.className='btn btn-secondary';
     if(pb) pb.className='btn btn-primary';
+    if(overlay) overlay.style.display='none';  // скрываем прицел для фото еды
   }
   if(typeof stopScanner==='function') stopScanner();
   var sb=document.getElementById('scan-btn'); if(sb){sb.style.display='block'; sb.textContent='📷 Открыть камеру';}
