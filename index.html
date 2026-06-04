@@ -86,20 +86,1563 @@ if(document.readyState === 'loading'){
 } else {
   _initUI();
 }
+
+// ===== ДНЕВНИК =====
+function getUserId() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  if (!id) {
+    try {
+      var p = new URLSearchParams(window.location.search);
+      id = p.get('user_id') || localStorage.getItem('nutrio_user_id');
+    } catch(e) {}
+  }
+  return id || 0;
+}
+var diaryDate = new Date();
+var diaryData = null;
+
+function diaryDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function diaryDateLabel(d) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
+  var dd = new Date(d); dd.setHours(0,0,0,0);
+  var days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  var months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  var label = dd.getDate() + ' ' + months[dd.getMonth()];
+  if (dd.getTime() === today.getTime()) label += ' (сегодня)';
+  else if (dd.getTime() === yesterday.getTime()) label += ' (вчера)';
+  else label += ', ' + days[dd.getDay()];
+  return label;
+}
+
+function diaryPrevDay() {
+  diaryDate.setDate(diaryDate.getDate() - 1);
+  loadDiary();
+}
+function diaryNextDay() {
+  var today = new Date(); today.setHours(23,59,59,999);
+  if (diaryDate < today) {
+    diaryDate.setDate(diaryDate.getDate() + 1);
+    loadDiary();
+  }
+}
+
+function initDiaryPage() {
+  // Сбрасываем на сегодня при первом открытии
+  var today = new Date();
+  if (diaryDateStr(diaryDate) !== diaryDateStr(today) && !diaryData) {
+    diaryDate = new Date();
+  }
+  loadDiary();
+}
+
+async function loadDiary() {
+  var userId = getUserId();
+  if (!userId) { return; }
+
+  // Обновляем заголовок
+  var lbl = document.getElementById('diary-date-label');
+  if (lbl) lbl.textContent = diaryDateLabel(diaryDate);
+
+  // Скрываем кнопку "вперёд" если уже сегодня
+  var nextBtn = document.getElementById('diary-next-btn');
+  var today = new Date(); today.setHours(0,0,0,0);
+  var dd = new Date(diaryDate); dd.setHours(0,0,0,0);
+  if (nextBtn) nextBtn.style.opacity = dd.getTime() >= today.getTime() ? '0.3' : '1';
+
+  try {
+    var url = '/api/proxy/diary?user_id=' + userId + '&date=' + diaryDateStr(diaryDate);
+    var res = await fetch(url);
+    var data = await res.json();
+    if (data.error) { showToast(data.error, 'var(--accent2)'); return; }
+    diaryData = data;
+    renderDiary(data);
+  } catch(e) {
+    showToast('Ошибка загрузки', 'var(--accent2)');
+  }
+}
+
+function renderDiary(data) {
+  // Прогресс-бар
+  var eaten = data.total.calories;
+  var goal  = data.daily_goal || 2000;
+  var pct   = Math.min(100, Math.round(eaten / goal * 100));
+  var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
+  var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';
+  var fill = document.getElementById('diary-prog-fill');
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.className = 'diary-prog-fill' + (eaten > goal ? ' over' : '');
+  }
+  var pr = document.getElementById('diary-prot'); if(pr) pr.textContent = data.total.protein;
+  var fa = document.getElementById('diary-fat');  if(fa) fa.textContent = data.total.fat;
+  var ca = document.getElementById('diary-carb'); if(ca) ca.textContent = data.total.carbs;
+
+  // Приёмы пищи
+  var container = document.getElementById('diary-meals-container');
+  if (!container) return;
+
+  var mealOrder = ['завтрак','обед','ужин','перекус','другое'];
+  var mealEmoji = {'завтрак':'🌅','обед':'☀️','ужин':'🌙','перекус':'🍎','другое':'🍽'};
+  var meals = data.meals || {};
+  var hasEntries = Object.keys(meals).length > 0;
+
+  if (!hasEntries) {
+    var today = new Date(); today.setHours(0,0,0,0);
+    var dd = new Date(diaryDate); dd.setHours(0,0,0,0);
+    var isToday = dd.getTime() === today.getTime();
+    container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">🍽</div><div>' +
+      (isToday ? 'Пока ничего не добавлено' : 'Нет записей за этот день') + '</div></div>';
+    return;
+  }
+
+  var html = '';
+  // Сначала в нужном порядке, потом всё остальное
+  var keys = mealOrder.filter(k => meals[k]);
+  Object.keys(meals).forEach(k => { if (!keys.includes(k)) keys.push(k); });
+
+  keys.forEach(function(meal) {
+    var entries = meals[meal];
+    if (!entries || !entries.length) return;
+    var mealKcal = entries.reduce(function(s,e){return s+e.calories;}, 0);
+    var emoji = mealEmoji[meal] || '🍽';
+    var name = meal.charAt(0).toUpperCase() + meal.slice(1);
+    html += '<div class="diary-meal-block">';
+    html += '<div class="diary-meal-header" onclick="toggleMeal(this)">';
+    html += '<span class="diary-meal-name">' + emoji + ' ' + name + '</span>';
+    html += '<span class="diary-meal-kcal">' + mealKcal + ' ккал</span>';
+    html += '<span class="diary-meal-arrow">▼</span></div>';
+    html += '<div class="diary-meal-body">';
+    entries.forEach(function(e) {
+      html += '<div class="diary-entry" data-id="' + e.id + '">';
+      html += '<div class="diary-entry-info">';
+      html += '<div class="diary-entry-name">' + escHtml(e.name) + '</div>';
+      html += '<div class="diary-entry-meta">Б ' + e.protein + ' · Ж ' + e.fat + ' · У ' + e.carbs;
+      if (e.time) html += ' · ' + e.time;
+      html += '</div></div>';
+      html += '<div class="diary-entry-kcal">' + e.calories + '</div>';
+      html += '<button class="diary-entry-del" onclick="deleteDiaryEntry(' + e.id + ', this)" title="Удалить">✕</button>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function toggleMeal(header) {
+  var body = header.nextElementSibling;
+  var arrow = header.querySelector('.diary-meal-arrow');
+  var collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? 'block' : 'none';
+  header.classList.toggle('collapsed', !collapsed);
+  if (arrow) arrow.style.transform = collapsed ? '' : 'rotate(-90deg)';
+}
+
+async function deleteDiaryEntry(entryId, btn) {
+  var userId = getUserId();
+  if (!userId) return;
+  if (!confirm('Удалить запись?')) return;
+
+  var row = btn.closest('.diary-entry');
+  if (row) row.style.opacity = '0.4';
+
+  try {
+    var res = await fetch('/api/proxy/diary/delete', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), entry_id: entryId})
+    });
+    var data = await res.json();
+    if (data.ok) {
+      showToast('Удалено', 'var(--green)');
+      loadDiary();
+    } else {
+      if (row) row.style.opacity = '1';
+      showToast('Ошибка удаления', 'var(--accent2)');
+    }
+  } catch(e) {
+    if (row) row.style.opacity = '1';
+    showToast('Ошибка', 'var(--accent2)');
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+// ===== КАЛЬКУЛЯТОР + ХЕ =====
+var calcMode = 'kbzu';
+var calcItems = [];
+var calcCurrentResult = null;
+
+function initCalcPage() {
+  setCalcMode(calcMode);
+  if (calcMode === 'he') loadHeDailyData();
+}
+
+function setCalcMode(mode) {
+  calcMode = mode;
+  document.getElementById('calc-mode-kbzu').className = 'calc-mode-btn' + (mode === 'kbzu' ? ' active' : '');
+  document.getElementById('calc-mode-he').className   = 'calc-mode-btn' + (mode === 'he'   ? ' active' : '');
+  document.getElementById('calc-kbzu-section').style.display = mode === 'kbzu' ? 'block' : 'none';
+  document.getElementById('calc-he-section').style.display   = mode === 'he'   ? 'block' : 'none';
+  if (mode === 'he') loadHeDailyData();
+}
+
+// ---- КБЖУ калькулятор ----
+async function calcSearch() {
+  var food   = (document.getElementById('calc-food-input').value || '').trim();
+  var weight = parseFloat(document.getElementById('calc-weight-input').value) || 100;
+  if (!food) { showToast('Введи название продукта', 'var(--accent2)'); return; }
+
+  var btn = document.querySelector('#calc-kbzu-section .calc-add-btn');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  try {
+    var url = '/api/proxy/search?food=' + encodeURIComponent(food) + '&weight=' + weight;
+    var res = await fetch(url);
+    var data = await res.json();
+    if (data.error || !data.ok) {
+      showToast('Продукт не найден', 'var(--accent2)');
+      return;
+    }
+    calcCurrentResult = data;
+    document.getElementById('calc-result-name').textContent = data.name + ' — ' + weight + 'г';
+    document.getElementById('calc-r-kcal').textContent = data.calories + ' ккал';
+    document.getElementById('calc-r-prot').textContent = 'Б: ' + data.protein;
+    document.getElementById('calc-r-fat').textContent  = 'Ж: ' + data.fat;
+    document.getElementById('calc-r-carb').textContent = 'У: ' + data.carbs;
+    document.getElementById('calc-r-he').textContent   = 'ХЕ: ' + data.he;
+    document.getElementById('calc-result-preview').style.display = 'block';
+  } catch(e) {
+    showToast('Ошибка поиска', 'var(--accent2)');
+  } finally {
+    if (btn) { btn.textContent = '🔍 Найти'; btn.disabled = false; }
+  }
+}
+
+function calcAddItem() {
+  if (!calcCurrentResult) return;
+  calcItems.push(Object.assign({}, calcCurrentResult));
+  calcCurrentResult = null;
+  document.getElementById('calc-result-preview').style.display = 'none';
+  document.getElementById('calc-food-input').value = '';
+  calcRenderItems();
+  showToast('Добавлено!', 'var(--green)');
+}
+
+function calcRemoveItem(idx) {
+  calcItems.splice(idx, 1);
+  calcRenderItems();
+}
+
+function calcRenderItems() {
+  var list = document.getElementById('calc-items-list');
+  var total = document.getElementById('calc-total-card');
+  var saveSection = document.getElementById('calc-save-section');
+
+  if (!calcItems.length) {
+    list.innerHTML = '';
+    total.style.display = 'none';
+    saveSection.style.display = 'none';
+    return;
+  }
+
+  var html = '';
+  var totKcal = 0, totProt = 0, totFat = 0, totCarb = 0, totHe = 0;
+  calcItems.forEach(function(item, i) {
+    totKcal += item.calories; totProt += item.protein;
+    totFat  += item.fat;      totCarb += item.carbs;
+    totHe   += item.he;
+    html += '<div class="calc-item">';
+    html += '<div class="calc-item-info">';
+    html += '<div class="calc-item-name">' + escHtml(item.name) + ' — ' + item.weight + 'г</div>';
+    html += '<div class="calc-item-sub">' + item.calories + ' ккал · ХЕ: ' + item.he + '</div>';
+    html += '</div>';
+    html += '<button class="calc-item-del" onclick="calcRemoveItem(' + i + ')">✕</button>';
+    html += '</div>';
+  });
+  list.innerHTML = html;
+
+  document.getElementById('calc-total-kcal').textContent = Math.round(totKcal) + ' ккал';
+  document.getElementById('calc-total-he').textContent   = 'ХЕ: ' + Math.round(totHe * 10) / 10;
+  document.getElementById('calc-total-prot').textContent = Math.round(totProt * 10) / 10;
+  document.getElementById('calc-total-fat').textContent  = Math.round(totFat  * 10) / 10;
+  document.getElementById('calc-total-carb').textContent = Math.round(totCarb * 10) / 10;
+  total.style.display = 'block';
+  saveSection.style.display = 'block';
+}
+
+async function calcSave() {
+  if (!calcItems.length) return;
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var meal = document.getElementById('calc-meal-select').value;
+  var btn = document.querySelector('.calc-save-btn');
+  if (btn) { btn.textContent = '⏳ Сохраняю...'; btn.disabled = true; }
+  try {
+    var res = await fetch('/api/proxy/calculator/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), meal_type: meal, items: calcItems})
+    });
+    var data = await res.json();
+    if (data.ok) {
+      showToast('✅ Сохранено в дневник!', 'var(--green)');
+      calcClear();
+    } else {
+      showToast('Ошибка: ' + (data.error || '?'), 'var(--accent2)');
+    }
+  } catch(e) {
+    showToast('Ошибка сохранения', 'var(--accent2)');
+  } finally {
+    if (btn) { btn.textContent = '💾 Сохранить в дневник'; btn.disabled = false; }
+  }
+}
+
+function calcClear() {
+  calcItems = [];
+  calcCurrentResult = null;
+  document.getElementById('calc-items-list').innerHTML = '';
+  document.getElementById('calc-result-preview').style.display = 'none';
+  document.getElementById('calc-total-card').style.display = 'none';
+  document.getElementById('calc-save-section').style.display = 'none';
+  document.getElementById('calc-food-input').value = '';
+}
+
+// ---- ХЕ калькулятор ----
+async function loadHeDailyData() {
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/diary?user_id=' + userId);
+    var data = await res.json();
+    if (data.error) return;
+    var totalHe = Math.round(data.total.carbs / 12 * 10) / 10;
+    var heNorm  = 21; // средняя норма 17-25
+    var pct     = Math.min(100, Math.round(totalHe / heNorm * 100));
+    document.getElementById('he-today-val').textContent = totalHe + ' ХЕ';
+    document.getElementById('he-today-prog').style.width = pct + '%';
+  } catch(e) {}
+}
+
+async function heSearch() {
+  var food   = (document.getElementById('he-food-input').value || '').trim();
+  var weight = parseFloat(document.getElementById('he-weight-input').value) || 100;
+  if (!food) { showToast('Введи название продукта', 'var(--accent2)'); return; }
+
+  var btn = document.querySelector('#calc-he-section .calc-add-btn');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  try {
+    var url = '/api/proxy/search?food=' + encodeURIComponent(food) + '&weight=' + weight;
+    var res = await fetch(url);
+    var data = await res.json();
+    if (data.error || !data.ok) { showToast('Продукт не найден', 'var(--accent2)'); return; }
+
+    var he    = data.he;
+    var label = he <= 2 ? '🟢 Норма' : (he <= 4 ? '🟡 Умеренно' : '🔴 Много');
+    var cls   = he <= 2 ? 'he-safe' : (he <= 4 ? 'he-medium' : 'he-high');
+
+    document.getElementById('he-result-name').textContent  = data.name + ' — ' + weight + 'г';
+    document.getElementById('he-result-val').textContent   = he;
+    document.getElementById('he-result-val').className     = 'he-result-val ' + cls;
+    document.getElementById('he-result-label').textContent = 'ХЕ · ' + label;
+    document.getElementById('he-result-carbs').textContent = 'Углеводы: ' + data.carbs + 'г';
+    document.getElementById('he-result-card').style.display = 'block';
+  } catch(e) {
+    showToast('Ошибка поиска', 'var(--accent2)');
+  } finally {
+    if (btn) { btn.textContent = 'Рассчитать ХЕ'; btn.disabled = false; }
+  }
+}
+
+
+// ===== МОИ ПРОДУКТЫ =====
+var mfData = [];
+var mfEditId = null;
+var mfUseItem = null;
+
+async function initMyFoodsPage() {
+  await loadMyFoods();
+  document.getElementById('mf-search').oninput = function() { mfRender(this.value); };
+}
+
+async function loadMyFoods() {
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/myfoods?user_id=' + userId);
+    var data = await res.json();
+    if (data.ok) { mfData = data.foods || []; mfRender(''); }
+  } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
+}
+
+function mfRender(filter) {
+  var list = document.getElementById('mf-list');
+  var items = filter ? mfData.filter(function(f) {
+    return f.name.toLowerCase().includes(filter.toLowerCase());
+  }) : mfData;
+  if (!items.length) {
+    list.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">⭐</div>'
+      + '<div>' + (filter ? 'Не найдено' : 'Нет своих продуктов') + '</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(function(f) {
+    return '<div class="mf-item">'
+      + '<div class="mf-item-info">'
+      + '<div class="mf-item-name">' + escHtml(f.name) + '</div>'
+      + '<div class="mf-item-macros">🔥 ' + f.calories + ' · Б' + f.protein
+      + ' · Ж' + f.fat + ' · У' + f.carbs + ' (на 100г)</div>'
+      + '</div>'
+      + '<div class="mf-item-btns">'
+      + '<button class="mf-btn mf-btn-use" onclick="mfUse(' + f.id + ')" title="В дневник">+</button>'
+      + '<button class="mf-btn mf-btn-edit" onclick="mfShowForm(' + f.id + ')" title="Изменить">✏</button>'
+      + '<button class="mf-btn mf-btn-del" onclick="mfDelete(' + f.id + ')" title="Удалить">✕</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function mfShowForm(id) {
+  mfEditId = id;
+  var form  = document.getElementById('mf-form');
+  var title = document.getElementById('mf-form-title');
+  if (id) {
+    var f = mfData.find(function(x) { return x.id === id; });
+    if (!f) return;
+    document.getElementById('mf-f-name').value = f.name;
+    document.getElementById('mf-f-cal').value  = f.calories;
+    document.getElementById('mf-f-prot').value = f.protein;
+    document.getElementById('mf-f-fat').value  = f.fat;
+    document.getElementById('mf-f-carb').value = f.carbs;
+    title.textContent = 'Редактировать продукт';
+  } else {
+    document.getElementById('mf-f-name').value = '';
+    document.getElementById('mf-f-cal').value  = '';
+    document.getElementById('mf-f-prot').value = '';
+    document.getElementById('mf-f-fat').value  = '';
+    document.getElementById('mf-f-carb').value = '';
+    title.textContent = 'Новый продукт';
+  }
+  form.style.display = 'block';
+  document.getElementById('mf-f-name').focus();
+}
+
+function mfHideForm() {
+  document.getElementById('mf-form').style.display = 'none';
+  mfEditId = null;
+}
+
+async function mfSave() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var name = document.getElementById('mf-f-name').value.trim();
+  var cal  = parseFloat(document.getElementById('mf-f-cal').value) || 0;
+  var prot = parseFloat(document.getElementById('mf-f-prot').value) || 0;
+  var fat  = parseFloat(document.getElementById('mf-f-fat').value) || 0;
+  var carb = parseFloat(document.getElementById('mf-f-carb').value) || 0;
+  if (!name) { showToast('Введи название', 'var(--accent2)'); return; }
+  if (cal <= 0) { showToast('Укажи калории', 'var(--accent2)'); return; }
+
+  var body = {user_id: parseInt(userId), name: name, calories: cal,
+               protein: prot, fat: fat, carbs: carb};
+  if (mfEditId) body.id = mfEditId;
+
+  try {
+    var res  = await fetch('/api/proxy/myfoods', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    var data = await res.json();
+    if (data.ok) {
+      showToast(mfEditId ? '✅ Обновлено!' : '✅ Добавлено!', 'var(--green)');
+      mfHideForm();
+      await loadMyFoods();
+    } else {
+      showToast(data.error || 'Ошибка', 'var(--accent2)');
+    }
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+
+async function mfDelete(id) {
+  var userId = getUserId();
+  if (!userId || !confirm('Удалить продукт?')) return;
+  try {
+    var res  = await fetch('/api/proxy/myfoods', {
+      method: 'DELETE', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), food_id: id})
+    });
+    var data = await res.json();
+    if (data.ok) { showToast('Удалено', 'var(--green)'); await loadMyFoods(); }
+    else showToast(data.error || 'Ошибка', 'var(--accent2)');
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+
+function mfUse(id) {
+  mfUseItem = mfData.find(function(x) { return x.id === id; });
+  if (!mfUseItem) return;
+  document.getElementById('mf-use-name').textContent = mfUseItem.name + ' (на 100г: ' + mfUseItem.calories + ' ккал)';
+  document.getElementById('mf-use-weight').value = '100';
+  document.getElementById('mf-use-popup').style.display = 'block';
+}
+
+function mfHideUse() {
+  document.getElementById('mf-use-popup').style.display = 'none';
+  mfUseItem = null;
+}
+
+async function mfUseConfirm() {
+  var userId = getUserId();
+  if (!userId || !mfUseItem) return;
+  var weight = parseFloat(document.getElementById('mf-use-weight').value) || 100;
+  var meal   = document.getElementById('mf-use-meal').value;
+  var factor = weight / 100;
+  var item = {
+    name:     mfUseItem.name,
+    weight:   weight,
+    calories: Math.round(mfUseItem.calories * factor),
+    protein:  Math.round(mfUseItem.protein * factor * 10) / 10,
+    fat:      Math.round(mfUseItem.fat     * factor * 10) / 10,
+    carbs:    Math.round(mfUseItem.carbs   * factor * 10) / 10,
+  };
+  try {
+    var res  = await fetch('/api/proxy/calculator/save', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), meal_type: meal, items: [item]})
+    });
+    var data = await res.json();
+    if (data.ok) {
+      showToast('✅ Добавлено в дневник!', 'var(--green)');
+      mfHideUse();
+    } else {
+      showToast(data.error || 'Ошибка', 'var(--accent2)');
+    }
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+
+// ===== СТАТИСТИКА =====
+async function initStatPage() {
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/stats?user_id=' + userId);
+    var data = await res.json();
+    if (data.error) { showToast(data.error, 'var(--accent2)'); return; }
+    renderStats(data);
+  } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
+}
+
+function renderStats(data) {
+  // Стрик
+  var el = document.getElementById('stat-streak');
+  if (el) el.textContent = data.streak || 0;
+
+  // KPI
+  var goal    = data.daily_goal || 2000;
+  var avgKcal = data.avg_week_kcal || 0;
+  var pct     = avgKcal ? Math.round(avgKcal / goal * 100) : 0;
+  var avgEl   = document.getElementById('stat-avg-kcal');   if (avgEl) avgEl.textContent = avgKcal || '—';
+  var pctEl   = document.getElementById('stat-goal-pct');   if (pctEl) pctEl.textContent = avgKcal ? pct + '%' : '—';
+  var daysEl  = document.getElementById('stat-days-logged'); if (daysEl) daysEl.textContent = data.days_logged || 0;
+
+  // Bar chart 7 дней
+  var chart = document.getElementById('stat-bar-chart');
+  if (chart && data.week_days) {
+    var maxKcal = Math.max.apply(null, data.week_days.map(function(d) { return d.kcal; })) || goal;
+    var today   = new Date().toISOString().split('T')[0];
+    var days    = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    chart.innerHTML = data.week_days.map(function(d) {
+      var pct2   = d.kcal ? Math.round(d.kcal / maxKcal * 100) : 3;
+      var isToday = d.date === today;
+      var over   = d.kcal > goal;
+      var cls    = isToday ? ' today' : (over ? ' over' : '');
+      var dObj   = new Date(d.date);
+      var lbl    = days[dObj.getDay()];
+      return '<div class="stat-bar-col">'
+        + '<div class="stat-bar-val">' + (d.kcal || '') + '</div>'
+        + '<div class="stat-bar' + cls + '" style="height:' + pct2 + '%"></div>'
+        + '<div class="stat-bar-lbl">' + lbl + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ИМТ
+  if (data.bmi) {
+    var bmiCard = document.getElementById('stat-bmi-card');
+    if (bmiCard) bmiCard.style.display = 'block';
+    var bmiVal = document.getElementById('stat-bmi-val');
+    if (bmiVal) bmiVal.textContent = data.bmi;
+    // Pin position: BMI 15=0% .. 40=100%
+    var pin = document.getElementById('stat-bmi-pin');
+    if (pin) {
+      var pctBmi = Math.max(0, Math.min(100, Math.round((data.bmi - 15) / 25 * 100)));
+      pin.style.left = pctBmi + '%';
+    }
+    var bmiCat = document.getElementById('stat-bmi-cat');
+    if (bmiCat) {
+      var bmi = data.bmi;
+      bmiCat.textContent = bmi < 18.5 ? '📉 Дефицит веса' :
+                           bmi < 25   ? '✅ Норма' :
+                           bmi < 30   ? '⚠️ Избыточный вес' : '🔴 Ожирение';
+    }
+  }
+
+  // Топ продукты
+  if (data.top_foods && data.top_foods.length) {
+    var topCard = document.getElementById('stat-top-card');
+    var topList = document.getElementById('stat-top-list');
+    if (topCard) topCard.style.display = 'block';
+    if (topList) {
+      topList.innerHTML = data.top_foods.map(function(f, i) {
+        return '<div class="stat-top-item">'
+          + '<span class="stat-top-name">' + (i+1) + '. ' + escHtml(f.name) + '</span>'
+          + '<span class="stat-top-count">' + f.count + ' раз</span>'
+          + '</div>';
+      }).join('');
+    }
+  }
+}
+
+
+// ===== AI PAGE =====
+var aiMode = 'nutri';
+var planDays = 3;
+var recipeFilter = 'random';
+var recipeHistory = [];
+
+function initAiPage() { setAiMode(aiMode); }
+
+function setAiMode(mode) {
+  aiMode = mode;
+  ['nutri','plan','recipe'].forEach(function(m) {
+    document.getElementById('ai-btn-' + m).className =
+      'ai-mode-btn' + (m === mode ? ' active' : '');
+    document.getElementById('ai-section-' + m).className =
+      'ai-section' + (m === mode ? ' active' : '');
+  });
+}
+
+function selectPlanDays(n) {
+  planDays = n;
+  document.querySelectorAll('.plan-day-btn').forEach(function(b) {
+    b.className = 'plan-day-btn' + (parseInt(b.textContent) === n ? ' selected' : '');
+  });
+}
+
+function selectRecipeFilter(btn) {
+  recipeFilter = btn.getAttribute('data-key');
+  document.querySelectorAll('.recipe-filter-btn').forEach(function(b) {
+    b.className = 'recipe-filter-btn' + (b === btn ? ' selected' : '');
+  });
+}
+
+function _aiLimitMsg(data) {
+  var isPremium = data.premium;
+  return '<div class="ai-limit-card">'
+    + '<div class="ai-limit-icon">⭐</div>'
+    + '<div style="font-weight:700;margin-bottom:6px">Лимит исчерпан</div>'
+    + '<div style="font-size:13px;color:var(--muted)">Использовано ' + data.used + '/' + data.limit + '</div>'
+    + (isPremium ? '' :
+       '<button class="ai-action-btn" style="background:var(--accent);margin-top:10px" '
+       + 'onclick="switchTab('manual')">'
+       + '⭐ Купить Premium</button>')
+    + '</div>';
+}
+
+async function runNutritionist() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var lang = window._appLang || 'ru';
+  var btn  = document.getElementById('nutri-btn');
+  var res  = document.getElementById('nutri-result');
+  btn.disabled = true; btn.textContent = '⏳ Анализирую...';
+  res.className = 'ai-result-card show';
+  res.innerHTML = '<div class="ai-loading">🤖 Анализирую питание за 14 дней...</div>';
+  try {
+    var r    = await fetch('/api/proxy/nutritionist', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), lang: lang})
+    });
+    var data = await r.json();
+    if (r.status === 402) {
+      res.innerHTML = _aiLimitMsg(data);
+    } else if (data.error === 'no_data') {
+      res.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">'
+        + '📝 Нет данных о питании. Начни записывать еду в дневник!</div>';
+    } else if (data.ok) {
+      res.textContent = data.text;
+    } else {
+      res.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + (data.error||'?') + '</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка соединения</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 Проанализировать питание';
+  }
+}
+
+async function runMealPlan() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var lang  = window._appLang || 'ru';
+  var restr = (document.getElementById('plan-restrictions').value || '').trim();
+  var btn   = document.getElementById('plan-btn');
+  var res   = document.getElementById('plan-result');
+  btn.disabled = true; btn.textContent = '⏳ Составляю план...';
+  res.className = 'ai-result-card show';
+  res.innerHTML = '<div class="ai-loading">📅 Генерирую план на ' + planDays + ' дней...</div>';
+  try {
+    var r    = await fetch('/api/proxy/meal_plan', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), lang: lang,
+                             days: planDays, restrictions: restr})
+    });
+    var data = await r.json();
+    if (r.status === 402) {
+      res.innerHTML = _aiLimitMsg(data);
+    } else if (data.ok) {
+      res.textContent = data.text;
+    } else {
+      res.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + (data.error||'?') + '</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка соединения</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '📅 Создать план питания';
+  }
+}
+
+async function runRecipe() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var lang    = window._appLang || 'ru';
+  var btn     = document.getElementById('recipe-btn');
+  var nextBtn = document.getElementById('recipe-next-btn');
+  var res     = document.getElementById('recipe-result');
+  btn.disabled = true; nextBtn.disabled = true;
+  btn.textContent = '⏳ Генерирую...';
+  res.className = 'ai-result-card show';
+  res.innerHTML = '<div class="ai-loading">👨‍🍳 Генерирую рецепт...</div>';
+  try {
+    var r    = await fetch('/api/proxy/recipe', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), lang: lang,
+                             filter: recipeFilter, history: recipeHistory})
+    });
+    var data = await r.json();
+    if (r.status === 402) {
+      res.innerHTML = _aiLimitMsg(data);
+      nextBtn.style.display = 'none';
+    } else if (data.ok) {
+      res.textContent = data.text;
+      // Сохраняем название в историю
+      var match = data.text.match(/🍽\s*(.+?)\n/);
+      if (match) recipeHistory.push(match[1].trim().replace(/\*/g,''));
+      if (recipeHistory.length > 5) recipeHistory = recipeHistory.slice(-5);
+      nextBtn.style.display = 'block';
+      btn.style.display = 'none';
+    } else {
+      res.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + (data.error||'?') + '</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка соединения</div>';
+  } finally {
+    btn.disabled = false; nextBtn.disabled = false;
+    if (btn.style.display !== 'none') btn.textContent = '👨‍🍳 Сгенерировать рецепт';
+    else nextBtn.textContent = '🔄 Другой рецепт';
+  }
+}
+
+
+// ===== МИКРОНУТРИЕНТЫ =====
+async function initMicroPage() {
+  var userId = getUserId();
+  if (!userId) return;
+  var container = document.getElementById('micro-container');
+  var note      = document.getElementById('micro-note');
+  container.innerHTML = '<div class="ai-loading">🔬 Загружаю данные...</div>';
+
+  try {
+    var today = new Date().toISOString().split('T')[0];
+    var res   = await fetch('/api/proxy/micronutrients?user_id=' + userId + '&date=' + today);
+    var data  = await res.json();
+    if (data.error) { container.innerHTML = '<div class="lb-empty">Ошибка: ' + data.error + '</div>'; return; }
+
+    if (data.entries_count === 0) {
+      container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">🔬</div>'
+        + '<div>Нет записей еды сегодня.<br>Добавь еду чтобы видеть микронутриенты.</div></div>';
+      return;
+    }
+
+    var hasAnyData = data.nutrients.some(function(n) { return n.has_data; });
+    if (!hasAnyData) {
+      container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">📊</div>'
+        + '<div>Микронутриенты недоступны для добавленных продуктов.<br>'
+        + 'Доступны для продуктов из базы USDA.</div></div>';
+      return;
+    }
+
+    var groups = {macro: [], vitamins: [], minerals: []};
+    var groupNames = {macro: '🌾 Макро / Другое', vitamins: '💊 Витамины', minerals: '⛏ Минералы'};
+    data.nutrients.forEach(function(n) { if (groups[n.group]) groups[n.group].push(n); });
+
+    var html = '';
+    Object.keys(groups).forEach(function(g) {
+      var items = groups[g].filter(function(n) { return n.has_data || n.pct > 0; });
+      if (!items.length) return;
+      html += '<div class="micro-group-title">' + (groupNames[g] || g) + '</div>';
+      items.forEach(function(n) {
+        var cls = n.pct >= 100 ? 'over' : (n.pct >= 70 ? 'ok' : (n.pct > 0 ? 'warn' : 'none'));
+        html += '<div class="micro-item">'
+          + '<div class="micro-item-row">'
+          + '<span class="micro-item-name">' + n.emoji + ' ' + n.name_ru + '</span>'
+          + '<span class="micro-item-val">' + n.val + ' / ' + n.norm + ' ' + n.unit
+          + ' (' + n.pct + '%)</span>'
+          + '</div>'
+          + '<div class="micro-bar-wrap"><div class="micro-bar-fill ' + cls + '" style="width:' + Math.min(n.pct,100) + '%"></div></div>'
+          + '</div>';
+      });
+    });
+    container.innerHTML = html || '<div class="lb-empty">Нет данных</div>';
+    if (note) note.textContent = 'Данные из ' + data.entries_count + ' записей за сегодня';
+  } catch(e) {
+    container.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
+  }
+}
+
+// ===== РЕЙТИНГ =====
+var lbType = 'streak';
+
+async function initLbPage() { await loadLb(lbType); }
+
+async function loadLb(type) {
+  lbType = type;
+  ['streak','achievements'].forEach(function(t) {
+    document.getElementById('lb-btn-' + t).className =
+      'lb-type-btn' + (t === type ? ' active' : '');
+  });
+
+  var userId    = getUserId();
+  var container = document.getElementById('lb-container');
+  container.innerHTML = '<div class="ai-loading">🏆 Загружаю рейтинг...</div>';
+
+  try {
+    var url = '/api/proxy/leaderboard?type=' + type + (userId ? '&user_id=' + userId : '');
+    var res  = await fetch(url);
+    var data = await res.json();
+    if (!data.ok || !data.entries.length) {
+      container.innerHTML = '<div class="lb-empty"><div style="font-size:40px">🏆</div><div>Пока нет данных</div></div>';
+      return;
+    }
+    var medals = ['🥇','🥈','🥉'];
+    container.innerHTML = data.entries.map(function(e) {
+      var rankEmoji = e.rank <= 3 ? medals[e.rank-1] : e.rank + '.';
+      return '<div class="lb-item' + (e.is_me ? ' me' : '') + '">'
+        + '<div class="lb-rank">' + rankEmoji + '</div>'
+        + '<div class="lb-name">' + escHtml(e.name) + (e.is_me ? ' 👈' : '') + '</div>'
+        + '<div class="lb-val">' + e.value + ' ' + e.unit + '</div>'
+        + '</div>';
+    }).join('');
+    if (data.my_rank && !data.entries.find(function(e){ return e.is_me; })) {
+      container.innerHTML += '<div style="text-align:center;font-size:13px;color:var(--muted);padding:8px">'
+        + 'Твоё место: #' + data.my_rank + '</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
+  }
+}
+
+// ===== PDF =====
+var pdfDays = 7;
+
+function initPdfPage() { /* nothing on init */ }
+
+function selectPdfDays(days, el) {
+  pdfDays = days;
+  document.querySelectorAll('.pdf-option-card').forEach(function(c) { c.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+async function downloadPdf() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+  var btn = document.getElementById('pdf-dl-btn');
+  btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
+  try {
+    var url = '/api/proxy/pdf?user_id=' + userId + '&days=' + pdfDays;
+    var res = await fetch(url);
+    if (!res.ok) {
+      var err = await res.json().catch(function(){ return {error:'?'}; });
+      if (err.error === 'premium_required') {
+        showToast('Нужен Premium для этого периода', 'var(--accent2)');
+      } else {
+        showToast('Ошибка: ' + (err.error || res.status), 'var(--accent2)');
+      }
+      return;
+    }
+    var blob = await res.blob();
+    var burl = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = burl;
+    a.download = 'nutrio_report_' + pdfDays + 'days.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(burl);
+    showToast('✅ PDF скачан!', 'var(--green)');
+  } catch(e) {
+    showToast('Ошибка генерации', 'var(--accent2)');
+  } finally {
+    btn.disabled = false; btn.textContent = '📥 Скачать PDF';
+  }
+}
+
+
+// ===== ИМПОРТ =====
+var importParsed = [];
+
+function initImportPage() {
+  var drop  = document.getElementById('imp-drop');
+  var input = document.getElementById('imp-file-input');
+
+  input.onchange = function(e) {
+    if (e.target.files[0]) importHandleFile(e.target.files[0]);
+  };
+  drop.ondragover = function(e) { e.preventDefault(); drop.classList.add('drag-over'); };
+  drop.ondragleave = function() { drop.classList.remove('drag-over'); };
+  drop.ondrop = function(e) {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) importHandleFile(e.dataTransfer.files[0]);
+  };
+}
+
+function importHandleFile(file) {
+  if (!file.name.endsWith('.csv')) { showToast('Нужен CSV файл', 'var(--accent2)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) { importParseCSV(e.target.result); };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importParseCSV(text) {
+  var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
+  if (lines.length < 2) { showToast('Файл пустой', 'var(--accent2)'); return; }
+
+  var headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase().replace(/["\']/g,''); });
+  var format  = importDetectFormat(headers);
+  var entries = [];
+
+  for (var i = 1; i < lines.length; i++) {
+    var row = importParseCSVRow(lines[i]);
+    var entry = null;
+    if (format === 'mfp')       entry = importParseMFP(row, headers);
+    else if (format === 'fat')  entry = importParseFat(row, headers);
+    else                         entry = importParseGeneric(row, headers);
+    if (entry) entries.push(entry);
+  }
+
+  importParsed = entries;
+  var prog  = document.getElementById('imp-progress');
+  var conf  = document.getElementById('imp-confirm-section');
+  var title = document.getElementById('imp-progress-title');
+  var stats = document.getElementById('imp-stats');
+  var bar   = document.getElementById('imp-progress-bar');
+
+  prog.style.display = 'block';
+  conf.style.display = entries.length > 0 ? 'block' : 'none';
+  bar.style.width = '100%';
+
+  if (entries.length === 0) {
+    title.textContent = '❌ Не удалось разобрать файл';
+    stats.textContent = 'Проверь формат файла';
+  } else {
+    title.textContent = '✅ Файл обработан';
+    var dateSet = new Set(entries.map(function(e){return e.date.split('T')[0];}));
+    stats.textContent = 'Найдено: ' + entries.length + ' записей за ' + dateSet.size + ' дней · Формат: ' + format.toUpperCase();
+    document.getElementById('imp-confirm-btn').textContent = '✅ Импортировать ' + entries.length + ' записей';
+  }
+}
+
+function importDetectFormat(h) {
+  if (h.includes('meal') && h.includes('food name')) return 'mfp';
+  if (h.includes('food name') && h.includes('time'))  return 'fat';
+  return 'generic';
+}
+
+function importParseCSVRow(line) {
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function importParseMFP(row, headers) {
+  var get = function(key) { var i = headers.indexOf(key); return i>=0 ? (row[i]||'') : ''; };
+  var name = get('food name'); var cal = parseFloat(get('calories')) || 0;
+  if (!name || !cal) return null;
+  var mealMap = {breakfast:'завтрак',lunch:'обед',dinner:'ужин',snack:'перекус'};
+  var meal = mealMap[get('meal').toLowerCase()] || 'другое';
+  var ds = get('date'); var dt;
+  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
+  return {name:name, calories:cal, protein:parseFloat(get('protein (g)'))||0,
+          fat:parseFloat(get('fat (g)'))||0, carbs:parseFloat(get('carbohydrates (g)'))||0,
+          meal:meal, date:dt};
+}
+
+function importParseFat(row, headers) {
+  var get = function(key) { var i = headers.indexOf(key); return i>=0 ? (row[i]||'') : ''; };
+  var name = get('food name'); var cal = parseFloat(get('calories')) || 0;
+  if (!name || !cal) return null;
+  var ds = get('date'); var dt;
+  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
+  return {name:name, calories:cal, protein:parseFloat(get('protein (g)'))||0,
+          fat:parseFloat(get('fat (g)'))||0, carbs:parseFloat(get('carbohydrate (g)'))||0,
+          meal:'другое', date:dt};
+}
+
+function importParseGeneric(row, headers) {
+  var get = function(key) { var i = headers.indexOf(key); return i>=0 ? (row[i]||'') : ''; };
+  var name = get('food') || get('name') || get('product'); var cal = parseFloat(get('calories') || get('kcal')) || 0;
+  if (!name || !cal) return null;
+  var ds = get('date'); var dt;
+  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
+  return {name:name, calories:cal, protein:parseFloat(get('protein'))||0,
+          fat:parseFloat(get('fat'))||0, carbs:parseFloat(get('carbs')||get('carbohydrates'))||0,
+          meal:get('meal')||'другое', date:dt};
+}
+
+async function importConfirm() {
+  var userId = getUserId();
+  if (!userId || !importParsed.length) return;
+  var btn = document.getElementById('imp-confirm-btn');
+  btn.disabled = true; btn.textContent = '⏳ Импортирую...';
+  try {
+    // Отправляем батчами по 500
+    var total = 0, skip = 0;
+    var batch = 500;
+    for (var i = 0; i < importParsed.length; i += batch) {
+      var chunk = importParsed.slice(i, i + batch);
+      var pct   = Math.round((i + chunk.length) / importParsed.length * 100);
+      document.getElementById('imp-progress-bar').style.width = pct + '%';
+      var res  = await fetch('/api/proxy/import', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({user_id: parseInt(userId), entries: chunk})
+      });
+      var data = await res.json();
+      if (data.ok) { total += data.saved; skip += data.skipped; }
+    }
+    showToast('✅ Импортировано: ' + total + ' записей', 'var(--green)');
+    document.getElementById('imp-stats').textContent = 'Сохранено: ' + total + ' · Пропущено: ' + skip;
+    importReset();
+  } catch(e) {
+    showToast('Ошибка импорта', 'var(--accent2)');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function importReset() {
+  importParsed = [];
+  document.getElementById('imp-progress').style.display = 'none';
+  document.getElementById('imp-confirm-section').style.display = 'none';
+  document.getElementById('imp-file-input').value = '';
+}
+
+// ===== НАСТРОЙКИ =====
+var settData = {};
+
+async function initSettingsPage() {
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
+    var data = await res.json();
+    if (!data.ok) return;
+    settData = data;
+
+    document.getElementById('sett-kcal').value   = data.daily_goal || 2000;
+    document.getElementById('sett-water').value  = data.water_goal || 2000;
+    if (data.weight) document.getElementById('sett-weight').value = data.weight;
+
+    // Заполняем часы в селектах
+    ['food','water'].forEach(function(type) {
+      var sel = document.getElementById('sett-' + type + '-time');
+      sel.innerHTML = '<option value="">выкл</option>';
+      for (var h = 6; h <= 23; h++) {
+        sel.innerHTML += '<option value="' + h + '">' + String(h).padStart(2,'0') + ':00</option>';
+      }
+      var remTime = type === 'food' ? data.food_reminder_time : data.water_reminder_time;
+      var toggle  = document.getElementById('sett-' + type + '-toggle');
+      if (remTime !== null && remTime !== undefined) {
+        sel.value = remTime;
+        sel.style.display = 'block';
+        toggle.className = 'sett-toggle on';
+      }
+    });
+  } catch(e) {}
+}
+
+function toggleReminder(type) {
+  var toggle = document.getElementById('sett-' + type + '-toggle');
+  var sel    = document.getElementById('sett-' + type + '-time');
+  var isOn   = toggle.classList.contains('on');
+  if (isOn) {
+    toggle.className = 'sett-toggle';
+    sel.style.display = 'none';
+  } else {
+    toggle.className = 'sett-toggle on';
+    sel.style.display = 'block';
+    if (!sel.value) sel.value = type === 'food' ? '12' : '10';
+  }
+}
+
+async function saveSettings() {
+  var userId = getUserId();
+  if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
+
+  var foodToggle  = document.getElementById('sett-food-toggle').classList.contains('on');
+  var waterToggle = document.getElementById('sett-water-toggle').classList.contains('on');
+  var foodSel     = document.getElementById('sett-food-time').value;
+  var waterSel    = document.getElementById('sett-water-time').value;
+
+  var body = {
+    user_id:            parseInt(userId),
+    daily_goal:         parseInt(document.getElementById('sett-kcal').value)  || 2000,
+    water_goal:         parseInt(document.getElementById('sett-water').value) || 2000,
+    food_reminder_time: foodToggle  && foodSel  ? parseInt(foodSel)  : null,
+    water_reminder_time: waterToggle && waterSel ? parseInt(waterSel) : null,
+  };
+  var w = document.getElementById('sett-weight').value;
+  if (w) body.weight = parseFloat(w);
+
+  var btn = document.querySelector('.sett-save-btn');
+  btn.disabled = true; btn.textContent = '⏳ Сохраняю...';
+  try {
+    var res  = await fetch('/api/proxy/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    var data = await res.json();
+    if (data.ok) {
+      showToast('✅ Настройки сохранены', 'var(--green)');
+    } else {
+      showToast('Ошибка: ' + (data.error||'?'), 'var(--accent2)');
+    }
+  } catch(e) {
+    showToast('Ошибка', 'var(--accent2)');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Сохранить';
+  }
+}
+
+
+// ===== ПРИГЛАСИТЬ ДРУГА =====
+var refLink = '';
+
+async function initRefPage() {
+  var userId = getUserId();
+  if (!userId) return;
+  refLink = 'https://t.me/CaloriePilotAI_Bot?start=ref_' + userId;
+  document.getElementById('ref-link-box').textContent = refLink;
+  // Загружаем статистику через settings
+  try {
+    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
+    var data = await res.json();
+    if (data.ok) {
+      var count = data.referral_count || 0;
+      document.getElementById('ref-count').textContent  = count;
+      document.getElementById('ref-earned').textContent = count * 7 + ' дн.';
+    }
+  } catch(e) {}
+}
+
+function refCopyLink() {
+  if (!refLink) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(refLink).then(function() {
+      showToast('✅ Ссылка скопирована!', 'var(--green)');
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = refLink; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ Ссылка скопирована!', 'var(--green)');
+  }
+}
+
+function refShare() {
+  var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(refLink)
+    + '&text=' + encodeURIComponent('Считаю калории в NutriO — удобно и без заморочек! Попробуй бесплатно 🥗');
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) { tg.openTelegramLink(shareUrl); }
+  else window.open(shareUrl, '_blank');
+}
+
+// ===== КУПИТЬ PREMIUM =====
+var selectedPlan = '1m';
+
+async function initPremPage() {
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
+    var data = await res.json();
+    if (!data.ok) return;
+
+    var card  = document.getElementById('prem-status-card');
+    var icon  = document.getElementById('prem-icon');
+    var title = document.getElementById('prem-title');
+    var sub   = document.getElementById('prem-sub');
+    var buySect = document.getElementById('prem-buy-section');
+
+    if (data.is_premium) {
+      card.className  = 'prem-status-card premium';
+      icon.textContent  = '⭐';
+      title.textContent = 'Premium активен';
+      sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';
+      buySect.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function selectPlan(plan, el) {
+  selectedPlan = plan;
+  document.querySelectorAll('.prem-plan-card').forEach(function(c) { c.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+function premBuyStars() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.close) tg.close();
+  // Открываем бота с командой покупки
+  var planMap = {'1m': '299', '3m': '749', '12m': '1990'};
+  showToast('Открой бота и введи /buy для покупки через Stars', 'var(--green)');
+  setTimeout(function() {
+    var url = 'https://t.me/CaloriePilotAI_Bot?start=buy_' + selectedPlan;
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  }, 800);
+}
+
+function premBuyCard() {
+  showToast('Открываю оплату картой...', 'var(--green)');
+  setTimeout(function() {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    var url = 'https://t.me/CaloriePilotAI_Bot?start=pay_' + selectedPlan;
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  }, 500);
+}
+
+// ===== ПОМОЩЬ =====
+function initHelpPage() {}
+
+function toggleFaq(header) {
+  var answer = header.nextElementSibling;
+  var arrow  = header.querySelector('span');
+  var isOpen = answer.classList.contains('open');
+  // Закрываем все
+  document.querySelectorAll('.help-faq-a').forEach(function(a) { a.classList.remove('open'); });
+  document.querySelectorAll('.help-faq-q span').forEach(function(s) { s.textContent = '▼'; });
+  if (!isOpen) {
+    answer.classList.add('open');
+    if (arrow) arrow.textContent = '▲';
+  }
+}
+
+function helpOpenBot() {
+  var tg  = window.Telegram && window.Telegram.WebApp;
+  var url = 'https://t.me/CaloriePilotAI_Bot';
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
+
+// ===== РАСШИРЕННЫЕ НАСТРОЙКИ =====
+// Патч initSettingsPage для новых полей
+var _origInitSettings = initSettingsPage;
+initSettingsPage = async function() {
+  await _origInitSettings();
+  var userId = getUserId();
+  if (!userId) return;
+  try {
+    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
+    var data = await res.json();
+    if (!data.ok) return;
+    var goalSel = document.getElementById('sett-goal');
+    var langSel = document.getElementById('sett-lang');
+    var tzSel   = document.getElementById('sett-tz');
+    if (goalSel && data.goal) {
+      // Пытаемся сопоставить
+      var goalVal = data.goal.toLowerCase();
+      if (goalVal.includes('похуд') || goalVal.includes('loss')) goalSel.value = 'похудение';
+      else if (goalVal.includes('набор') || goalVal.includes('gain')) goalSel.value = 'набор массы';
+      else goalSel.value = 'поддержание веса';
+    }
+    if (langSel && data.language) langSel.value = data.language;
+    if (tzSel   && data.timezone_offset !== undefined) tzSel.value = String(data.timezone_offset);
+  } catch(e) {}
+};
+
+// Патч saveSettings для новых полей
+var _origSaveSettings = saveSettings;
+saveSettings = async function() {
+  // Добавляем новые поля в body перед отправкой
+  var origFetch = window.fetch;
+  window.fetch = async function(url, opts) {
+    if (url === '/api/proxy/settings' && opts && opts.method === 'POST') {
+      try {
+        var body = JSON.parse(opts.body);
+        var goalSel = document.getElementById('sett-goal');
+        var langSel = document.getElementById('sett-lang');
+        var tzSel   = document.getElementById('sett-tz');
+        if (goalSel) body.goal = goalSel.value;
+        if (langSel) body.language = langSel.value;
+        if (tzSel)   body.timezone_offset = parseInt(tzSel.value);
+        opts.body = JSON.stringify(body);
+      } catch(e) {}
+    }
+    return origFetch.apply(this, arguments);
+  };
+  await _origSaveSettings();
+  window.fetch = origFetch;
+};
+
+
+// ═══════════════════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════════════════
+var ADMIN_IDS_JS = [1031925588, 6836630993];
+var admCurrentPage = 0;
+var admSearchQ = '';
+
+function _adminHeaders() {
+  return {'Content-Type':'application/json', 'X-Admin-Id': String(getUserId())};
+}
+
+async function _admFetch(action, extra) {
+  var body = Object.assign({action: action}, extra || {});
+  var res  = await fetch('/api/proxy/admin', {
+    method:'POST', headers:_adminHeaders(), body:JSON.stringify(body)
+  });
+  if (res.status === 403) { showToast('Нет доступа', 'var(--accent2)'); throw new Error('forbidden'); }
+  return await res.json();
+}
+
+async function initAdminPage() {
+  var uid = parseInt(getUserId());
+  if (!ADMIN_IDS_JS.includes(uid)) {
+    document.getElementById('page-adminpage').innerHTML =
+      '<div class="lb-empty" style="padding:40px"><div style="font-size:48px">🔒</div><div>Нет доступа</div></div>';
+    return;
+  }
+  document.getElementById('adm-admin-label').textContent = 'ID: ' + uid;
+  admSection('dash');
+  admLoadDash();
+}
+
+// Show admin tab only for admins
+(function() {
+  function checkAdminTab() {
+    var uid = parseInt(getUserId());
+    var btn = document.getElementById('tab-adminpage');
+    if (btn && ADMIN_IDS_JS.includes(uid)) btn.style.display = '';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', checkAdminTab);
+  else setTimeout(checkAdminTab, 500);
+})();
+
+function admSection(name) {
+  ['dash','users','payments'].forEach(function(s) {
+    document.getElementById('adm-btn-' + s).className = 'adm-nav-btn' + (s===name?' active':'');
+    document.getElementById('adm-section-' + s).className = 'adm-section' + (s===name?' active':'');
+  });
+  if (name==='users')    admLoadUsers(0,'');
+  if (name==='payments') admLoadPayments();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────
+async function admLoadDash() {
+  try {
+    var res  = await fetch('/api/proxy/admin?action=dashboard', {headers:_adminHeaders()});
+    var data = await res.json();
+    if (!data.ok) return;
+    document.getElementById('adm-total').textContent   = data.total_users   || 0;
+    document.getElementById('adm-premium').textContent = data.premium_users || 0;
+    document.getElementById('adm-active').textContent  = data.active_today  || 0;
+    document.getElementById('adm-entries').textContent = (data.total_entries||0).toLocaleString();
+    var pend = data.pending_payments || 0;
+    var pc   = document.getElementById('adm-pending-card');
+    var pn   = document.getElementById('adm-pending-cnt');
+    if (pend > 0) {
+      pc.style.display = 'block'; if (pn) pn.textContent = pend;
+    } else { pc.style.display = 'none'; }
+  } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
+}
+
+// ── USERS ──────────────────────────────────────────────
+async function admLoadUsers(page, q) {
+  admCurrentPage = page; admSearchQ = q;
+  var list = document.getElementById('adm-users-list');
+  list.innerHTML = '<div class="ai-loading">Загружаю...</div>';
+  try {
+    var data = await _admFetch('users', {page:page, q:q});
+    if (!data.ok) return;
+    var total = data.total; var per = data.per; var pages = Math.ceil(total/per);
+    if (!data.users.length) { list.innerHTML = '<div class="lb-empty">Пусто</div>'; return; }
+    list.innerHTML = data.users.map(function(u) {
+      var badge = u.premium
+        ? '<span class="adm-badge adm-badge-prem">⭐ Premium' + (u.premium_until ? ' до '+u.premium_until : '') + '</span>'
+        : '<span class="adm-badge adm-badge-free">Бесплатный</span>';
+      return '<div class="adm-user-card" id="adm-user-'+u.id+'">'
+        + '<div class="adm-user-row">'
+        + '<div><div class="adm-user-name">' + escHtml((u.name||'') + (u.username ? ' @'+u.username : '')) + '</div>'
+        + '<div class="adm-user-meta">ID: ' + u.id + ' · 🔥 ' + u.streak + ' дн.' + (u.is_banned?' · 🔴 БАН':'') + '</div></div>'
+        + badge + '</div>'
+        + '<div class="adm-user-btns">'
+        + (u.premium
+           ? '<button class="adm-btn adm-btn-unprem" onclick="admSetPremium('+u.id+',false)">Снять Premium</button>'
+           : '<button class="adm-btn adm-btn-prem" onclick="admSetPremium('+u.id+',true)">⭐ +30 дней</button>')
+        + '<button class="adm-btn" style="background:var(--bg2)" onclick="admUserDetail('+u.id+')">Подробнее</button>'
+        + '</div></div>';
+    }).join('');
+    var pag = document.getElementById('adm-pagination');
+    var pi  = document.getElementById('adm-page-info');
+    pag.style.display = pages>1 ? 'flex' : 'none';
+    if (pi) pi.textContent = 'Стр. '+(page+1)+' / '+pages+' ('+total+' юзеров)';
+  } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка</div>'; }
+}
+
+function admSearchUsers() {
+  var q = document.getElementById('adm-search-input').value.trim();
+  admLoadUsers(0, q);
+}
+
+function admUsersPage(dir) {
+  admLoadUsers(Math.max(0, admCurrentPage+dir), admSearchQ);
+}
+
+async function admSetPremium(uid, give) {
+  var days = give ? (parseInt(prompt('Дней Premium:', '30')) || 30) : 0;
+  try {
+    var data = await _admFetch('set_premium', {user_id:uid, days:days, give:give});
+    if (data.ok) {
+      showToast(data.message || (give?'Premium выдан':'Premium снят'), 'var(--green)');
+      admLoadUsers(admCurrentPage, admSearchQ);
+    }
+  } catch(e) {}
+}
+
+async function admUserDetail(uid) {
+  try {
+    var res  = await fetch('/api/proxy/admin?action=user_detail&id='+uid, {headers:_adminHeaders()});
+    var data = await res.json();
+    if (!data.ok) return;
+    var u = data.user;
+    alert(
+      'ID: ' + u.id + '\n' +
+      '@' + (u.username||'—') + ' / ' + (u.name||'—') + '\n' +
+      'Язык: ' + u.lang + ' · Цель: ' + u.goal + '\n' +
+      'Норма: ' + u.daily_goal + ' ккал · Вес: ' + (u.weight||'—') + ' кг\n' +
+      'Стрик: ' + u.streak + ' дн. · Записей: ' + u.entries_total + '\n' +
+      'За неделю: ' + u.entries_week + ' записей · ' + u.achievements + ' ачивок\n' +
+      'Рефералов: ' + u.referral_count + '\n' +
+      'Premium: ' + (u.premium ? ('до '+u.premium_until) : 'нет')
+    );
+  } catch(e) {}
+}
+
+// ── PAYMENTS ───────────────────────────────────────────
+async function admLoadPayments() {
+  var list = document.getElementById('adm-payments-list');
+  list.innerHTML = '<div class="ai-loading">Загружаю заявки...</div>';
+  try {
+    var data = await _admFetch('payments');
+    if (!data.ok) return;
+    if (!data.payments.length) {
+      list.innerHTML = '<div class="lb-empty">✅ Нет активных заявок</div>';
+      return;
+    }
+    var planNames = {'1m':'1 мес','3m':'3 мес','12m':'12 мес'};
+    var statusNames = {'pending':'⏳ Ожидает скриншота','screenshot_received':'📸 Скриншот получен'};
+    list.innerHTML = data.payments.map(function(p) {
+      return '<div class="adm-pay-card" id="adm-pay-'+p.id+'">'
+        + '<div class="adm-pay-row">'
+        + '<div class="adm-pay-name">@' + escHtml(p.username||String(p.user_id)) + ' ' + (p.name||'') + '</div>'
+        + '<div style="font-size:12px;color:var(--muted)">' + p.created_at + '</div>'
+        + '</div>'
+        + '<div style="font-size:13px;margin:4px 0">'
+        + '📦 ' + (planNames[p.plan]||p.plan) + ' · ' + p.amount + '₽ · ' + (statusNames[p.status]||p.status)
+        + '</div>'
+        + (p.screenshot ? '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">📸 Скриншот есть</div>' : '')
+        + '<div class="adm-pay-btns">'
+        + '<button class="adm-btn adm-btn-confirm" onclick="admConfirmPay('+p.id+')">✅ Подтвердить</button>'
+        + '<button class="adm-btn adm-btn-reject"  onclick="admRejectPay('+p.id+')">❌ Отклонить</button>'
+        + '</div></div>';
+    }).join('');
+  } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>'; }
+}
+
+async function admConfirmPay(payId) {
+  if (!confirm('Подтвердить оплату #'+payId+'?')) return;
+  try {
+    var data = await _admFetch('confirm_payment', {payment_id:payId});
+    if (data.ok) {
+      showToast('✅ Оплата подтверждена, Premium выдан до '+data.until, 'var(--green)');
+      document.getElementById('adm-pay-'+payId).remove();
+    }
+  } catch(e) {}
+}
+
+async function admRejectPay(payId) {
+  if (!confirm('Отклонить оплату #'+payId+'?')) return;
+  try {
+    var data = await _admFetch('reject_payment', {payment_id:payId});
+    if (data.ok) {
+      showToast('❌ Отклонено', 'var(--accent2)');
+      document.getElementById('adm-pay-'+payId).remove();
+    }
+  } catch(e) {}
+}
+
+
+// Ripple effect on buttons
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('button');
+  if (!btn || btn.classList.contains('sett-toggle')) return;
+  btn.classList.remove('rippling');
+  void btn.offsetWidth;
+  btn.classList.add('rippling');
+  setTimeout(function(){ btn.classList.remove('rippling'); }, 600);
+});
+
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --bg: #0f0f13;
+    --bg:      #0f0f13;
+    --bg2:     #1a1a22;
     --surface: #1a1a22;
-    --surface2: #22222e;
-    --accent: #6c63ff;
+    --surface2:#22222e;
+    --card:    #1a1a22;
+    --accent:  #6c63ff;
     --accent2: #ff6584;
-    --green: #43e97b;
-    --text: #f0f0f5;
-    --text2: #8888aa;
-    --radius: 16px;
+    --green:   #43e97b;
+    --text:    #f0f0f5;
+    --text2:   #8888aa;
+    --muted:   #8888aa;
+    --radius:  16px;
+    --shadow:  0 4px 20px rgba(0,0,0,.4);
+    --glow-green: 0 0 20px rgba(67,233,123,.25);
+    --glow-purple: 0 0 20px rgba(108,99,255,.25);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -444,7 +1987,603 @@ if(document.readyState === 'loading'){
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
   }
-</style>
+
+  /* ===== DIARY ===== */
+  .diary-date-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--card); border-radius: 14px;
+    margin-bottom: 12px;
+  }
+  .diary-date-nav button {
+    background: var(--bg2); border: none; color: var(--text);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .diary-date-label { font-weight: 700; font-size: 15px; }
+  .diary-progress-card {
+    background: var(--card); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .diary-kcal-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .diary-kcal-eaten { font-size: 26px; font-weight: 800; color: var(--green); }
+  .diary-kcal-goal  { font-size: 13px; color: var(--muted); }
+  .diary-prog-bar   { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+  .diary-prog-fill  { height: 100%; background: var(--green); border-radius: 4px; transition: width .4s; }
+  .diary-prog-fill.over { background: var(--accent2); }
+  .diary-macro-row  { display: flex; gap: 8px; }
+  .diary-macro-box  {
+    flex: 1; background: var(--bg2); border-radius: 10px;
+    padding: 8px 6px; text-align: center;
+  }
+  .diary-macro-val  { font-size: 15px; font-weight: 700; }
+  .diary-macro-lbl  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .diary-meal-block { margin-bottom: 10px; }
+  .diary-meal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: var(--card); border-radius: 12px 12px 0 0;
+    cursor: pointer; user-select: none;
+  }
+  .diary-meal-header.collapsed { border-radius: 12px; }
+  .diary-meal-name  { font-weight: 700; font-size: 14px; }
+  .diary-meal-kcal  { font-size: 13px; color: var(--muted); }
+  .diary-meal-arrow { font-size: 12px; color: var(--muted); transition: transform .2s; }
+  .diary-meal-body  { background: var(--card); border-radius: 0 0 12px 12px; overflow: hidden; }
+  .diary-entry {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; border-top: 1px solid var(--bg2);
+  }
+  .diary-entry-info { flex: 1; min-width: 0; }
+  .diary-entry-name {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .diary-entry-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .diary-entry-kcal { font-size: 14px; font-weight: 700; color: var(--green); min-width: 42px; text-align: right; }
+  .diary-entry-del  {
+    width: 30px; height: 30px; background: none; border: none;
+    color: var(--accent2); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; flex-shrink: 0; opacity: .7;
+  }
+  .diary-entry-del:hover { opacity: 1; background: rgba(255,80,80,.12); }
+  .diary-empty {
+    text-align: center; padding: 32px 16px; color: var(--muted);
+    background: var(--card); border-radius: 14px;
+  }
+  .diary-empty-icon { font-size: 40px; margin-bottom: 8px; }
+  .diary-add-btn {
+    width: 100%; padding: 13px; background: var(--green); color: #fff;
+    border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 12px;
+  }
+
+  
+  /* ===== CALCULATOR ===== */
+  .calc-mode-row { display:flex; gap:8px; margin-bottom:12px; }
+  .calc-mode-btn {
+    flex:1; padding:10px; border:none; border-radius:10px;
+    font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--bg2); color:var(--muted);
+  }
+  .calc-mode-btn.active { background:var(--green); color:#fff; }
+  .calc-search-row { display:flex; gap:8px; margin-bottom:8px; }
+  .calc-search-row input {
+    flex:1; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px;
+  }
+  .calc-weight-row { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+  .calc-weight-row input {
+    width:80px; padding:10px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px; text-align:center;
+  }
+  .calc-weight-lbl { font-size:13px; color:var(--muted); }
+  .calc-add-btn {
+    padding:10px 18px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px;
+  }
+  .calc-result-preview {
+    background:var(--card); border-radius:12px; padding:12px 14px;
+    margin-bottom:12px; display:none;
+  }
+  .calc-result-name { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .calc-result-macros { display:flex; gap:8px; flex-wrap:wrap; }
+  .calc-result-macro {
+    background:var(--bg2); border-radius:8px; padding:5px 10px;
+    font-size:12px; font-weight:600;
+  }
+  .calc-he-badge {
+    background:var(--accent); color:#fff; border-radius:8px;
+    padding:5px 10px; font-size:12px; font-weight:700;
+  }
+  .calc-items-list { margin-bottom:12px; }
+  .calc-item {
+    display:flex; align-items:center; gap:8px;
+    background:var(--card); border-radius:10px; padding:10px 12px;
+    margin-bottom:6px;
+  }
+  .calc-item-info { flex:1; min-width:0; }
+  .calc-item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .calc-item-sub  { font-size:11px; color:var(--muted); margin-top:2px; }
+  .calc-item-del  {
+    background:none; border:none; color:var(--accent2);
+    font-size:18px; cursor:pointer; width:28px; height:28px;
+    display:flex; align-items:center; justify-content:center; border-radius:50%;
+  }
+  .calc-total-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .calc-total-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .calc-total-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .calc-total-kcal { font-size:22px; font-weight:800; color:var(--green); }
+  .calc-total-he   { font-size:16px; font-weight:700; color:var(--accent); }
+  .calc-total-macros { display:flex; gap:8px; margin-top:8px; }
+  .calc-save-btn {
+    width:100%; padding:13px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-bottom:8px;
+  }
+  .calc-clear-btn {
+    width:100%; padding:11px; background:var(--bg2); color:var(--muted);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer;
+  }
+  .calc-meal-select {
+    width:100%; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px; margin-bottom:12px;
+  }
+  /* HE mode */
+  .he-info-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .he-info-title { font-weight:700; font-size:14px; margin-bottom:8px; }
+  .he-daily-row { display:flex; justify-content:space-between; align-items:center; }
+  .he-daily-val { font-size:24px; font-weight:800; color:var(--accent); }
+  .he-daily-norm { font-size:12px; color:var(--muted); }
+  .he-prog-bar { height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; margin:8px 0; }
+  .he-prog-fill { height:100%; background:var(--accent); border-radius:4px; transition:width .4s; }
+  .he-result-card {
+    background:var(--card); border-radius:12px; padding:14px 16px; margin-top:12px; display:none;
+  }
+  .he-result-val { font-size:32px; font-weight:900; text-align:center; margin:8px 0; }
+  .he-result-val.he-safe   { color:var(--green); }
+  .he-result-val.he-medium { color:#f0a500; }
+  .he-result-val.he-high   { color:var(--accent2); }
+  .he-result-label { text-align:center; font-size:13px; color:var(--muted); }
+
+  
+  /* ===== MY FOODS ===== */
+  .mf-search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .mf-search-row input {
+    flex:1; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px;
+  }
+  .mf-add-btn {
+    padding:10px 16px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .mf-list { margin-bottom:12px; }
+  .mf-item {
+    background:var(--card); border-radius:12px; padding:12px 14px;
+    margin-bottom:8px; display:flex; align-items:center; gap:10px;
+  }
+  .mf-item-info { flex:1; min-width:0; }
+  .mf-item-name { font-size:14px; font-weight:700; }
+  .mf-item-macros { font-size:11px; color:var(--muted); margin-top:3px; }
+  .mf-item-btns { display:flex; gap:6px; }
+  .mf-btn {
+    width:32px; height:32px; border:none; border-radius:8px;
+    cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center;
+  }
+  .mf-btn-use  { background:var(--green);  color:#fff; }
+  .mf-btn-edit { background:var(--bg2);    color:var(--text); }
+  .mf-btn-del  { background:var(--accent2); color:#fff; }
+  .mf-form {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .mf-form-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .mf-form input {
+    width:100%; box-sizing:border-box; padding:10px 12px; background:var(--bg2);
+    border:none; border-radius:10px; color:var(--text); font-size:14px;
+    margin-bottom:8px; display:block;
+  }
+  .mf-form-row { display:flex; gap:8px; }
+  .mf-form-row input { flex:1; }
+  .mf-form-hint { font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .mf-save-btn {
+    width:100%; padding:12px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; margin-bottom:6px;
+  }
+  .mf-cancel-btn {
+    width:100%; padding:10px; background:var(--bg2); color:var(--muted);
+    border:none; border-radius:10px; cursor:pointer;
+  }
+  .mf-use-popup {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+    display:none;
+  }
+  .mf-use-popup .calc-weight-row { margin-bottom:8px; }
+  /* ===== STATS ===== */
+  .stat-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .stat-card-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .stat-streak-val { font-size:48px; font-weight:900; color:var(--green); line-height:1; }
+  .stat-streak-lbl { font-size:13px; color:var(--muted); margin-top:4px; }
+  .stat-kpi-row { display:flex; gap:8px; }
+  .stat-kpi-box { flex:1; background:var(--bg2); border-radius:10px; padding:10px; text-align:center; }
+  .stat-kpi-val { font-size:18px; font-weight:800; }
+  .stat-kpi-lbl { font-size:10px; color:var(--muted); margin-top:3px; }
+  .stat-bar-chart { display:flex; align-items:flex-end; gap:4px; height:80px; margin-bottom:6px; }
+  .stat-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .stat-bar { width:100%; border-radius:4px 4px 0 0; background:var(--green); min-height:3px; transition:height .3s; }
+  .stat-bar.today { background:var(--accent); }
+  .stat-bar.over { background:var(--accent2); }
+  .stat-bar-lbl { font-size:9px; color:var(--muted); }
+  .stat-bar-val { font-size:9px; color:var(--text); }
+  .stat-top-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--bg2); }
+  .stat-top-item:last-child { border-bottom:none; }
+  .stat-top-name { font-size:13px; }
+  .stat-top-count { font-size:12px; color:var(--muted); }
+  .stat-bmi-bar { position:relative; height:12px; background:linear-gradient(to right,#4fc3f7,#81c784,#ffb74d,#e57373); border-radius:6px; margin:8px 0; }
+  .stat-bmi-pin { position:absolute; top:-4px; width:4px; height:20px; background:var(--text); border-radius:2px; transform:translateX(-50%); }
+  .stat-weight-chart { display:flex; align-items:flex-end; gap:3px; height:60px; margin-bottom:4px; }
+
+  
+  /* ===== AI PAGE ===== */
+  .ai-mode-row { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px; }
+  .ai-mode-btn {
+    padding:9px 14px; border:none; border-radius:10px; white-space:nowrap;
+    font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--bg2); color:var(--muted); flex-shrink:0;
+  }
+  .ai-mode-btn.active { background:var(--green); color:#fff; }
+  .ai-section { display:none; }
+  .ai-section.active { display:block; }
+  .ai-result-card {
+    background:var(--card); border-radius:14px; padding:14px 16px;
+    margin-top:12px; white-space:pre-wrap; line-height:1.6;
+    font-size:13px; display:none;
+  }
+  .ai-result-card.show { display:block; }
+  .ai-loading { text-align:center; padding:24px; color:var(--muted); font-size:14px; }
+  .ai-limit-card {
+    background:var(--card); border-radius:14px; padding:16px;
+    text-align:center; margin-top:12px;
+  }
+  .ai-limit-icon { font-size:36px; margin-bottom:8px; }
+  .ai-action-btn {
+    width:100%; padding:13px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-top:8px;
+  }
+  .ai-action-btn:disabled { opacity:.6; cursor:default; }
+  .ai-sub-label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .recipe-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .recipe-filter-btn {
+    padding:8px 12px; border:2px solid var(--bg2); border-radius:10px;
+    background:none; color:var(--text); font-size:12px; cursor:pointer; font-weight:600;
+  }
+  .recipe-filter-btn.selected { border-color:var(--green); background:var(--green); color:#fff; }
+  .plan-days-row { display:flex; gap:8px; margin-bottom:12px; }
+  .plan-day-btn {
+    flex:1; padding:10px 6px; border:2px solid var(--bg2); border-radius:10px;
+    background:none; color:var(--text); font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .plan-day-btn.selected { border-color:var(--green); background:var(--green); color:#fff; }
+
+  
+  /* ===== MICRO / LB / PDF ===== */
+  .micro-group-title { font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px; text-transform:uppercase; letter-spacing:.5px; }
+  .micro-item { background:var(--card); border-radius:12px; padding:11px 14px; margin-bottom:6px; }
+  .micro-item-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .micro-item-name { font-size:13px; font-weight:600; }
+  .micro-item-val  { font-size:12px; color:var(--muted); }
+  .micro-bar-wrap  { height:6px; background:var(--bg2); border-radius:3px; overflow:hidden; }
+  .micro-bar-fill  { height:100%; border-radius:3px; transition:width .4s; }
+  .micro-bar-fill.ok   { background:var(--green); }
+  .micro-bar-fill.warn { background:#f0a500; }
+  .micro-bar-fill.over { background:var(--accent2); }
+  .micro-bar-fill.none { background:var(--bg2); }
+  .micro-note { font-size:11px; color:var(--muted); text-align:center; margin-top:8px; }
+  .lb-type-row { display:flex; gap:8px; margin-bottom:12px; }
+  .lb-type-btn { flex:1; padding:9px; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; background:var(--bg2); color:var(--muted); }
+  .lb-type-btn.active { background:var(--green); color:#fff; }
+  .lb-item { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:12px; padding:11px 14px; margin-bottom:6px; }
+  .lb-rank { font-size:18px; font-weight:900; min-width:30px; }
+  .lb-name { flex:1; font-size:14px; font-weight:600; }
+  .lb-val  { font-size:14px; font-weight:700; color:var(--green); }
+  .lb-item.me { border:2px solid var(--green); }
+  .lb-empty { text-align:center; padding:32px; color:var(--muted); }
+  .pdf-option-card { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer; border:2px solid transparent; }
+  .pdf-option-card.selected { border-color:var(--green); }
+  .pdf-option-title { font-weight:700; font-size:15px; margin-bottom:4px; }
+  .pdf-option-desc  { font-size:12px; color:var(--muted); }
+  .pdf-dl-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; }
+  .pdf-dl-btn:disabled { opacity:.6; }
+  .pdf-premium-badge { background:var(--accent); color:#fff; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:6px; }
+
+  
+  /* ===== IMPORT / SETTINGS ===== */
+  .imp-drop {
+    border:2px dashed var(--muted); border-radius:14px; padding:32px 16px;
+    text-align:center; cursor:pointer; margin-bottom:12px; transition:border-color .2s;
+  }
+  .imp-drop.drag-over { border-color:var(--green); background:rgba(76,175,80,.08); }
+  .imp-drop-icon { font-size:40px; margin-bottom:8px; }
+  .imp-drop-text { color:var(--muted); font-size:14px; }
+  .imp-progress { background:var(--card); border-radius:12px; padding:14px; margin-bottom:12px; display:none; }
+  .imp-progress-bar-wrap { height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; margin:8px 0; }
+  .imp-progress-bar-fill { height:100%; background:var(--green); border-radius:4px; transition:width .3s; }
+  .imp-stats { font-size:13px; color:var(--muted); }
+  .imp-confirm-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:8px; }
+  .imp-cancel-btn  { width:100%; padding:11px; background:var(--bg2); color:var(--muted); border:none; border-radius:12px; font-size:14px; cursor:pointer; }
+  .imp-format-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; font-size:13px; }
+  .imp-format-name { font-weight:700; margin-bottom:4px; }
+  .imp-format-desc { color:var(--muted); font-size:12px; }
+  .sett-section { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .sett-title { font-weight:700; font-size:14px; margin-bottom:12px; }
+  .sett-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--bg2); }
+  .sett-row:last-child { border-bottom:none; }
+  .sett-label { font-size:14px; }
+  .sett-sublabel { font-size:11px; color:var(--muted); margin-top:2px; }
+  .sett-input {
+    width:80px; padding:7px 10px; background:var(--bg2); border:none;
+    border-radius:8px; color:var(--text); font-size:14px; text-align:center;
+  }
+  .sett-select {
+    padding:7px 10px; background:var(--bg2); border:none;
+    border-radius:8px; color:var(--text); font-size:13px;
+  }
+  .sett-toggle {
+    width:44px; height:24px; background:var(--bg2); border:none; border-radius:12px;
+    cursor:pointer; position:relative; transition:background .2s;
+  }
+  .sett-toggle.on { background:var(--green); }
+  .sett-toggle::after {
+    content:''; position:absolute; width:18px; height:18px; background:#fff;
+    border-radius:50%; top:3px; left:3px; transition:left .2s;
+  }
+  .sett-toggle.on::after { left:23px; }
+  .sett-save-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; }
+
+  
+  /* ===== REF / PREM / HELP ===== */
+  .ref-link-box {
+    background:var(--bg2); border-radius:10px; padding:12px 14px;
+    font-size:13px; word-break:break-all; margin:8px 0; font-family:monospace;
+    cursor:pointer; border:2px solid transparent; transition:border-color .2s;
+  }
+  .ref-link-box:active { border-color:var(--green); }
+  .ref-copy-btn {
+    width:100%; padding:12px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .ref-share-btn {
+    width:100%; padding:12px; background:var(--bg2); color:var(--text);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer; margin-top:6px;
+  }
+  .ref-stat-row { display:flex; gap:8px; margin-top:10px; }
+  .ref-stat-box { flex:1; background:var(--bg2); border-radius:10px; padding:10px; text-align:center; }
+  .ref-stat-val { font-size:20px; font-weight:800; }
+  .ref-stat-lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+  .prem-status-card {
+    border-radius:14px; padding:16px; margin-bottom:12px; text-align:center;
+  }
+  .prem-status-card.free    { background:var(--bg2); }
+  .prem-status-card.premium { background:linear-gradient(135deg,#1a237e,#283593); color:#fff; }
+  .prem-status-icon { font-size:40px; margin-bottom:8px; }
+  .prem-status-title { font-size:18px; font-weight:800; margin-bottom:4px; }
+  .prem-status-sub   { font-size:13px; opacity:.8; }
+  .prem-plan-card {
+    background:var(--card); border-radius:14px; padding:14px 16px;
+    margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer; border:2px solid transparent;
+  }
+  .prem-plan-card.selected { border-color:var(--green); }
+  .prem-plan-left h3 { margin:0 0 4px; font-size:15px; }
+  .prem-plan-left p  { margin:0; font-size:12px; color:var(--muted); }
+  .prem-plan-price { font-size:18px; font-weight:800; color:var(--green); }
+  .prem-buy-btn {
+    width:100%; padding:14px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .prem-card-btn {
+    width:100%; padding:12px; background:var(--bg2); color:var(--text);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer; margin-top:6px;
+  }
+  .prem-features { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .prem-feature  { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+  .help-faq-item { background:var(--card); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+  .help-faq-q {
+    padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .help-faq-a { padding:0 14px; max-height:0; overflow:hidden; transition:max-height .3s, padding .3s; font-size:13px; color:var(--muted); line-height:1.5; }
+  .help-faq-a.open { max-height:300px; padding:0 14px 12px; }
+  .help-support-btn {
+    width:100%; padding:12px; border:none; border-radius:12px; font-size:14px;
+    font-weight:700; cursor:pointer; margin-bottom:8px;
+  }
+
+  
+  /* ===== ADMIN PAGE ===== */
+  .adm-section { display:none; }
+  .adm-section.active { display:block; }
+  .adm-nav { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .adm-nav-btn { padding:8px 12px; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; background:var(--bg2); color:var(--muted); }
+  .adm-nav-btn.active { background:var(--accent2); color:#fff; }
+  .adm-kpi-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .adm-kpi { flex:1; min-width:80px; background:var(--card); border-radius:12px; padding:12px; text-align:center; }
+  .adm-kpi-val { font-size:22px; font-weight:900; }
+  .adm-kpi-lbl { font-size:11px; color:var(--muted); margin-top:3px; }
+  .adm-user-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .adm-user-row  { display:flex; justify-content:space-between; align-items:center; }
+  .adm-user-name { font-weight:700; font-size:14px; }
+  .adm-user-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+  .adm-badge { padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; }
+  .adm-badge-prem { background:var(--accent); color:#fff; }
+  .adm-badge-free { background:var(--bg2); color:var(--muted); }
+  .adm-user-btns { display:flex; gap:6px; margin-top:8px; }
+  .adm-btn { padding:6px 12px; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .adm-btn-prem   { background:var(--accent); color:#fff; }
+  .adm-btn-unprem { background:var(--bg2); color:var(--text); }
+  .adm-search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .adm-search-row input { flex:1; padding:10px; background:var(--bg2); border:none; border-radius:10px; color:var(--text); font-size:14px; }
+  .adm-search-row button { padding:10px 14px; background:var(--green); color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer; }
+  .adm-pay-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .adm-pay-row  { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .adm-pay-name { font-weight:700; font-size:14px; }
+  .adm-pay-btns { display:flex; gap:8px; }
+  .adm-btn-confirm { background:var(--green); color:#fff; }
+  .adm-btn-reject  { background:var(--accent2); color:#fff; }
+  .adm-pagination { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .adm-page-btn { padding:8px 14px; background:var(--bg2); border:none; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text); }
+
+  
+  /* ════════════════════════════════════════
+     DESIGN UPGRADE — animations, polish
+  ════════════════════════════════════════ */
+
+  /* Smooth page transitions */
+  .page { animation: none; }
+  .page.active { animation: pageIn .22s ease-out both; }
+  @keyframes pageIn {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* Cards — glass/shadow effect */
+  .stat-card, .diary-progress-card, .calc-total-card,
+  .sett-section, .mf-form, .he-info-card, .prem-features,
+  .ai-result-card, .adm-kpi, .adm-user-card, .adm-pay-card {
+    box-shadow: var(--shadow);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .stat-card:hover, .adm-user-card:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+
+  /* Buttons — press animation */
+  button:active { transform: scale(.96); }
+  .diary-add-btn, .calc-save-btn, .mf-save-btn, .imp-confirm-btn,
+  .sett-save-btn, .pdf-dl-btn, .ai-action-btn, .prem-buy-btn,
+  .ref-copy-btn, .adm-btn-confirm, .adm-btn-prem {
+    transition: filter .15s, transform .1s, box-shadow .15s;
+    position: relative; overflow: hidden;
+  }
+  .diary-add-btn:hover, .calc-save-btn:hover, .ai-action-btn:hover,
+  .prem-buy-btn:hover, .ref-copy-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: var(--glow-green);
+  }
+
+  /* Ripple effect on button click */
+  button.rippling::after {
+    content:''; position:absolute; border-radius:50%;
+    width:100px; height:100px;
+    background:rgba(255,255,255,.15);
+    transform:scale(0); animation:ripple .5s linear;
+    top:50%; left:50%; margin:-50px;
+  }
+  @keyframes ripple { to { transform:scale(3); opacity:0; } }
+
+  /* Progress bars — animated fill */
+  .diary-prog-fill, .micro-bar-fill, .he-prog-fill,
+  .stat-bar, .imp-progress-bar-fill {
+    transition: width .5s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg,var(--surface2) 25%,#2a2a3a 50%,var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* Active tab glow */
+  .tab.active {
+    box-shadow: 0 0 12px rgba(108,99,255,.5);
+  }
+
+  /* Streak counter — pulse when > 0 */
+  .stat-streak-val { animation: pulseGlow 2s infinite alternate; }
+  @keyframes pulseGlow {
+    from { text-shadow: 0 0 0px rgba(67,233,123,0); }
+    to   { text-shadow: 0 0 16px rgba(67,233,123,.6); }
+  }
+
+  /* Premium card gradient */
+  .prem-status-card.premium {
+    background: linear-gradient(135deg,#1a1a3e,#2d1b69,#1a3a2e) !important;
+    box-shadow: 0 4px 24px rgba(108,99,255,.4);
+    animation: premGlow 3s infinite alternate;
+  }
+  @keyframes premGlow {
+    from { box-shadow: 0 4px 24px rgba(108,99,255,.3); }
+    to   { box-shadow: 0 4px 32px rgba(67,233,123,.4); }
+  }
+
+  /* Input focus glow */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .calc-search-row input:focus, .mf-form input:focus,
+  .adm-search-row input:focus, #plan-restrictions:focus {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  /* Toast — nicer */
+  #toast {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5) !important;
+    backdrop-filter: blur(8px);
+    font-weight: 600;
+  }
+
+  /* Diary entry — swipe hint on first load */
+  .diary-entry { transition: background .15s; }
+  .diary-entry:active { background: rgba(255,100,132,.08); }
+
+  /* Calendar nav buttons */
+  .diary-date-nav button {
+    transition: background .15s, transform .1s;
+  }
+  .diary-date-nav button:hover { background: var(--accent); color: #fff; }
+
+  /* Leaderboard medals shimmer */
+  .lb-item:nth-child(1) .lb-rank { animation: goldGlow 2s infinite alternate; }
+  @keyframes goldGlow {
+    from { filter: drop-shadow(0 0 0px gold); }
+    to   { filter: drop-shadow(0 0 6px gold); }
+  }
+
+  /* FAQ accordion smooth */
+  .help-faq-a { transition: max-height .3s cubic-bezier(.4,0,.2,1), padding .3s !important; }
+
+  /* Micro HE badge */
+  .calc-he-badge {
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    box-shadow: 0 2px 8px rgba(108,99,255,.4);
+  }
+
+  /* Bottom safe area for phones */
+  .tabs { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+  /* Admin KPI cards */
+  .adm-kpi:nth-child(1) .adm-kpi-val { color: var(--green); }
+  .adm-kpi:nth-child(2) .adm-kpi-val { color: var(--accent); }
+  .adm-kpi:nth-child(3) .adm-kpi-val { color: #43c6ff; }
+  .adm-kpi:nth-child(4) .adm-kpi-val { color: #ffb74d; }
+
+  /* Scrollbar polish */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  </style>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 </head>
@@ -461,6 +2600,20 @@ if(document.readyState === 'loading'){
 <div class="tabs">
   <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📷</button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
+  <button class="tab" onclick="switchTab('diary')" id="tab-diary">📔</button>
+  <button class="tab" onclick="switchTab('calc')" id="tab-calc">🧮</button>
+  <button class="tab" onclick="switchTab('myfoods')" id="tab-myfoods">⭐</button>
+  <button class="tab" onclick="switchTab('statpage')" id="tab-statpage">📊</button>
+  <button class="tab" onclick="switchTab('aipage')" id="tab-aipage">🤖</button>
+  <button class="tab" onclick="switchTab('micropage')" id="tab-micropage">🔬</button>
+  <button class="tab" onclick="switchTab('lbpage')" id="tab-lbpage">🏆</button>
+  <button class="tab" onclick="switchTab('pdfpage')" id="tab-pdfpage">📄</button>
+  <button class="tab" onclick="switchTab('importpage')" id="tab-importpage">📥</button>
+  <button class="tab" onclick="switchTab('settingspage')" id="tab-settingspage">⚙️</button>
+  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage">👥</button>
+  <button class="tab" onclick="switchTab('prempage')" id="tab-prempage">⭐</button>
+  <button class="tab" onclick="switchTab('helppage')" id="tab-helppage">❓</button>
+  <button class="tab" onclick="switchTab('adminpage')" id="tab-adminpage" style="display:none">🔧</button>
   <button class="tab" onclick="switchTab('water')" id="tab-water">💧</button>
   <button class="tab" onclick="switchTab('progress')" id="tab-progress">📈</button>
   <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
@@ -587,7 +2740,45 @@ if(document.readyState === 'loading'){
 
 
   <!-- WATER PAGE -->
-  <div class="page" id="page-water">
+    <div class="page" id="page-diary">
+    <div class="diary-date-nav">
+      <button onclick="diaryPrevDay()">‹</button>
+      <span class="diary-date-label" id="diary-date-label">—</span>
+      <button onclick="diaryNextDay()" id="diary-next-btn">›</button>
+    </div>
+    <div class="diary-progress-card">
+      <div class="diary-kcal-row">
+        <span class="diary-kcal-eaten" id="diary-kcal-eaten">0</span>
+        <span class="diary-kcal-goal" id="diary-kcal-goal">/ 2000 ккал</span>
+      </div>
+      <div class="diary-prog-bar">
+        <div class="diary-prog-fill" id="diary-prog-fill" style="width:0%"></div>
+      </div>
+      <div class="diary-macro-row">
+        <div class="diary-macro-box">
+          <div class="diary-macro-val" id="diary-prot">0</div>
+          <div class="diary-macro-lbl" id="lbl-diary-prot">Белки, г</div>
+        </div>
+        <div class="diary-macro-box">
+          <div class="diary-macro-val" id="diary-fat">0</div>
+          <div class="diary-macro-lbl" id="lbl-diary-fat">Жиры, г</div>
+        </div>
+        <div class="diary-macro-box">
+          <div class="diary-macro-val" id="diary-carb">0</div>
+          <div class="diary-macro-lbl" id="lbl-diary-carb">Углеводы, г</div>
+        </div>
+      </div>
+    </div>
+    <div id="diary-meals-container">
+      <div class="diary-empty">
+        <div class="diary-empty-icon">🍽</div>
+        <div id="diary-empty-text">Нет записей за этот день</div>
+      </div>
+    </div>
+    <button class="diary-add-btn" onclick="switchTab('manual')" id="diary-add-btn">✍️ Добавить еду</button>
+  </div>
+
+<div class="page" id="page-water">
     <div class="section-title" id="water-page-title">💧 <span id="lbl-water-title"></span></div>
     <div id="water-progress-block" style="margin-bottom:18px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -3213,6 +5404,20 @@ function switchTab(tab) {
   if (tab === 'game')     setTimeout(initGame, 100);
   if (tab === 'water')    initWaterPage();
   if (tab === 'progress') initProgressPage();
+  if (tab === 'diary')    initDiaryPage();
+  if (tab === 'calc')     initCalcPage();
+  if (tab === 'myfoods')  initMyFoodsPage();
+  if (tab === 'statpage') initStatPage();
+  if (tab === 'aipage')   initAiPage();
+  if (tab === 'micropage') initMicroPage();
+  if (tab === 'lbpage')   initLbPage();
+  if (tab === 'pdfpage')   initPdfPage();
+  if (tab === 'importpage') initImportPage();
+  if (tab === 'settingspage') initSettingsPage();
+  if (tab === 'refpage')      initRefPage();
+  if (tab === 'prempage')     initPremPage();
+  if (tab === 'helppage')     initHelpPage();
+  if (tab === 'adminpage')   initAdminPage();
   // Применяем переводы после инициализации страницы
   applyTranslations();
 }
@@ -3237,43 +5442,26 @@ async function _startBarcodeScanner() {
   document.getElementById('scanner-hero').style.display = 'none';
   document.getElementById('video-container').style.display = 'block';
   document.getElementById('product-card').classList.remove('show');
+
+  // Скрываем scanner-video — Quagga создаёт свой video элемент
+  var sv = document.getElementById('scanner-video');
+  if (sv) sv.style.display = 'none';
+
+  // Показываем анимацию сканирования
+  var overlay = document.getElementById('scan-overlay');
+  if (overlay) overlay.style.display = 'flex';
+
   setStatus('scanning', 'Ищу штрихкод...');
   detecting = true;
 
+  if (typeof Quagga === 'undefined') {
+    showToast('Библиотека сканера не загружена', 'var(--accent2)');
+    resetScanner();
+    return;
+  }
+
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        focusMode: { ideal: 'continuous' }
-      }
-    });
-
-    const video = document.getElementById('scanner-video');
-    video.style.display = 'block';
-    video.srcObject = stream;
-    await video.play();
-
-    // Пробуем включить автофокус
-    try {
-      const track = stream.getVideoTracks()[0];
-      if (track && track.applyConstraints) {
-        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-      }
-    } catch(e) {}
-
-    // Останавливаем getUserMedia — Quagga управляет камерой сам
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-    video.srcObject = null;
-
-    const videoContainer = document.getElementById('video-container');
-
-    if (typeof Quagga === 'undefined') {
-      showToast('❌ Библиотека сканера не загружена', 'var(--accent2)');
-      resetScanner();
-      return;
-    }
+    var videoContainer = document.getElementById('video-container');
 
     Quagga.init({
       inputStream: {
@@ -3288,21 +5476,20 @@ async function _startBarcodeScanner() {
       },
       decoder: {
         readers: [
-          'ean_reader',       // EAN-13 — основной формат продуктов
-          'ean_8_reader',     // EAN-8
-          'upc_reader',       // UPC-A
-          'upc_e_reader',     // UPC-E
-          'code_128_reader',  // Code 128
-          'code_39_reader',   // Code 39
+          'ean_reader',
+          'ean_8_reader',
+          'upc_reader',
+          'upc_e_reader',
+          'code_128_reader',
         ],
         multiple: false,
       },
       locate: true,
-      numOfWorkers: 0,  // 0 = без воркеров, работает в WebView
+      numOfWorkers: 0,
       frequency: 10,
     }, function(err) {
       if (err) {
-        showToast('❌ Нет доступа к камере', 'var(--accent2)');
+        showToast('Нет доступа к камере', 'var(--accent2)');
         resetScanner();
         return;
       }
@@ -3311,82 +5498,37 @@ async function _startBarcodeScanner() {
 
     Quagga.onDetected(function(result) {
       if (!detecting) return;
-      const code = result.codeResult.code;
-      if (!code) return;
+      var code = result.codeResult.code;
+      if (!code || code.length < 8) return;  // фильтруем мусор
       detecting = false;
       Quagga.stop();
-      setStatus('scanning', \`🔍 \${i18n.searching||'Поиск...'} \${code}\`);
+      setStatus('scanning', '\u{1F50D} ' + (i18n.searching||'Поиск...') + ' ' + code);
       lookupBarcode(code);
     });
 
-    // Также пробуем jsQR для QR кодов параллельно
-    const canvas2 = document.createElement('canvas');
-    const ctx2    = canvas2.getContext('2d', { willReadFrequently: true });
-    const scanQR  = () => {
-      if (!detecting) return;
-      if (video.readyState >= 2 && video.videoWidth > 0 && typeof jsQR !== 'undefined') {
-        canvas2.width  = video.videoWidth;
-        canvas2.height = video.videoHeight;
-        ctx2.drawImage(video, 0, 0);
-        const imgData = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
-        const qr = jsQR(imgData.data, canvas2.width, canvas2.height);
-        if (qr && qr.data && detecting) {
-          detecting = false;
-          Quagga.stop();
-          stopScanner();
-          setStatus('scanning', \`🔍 \${i18n.searching||'Поиск...'} \${qr.data}\`);
-          lookupBarcode(qr.data);
-          return;
-        }
-      }
-      animFrame = setTimeout(scanQR, 300);
-    };
-    video.addEventListener('playing', () => { animFrame = setTimeout(scanQR, 500); }, { once: true });
-
-    if (false) {
-      // (заглушка для старого else-блока)
-      const detector = new BarcodeDetector({ formats: ['ean_13'] });
-      const scan2 = async () => {
-        if (!detecting) return;
-        try {
-          if (video.readyState >= 2) {
-            const barcodes = await detector.detect(video);
-            if (barcodes.length > 0) {
-              const code = barcodes[0].rawValue;
-              detecting = false;
-              stopScanner();
-              setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'} ${code}`);
-              await lookupBarcode(code);
-              return;
-            }
-          }
-        } catch(e) {}
-        animFrame = setTimeout(scan, 150);
-      };
-      video.addEventListener('playing', () => { animFrame = setTimeout(scan, 300); }, { once: true });
-      if (!video.paused) animFrame = setTimeout(scan, 300);
-    }
-
   } catch(e) {
-    showToast('Нет доступа к камере', 'var(--accent2)');
+    showToast('Ошибка камеры: ' + e.message, 'var(--accent2)');
     resetScanner();
   }
 }
 
+
 function stopScanner() {
   detecting = false;
   if (animFrame) { clearTimeout(animFrame); animFrame = null; }
-  // Останавливаем Quagga если запущен
+  // Останавливаем Quagga
   try { if (typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
+  // Останавливаем ручной стрим (для фото режима)
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  const video = document.getElementById('scanner-video');
-  if (video) video.srcObject = null;
-  // Убираем видео которое Quagga мог добавить в video-container
-  const vc = document.getElementById('video-container');
-  if (vc) { const vids = vc.querySelectorAll('video'); vids.forEach(v => { if(v.id !== 'scanner-video') v.remove(); }); }
+  var video = document.getElementById('scanner-video');
+  if (video) { video.srcObject = null; video.style.display = 'block'; }
+  // Убираем видео которое Quagga добавил
+  var vc = document.getElementById('video-container');
+  if (vc) { var vids = vc.querySelectorAll('video'); vids.forEach(function(v) { if(v.id !== 'scanner-video') v.remove(); }); }
   document.getElementById('video-container').style.display = 'none';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
+  var cb = document.getElementById('capture-btn'); if(cb) cb.style.display = 'none';
   document.getElementById('scanner-hero').style.display = 'block';
   setStatus(null);
 }
@@ -3554,33 +5696,40 @@ function setCameraMode(mode) {
   if (mode === 'barcode') {
     if(bb) bb.className='btn btn-primary';
     if(pb) pb.className='btn btn-secondary';
-    document.getElementById('capture-btn') && (document.getElementById('capture-btn').style.display='none');
-    document.getElementById('photo-result') && (document.getElementById('photo-result').style.display='none');
-    if(overlay) overlay.style.display='flex';  // показываем прицел для штрихкода
+    var cbtn = document.getElementById('capture-btn'); if(cbtn) cbtn.style.display='none';
+    var pr = document.getElementById('photo-result'); if(pr) pr.style.display='none';
+    if(overlay) overlay.style.display='flex';
   } else {
     if(bb) bb.className='btn btn-secondary';
     if(pb) pb.className='btn btn-primary';
-    if(overlay) overlay.style.display='none';  // скрываем прицел для фото еды
+    if(overlay) overlay.style.display='none';
   }
   if(typeof stopScanner==='function') stopScanner();
-  var sb=document.getElementById('scan-btn'); if(sb){sb.style.display='block'; sb.textContent='📷 Открыть камеру';}
+  var sb=document.getElementById('scan-btn'); if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📷 Открыть камеру';}
   var st=document.getElementById('stop-btn'); if(st) st.style.display='none';
-  var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='none';
+  var cb2=document.getElementById('capture-btn'); if(cb2) cb2.style.display='none';
 }
 
 function startScanner() {
   if (cameraMode === 'photo') {
     var video = document.getElementById('scanner-video');
     var container = document.getElementById('video-container');
+    var hero = document.getElementById('scanner-hero');
+    // Убираем анимацию сканирования в фото-режиме
+    var overlay = document.getElementById('scan-overlay');
+    if (overlay) overlay.style.display = 'none';
+    if (video) video.style.display = 'block';
     navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-      .then(function(stream){
-        video.srcObject = stream;
+      .then(function(s){
+        stream = s;  // сохраняем в глобальную переменную для stopScanner
+        video.srcObject = s;
         if(container) container.style.display='block';
+        if(hero) hero.style.display='none';
         var sb=document.getElementById('scan-btn'); if(sb) sb.style.display='none';
         var st=document.getElementById('stop-btn'); if(st) st.style.display='block';
         var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='block';
       })
-      .catch(function(){ showToast('❌ Нет доступа к камере','var(--accent2)'); });
+      .catch(function(){ showToast('Нет доступа к камере','var(--accent2)'); });
     return;
   }
   _startBarcodeScanner();
@@ -3680,7 +5829,603 @@ function sendManual() {
 
 <style>
 #gameCanvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;margin:0 auto;}
-</style>
+
+  /* ===== DIARY ===== */
+  .diary-date-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--card); border-radius: 14px;
+    margin-bottom: 12px;
+  }
+  .diary-date-nav button {
+    background: var(--bg2); border: none; color: var(--text);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .diary-date-label { font-weight: 700; font-size: 15px; }
+  .diary-progress-card {
+    background: var(--card); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .diary-kcal-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .diary-kcal-eaten { font-size: 26px; font-weight: 800; color: var(--green); }
+  .diary-kcal-goal  { font-size: 13px; color: var(--muted); }
+  .diary-prog-bar   { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+  .diary-prog-fill  { height: 100%; background: var(--green); border-radius: 4px; transition: width .4s; }
+  .diary-prog-fill.over { background: var(--accent2); }
+  .diary-macro-row  { display: flex; gap: 8px; }
+  .diary-macro-box  {
+    flex: 1; background: var(--bg2); border-radius: 10px;
+    padding: 8px 6px; text-align: center;
+  }
+  .diary-macro-val  { font-size: 15px; font-weight: 700; }
+  .diary-macro-lbl  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .diary-meal-block { margin-bottom: 10px; }
+  .diary-meal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: var(--card); border-radius: 12px 12px 0 0;
+    cursor: pointer; user-select: none;
+  }
+  .diary-meal-header.collapsed { border-radius: 12px; }
+  .diary-meal-name  { font-weight: 700; font-size: 14px; }
+  .diary-meal-kcal  { font-size: 13px; color: var(--muted); }
+  .diary-meal-arrow { font-size: 12px; color: var(--muted); transition: transform .2s; }
+  .diary-meal-body  { background: var(--card); border-radius: 0 0 12px 12px; overflow: hidden; }
+  .diary-entry {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; border-top: 1px solid var(--bg2);
+  }
+  .diary-entry-info { flex: 1; min-width: 0; }
+  .diary-entry-name {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .diary-entry-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .diary-entry-kcal { font-size: 14px; font-weight: 700; color: var(--green); min-width: 42px; text-align: right; }
+  .diary-entry-del  {
+    width: 30px; height: 30px; background: none; border: none;
+    color: var(--accent2); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; flex-shrink: 0; opacity: .7;
+  }
+  .diary-entry-del:hover { opacity: 1; background: rgba(255,80,80,.12); }
+  .diary-empty {
+    text-align: center; padding: 32px 16px; color: var(--muted);
+    background: var(--card); border-radius: 14px;
+  }
+  .diary-empty-icon { font-size: 40px; margin-bottom: 8px; }
+  .diary-add-btn {
+    width: 100%; padding: 13px; background: var(--green); color: #fff;
+    border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 12px;
+  }
+
+  
+  /* ===== CALCULATOR ===== */
+  .calc-mode-row { display:flex; gap:8px; margin-bottom:12px; }
+  .calc-mode-btn {
+    flex:1; padding:10px; border:none; border-radius:10px;
+    font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--bg2); color:var(--muted);
+  }
+  .calc-mode-btn.active { background:var(--green); color:#fff; }
+  .calc-search-row { display:flex; gap:8px; margin-bottom:8px; }
+  .calc-search-row input {
+    flex:1; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px;
+  }
+  .calc-weight-row { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+  .calc-weight-row input {
+    width:80px; padding:10px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px; text-align:center;
+  }
+  .calc-weight-lbl { font-size:13px; color:var(--muted); }
+  .calc-add-btn {
+    padding:10px 18px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px;
+  }
+  .calc-result-preview {
+    background:var(--card); border-radius:12px; padding:12px 14px;
+    margin-bottom:12px; display:none;
+  }
+  .calc-result-name { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .calc-result-macros { display:flex; gap:8px; flex-wrap:wrap; }
+  .calc-result-macro {
+    background:var(--bg2); border-radius:8px; padding:5px 10px;
+    font-size:12px; font-weight:600;
+  }
+  .calc-he-badge {
+    background:var(--accent); color:#fff; border-radius:8px;
+    padding:5px 10px; font-size:12px; font-weight:700;
+  }
+  .calc-items-list { margin-bottom:12px; }
+  .calc-item {
+    display:flex; align-items:center; gap:8px;
+    background:var(--card); border-radius:10px; padding:10px 12px;
+    margin-bottom:6px;
+  }
+  .calc-item-info { flex:1; min-width:0; }
+  .calc-item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .calc-item-sub  { font-size:11px; color:var(--muted); margin-top:2px; }
+  .calc-item-del  {
+    background:none; border:none; color:var(--accent2);
+    font-size:18px; cursor:pointer; width:28px; height:28px;
+    display:flex; align-items:center; justify-content:center; border-radius:50%;
+  }
+  .calc-total-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .calc-total-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .calc-total-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .calc-total-kcal { font-size:22px; font-weight:800; color:var(--green); }
+  .calc-total-he   { font-size:16px; font-weight:700; color:var(--accent); }
+  .calc-total-macros { display:flex; gap:8px; margin-top:8px; }
+  .calc-save-btn {
+    width:100%; padding:13px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-bottom:8px;
+  }
+  .calc-clear-btn {
+    width:100%; padding:11px; background:var(--bg2); color:var(--muted);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer;
+  }
+  .calc-meal-select {
+    width:100%; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px; margin-bottom:12px;
+  }
+  /* HE mode */
+  .he-info-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .he-info-title { font-weight:700; font-size:14px; margin-bottom:8px; }
+  .he-daily-row { display:flex; justify-content:space-between; align-items:center; }
+  .he-daily-val { font-size:24px; font-weight:800; color:var(--accent); }
+  .he-daily-norm { font-size:12px; color:var(--muted); }
+  .he-prog-bar { height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; margin:8px 0; }
+  .he-prog-fill { height:100%; background:var(--accent); border-radius:4px; transition:width .4s; }
+  .he-result-card {
+    background:var(--card); border-radius:12px; padding:14px 16px; margin-top:12px; display:none;
+  }
+  .he-result-val { font-size:32px; font-weight:900; text-align:center; margin:8px 0; }
+  .he-result-val.he-safe   { color:var(--green); }
+  .he-result-val.he-medium { color:#f0a500; }
+  .he-result-val.he-high   { color:var(--accent2); }
+  .he-result-label { text-align:center; font-size:13px; color:var(--muted); }
+
+  
+  /* ===== MY FOODS ===== */
+  .mf-search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .mf-search-row input {
+    flex:1; padding:10px 14px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px;
+  }
+  .mf-add-btn {
+    padding:10px 16px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .mf-list { margin-bottom:12px; }
+  .mf-item {
+    background:var(--card); border-radius:12px; padding:12px 14px;
+    margin-bottom:8px; display:flex; align-items:center; gap:10px;
+  }
+  .mf-item-info { flex:1; min-width:0; }
+  .mf-item-name { font-size:14px; font-weight:700; }
+  .mf-item-macros { font-size:11px; color:var(--muted); margin-top:3px; }
+  .mf-item-btns { display:flex; gap:6px; }
+  .mf-btn {
+    width:32px; height:32px; border:none; border-radius:8px;
+    cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center;
+  }
+  .mf-btn-use  { background:var(--green);  color:#fff; }
+  .mf-btn-edit { background:var(--bg2);    color:var(--text); }
+  .mf-btn-del  { background:var(--accent2); color:#fff; }
+  .mf-form {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .mf-form-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .mf-form input {
+    width:100%; box-sizing:border-box; padding:10px 12px; background:var(--bg2);
+    border:none; border-radius:10px; color:var(--text); font-size:14px;
+    margin-bottom:8px; display:block;
+  }
+  .mf-form-row { display:flex; gap:8px; }
+  .mf-form-row input { flex:1; }
+  .mf-form-hint { font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .mf-save-btn {
+    width:100%; padding:12px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; cursor:pointer; margin-bottom:6px;
+  }
+  .mf-cancel-btn {
+    width:100%; padding:10px; background:var(--bg2); color:var(--muted);
+    border:none; border-radius:10px; cursor:pointer;
+  }
+  .mf-use-popup {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+    display:none;
+  }
+  .mf-use-popup .calc-weight-row { margin-bottom:8px; }
+  /* ===== STATS ===== */
+  .stat-card {
+    background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .stat-card-title { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .stat-streak-val { font-size:48px; font-weight:900; color:var(--green); line-height:1; }
+  .stat-streak-lbl { font-size:13px; color:var(--muted); margin-top:4px; }
+  .stat-kpi-row { display:flex; gap:8px; }
+  .stat-kpi-box { flex:1; background:var(--bg2); border-radius:10px; padding:10px; text-align:center; }
+  .stat-kpi-val { font-size:18px; font-weight:800; }
+  .stat-kpi-lbl { font-size:10px; color:var(--muted); margin-top:3px; }
+  .stat-bar-chart { display:flex; align-items:flex-end; gap:4px; height:80px; margin-bottom:6px; }
+  .stat-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .stat-bar { width:100%; border-radius:4px 4px 0 0; background:var(--green); min-height:3px; transition:height .3s; }
+  .stat-bar.today { background:var(--accent); }
+  .stat-bar.over { background:var(--accent2); }
+  .stat-bar-lbl { font-size:9px; color:var(--muted); }
+  .stat-bar-val { font-size:9px; color:var(--text); }
+  .stat-top-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--bg2); }
+  .stat-top-item:last-child { border-bottom:none; }
+  .stat-top-name { font-size:13px; }
+  .stat-top-count { font-size:12px; color:var(--muted); }
+  .stat-bmi-bar { position:relative; height:12px; background:linear-gradient(to right,#4fc3f7,#81c784,#ffb74d,#e57373); border-radius:6px; margin:8px 0; }
+  .stat-bmi-pin { position:absolute; top:-4px; width:4px; height:20px; background:var(--text); border-radius:2px; transform:translateX(-50%); }
+  .stat-weight-chart { display:flex; align-items:flex-end; gap:3px; height:60px; margin-bottom:4px; }
+
+  
+  /* ===== AI PAGE ===== */
+  .ai-mode-row { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px; }
+  .ai-mode-btn {
+    padding:9px 14px; border:none; border-radius:10px; white-space:nowrap;
+    font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--bg2); color:var(--muted); flex-shrink:0;
+  }
+  .ai-mode-btn.active { background:var(--green); color:#fff; }
+  .ai-section { display:none; }
+  .ai-section.active { display:block; }
+  .ai-result-card {
+    background:var(--card); border-radius:14px; padding:14px 16px;
+    margin-top:12px; white-space:pre-wrap; line-height:1.6;
+    font-size:13px; display:none;
+  }
+  .ai-result-card.show { display:block; }
+  .ai-loading { text-align:center; padding:24px; color:var(--muted); font-size:14px; }
+  .ai-limit-card {
+    background:var(--card); border-radius:14px; padding:16px;
+    text-align:center; margin-top:12px;
+  }
+  .ai-limit-icon { font-size:36px; margin-bottom:8px; }
+  .ai-action-btn {
+    width:100%; padding:13px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-top:8px;
+  }
+  .ai-action-btn:disabled { opacity:.6; cursor:default; }
+  .ai-sub-label { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .recipe-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .recipe-filter-btn {
+    padding:8px 12px; border:2px solid var(--bg2); border-radius:10px;
+    background:none; color:var(--text); font-size:12px; cursor:pointer; font-weight:600;
+  }
+  .recipe-filter-btn.selected { border-color:var(--green); background:var(--green); color:#fff; }
+  .plan-days-row { display:flex; gap:8px; margin-bottom:12px; }
+  .plan-day-btn {
+    flex:1; padding:10px 6px; border:2px solid var(--bg2); border-radius:10px;
+    background:none; color:var(--text); font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .plan-day-btn.selected { border-color:var(--green); background:var(--green); color:#fff; }
+
+  
+  /* ===== MICRO / LB / PDF ===== */
+  .micro-group-title { font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px; text-transform:uppercase; letter-spacing:.5px; }
+  .micro-item { background:var(--card); border-radius:12px; padding:11px 14px; margin-bottom:6px; }
+  .micro-item-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .micro-item-name { font-size:13px; font-weight:600; }
+  .micro-item-val  { font-size:12px; color:var(--muted); }
+  .micro-bar-wrap  { height:6px; background:var(--bg2); border-radius:3px; overflow:hidden; }
+  .micro-bar-fill  { height:100%; border-radius:3px; transition:width .4s; }
+  .micro-bar-fill.ok   { background:var(--green); }
+  .micro-bar-fill.warn { background:#f0a500; }
+  .micro-bar-fill.over { background:var(--accent2); }
+  .micro-bar-fill.none { background:var(--bg2); }
+  .micro-note { font-size:11px; color:var(--muted); text-align:center; margin-top:8px; }
+  .lb-type-row { display:flex; gap:8px; margin-bottom:12px; }
+  .lb-type-btn { flex:1; padding:9px; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; background:var(--bg2); color:var(--muted); }
+  .lb-type-btn.active { background:var(--green); color:#fff; }
+  .lb-item { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:12px; padding:11px 14px; margin-bottom:6px; }
+  .lb-rank { font-size:18px; font-weight:900; min-width:30px; }
+  .lb-name { flex:1; font-size:14px; font-weight:600; }
+  .lb-val  { font-size:14px; font-weight:700; color:var(--green); }
+  .lb-item.me { border:2px solid var(--green); }
+  .lb-empty { text-align:center; padding:32px; color:var(--muted); }
+  .pdf-option-card { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer; border:2px solid transparent; }
+  .pdf-option-card.selected { border-color:var(--green); }
+  .pdf-option-title { font-weight:700; font-size:15px; margin-bottom:4px; }
+  .pdf-option-desc  { font-size:12px; color:var(--muted); }
+  .pdf-dl-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; }
+  .pdf-dl-btn:disabled { opacity:.6; }
+  .pdf-premium-badge { background:var(--accent); color:#fff; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:6px; }
+
+  
+  /* ===== IMPORT / SETTINGS ===== */
+  .imp-drop {
+    border:2px dashed var(--muted); border-radius:14px; padding:32px 16px;
+    text-align:center; cursor:pointer; margin-bottom:12px; transition:border-color .2s;
+  }
+  .imp-drop.drag-over { border-color:var(--green); background:rgba(76,175,80,.08); }
+  .imp-drop-icon { font-size:40px; margin-bottom:8px; }
+  .imp-drop-text { color:var(--muted); font-size:14px; }
+  .imp-progress { background:var(--card); border-radius:12px; padding:14px; margin-bottom:12px; display:none; }
+  .imp-progress-bar-wrap { height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; margin:8px 0; }
+  .imp-progress-bar-fill { height:100%; background:var(--green); border-radius:4px; transition:width .3s; }
+  .imp-stats { font-size:13px; color:var(--muted); }
+  .imp-confirm-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:8px; }
+  .imp-cancel-btn  { width:100%; padding:11px; background:var(--bg2); color:var(--muted); border:none; border-radius:12px; font-size:14px; cursor:pointer; }
+  .imp-format-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; font-size:13px; }
+  .imp-format-name { font-weight:700; margin-bottom:4px; }
+  .imp-format-desc { color:var(--muted); font-size:12px; }
+  .sett-section { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .sett-title { font-weight:700; font-size:14px; margin-bottom:12px; }
+  .sett-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--bg2); }
+  .sett-row:last-child { border-bottom:none; }
+  .sett-label { font-size:14px; }
+  .sett-sublabel { font-size:11px; color:var(--muted); margin-top:2px; }
+  .sett-input {
+    width:80px; padding:7px 10px; background:var(--bg2); border:none;
+    border-radius:8px; color:var(--text); font-size:14px; text-align:center;
+  }
+  .sett-select {
+    padding:7px 10px; background:var(--bg2); border:none;
+    border-radius:8px; color:var(--text); font-size:13px;
+  }
+  .sett-toggle {
+    width:44px; height:24px; background:var(--bg2); border:none; border-radius:12px;
+    cursor:pointer; position:relative; transition:background .2s;
+  }
+  .sett-toggle.on { background:var(--green); }
+  .sett-toggle::after {
+    content:''; position:absolute; width:18px; height:18px; background:#fff;
+    border-radius:50%; top:3px; left:3px; transition:left .2s;
+  }
+  .sett-toggle.on::after { left:23px; }
+  .sett-save-btn { width:100%; padding:13px; background:var(--green); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; }
+
+  
+  /* ===== REF / PREM / HELP ===== */
+  .ref-link-box {
+    background:var(--bg2); border-radius:10px; padding:12px 14px;
+    font-size:13px; word-break:break-all; margin:8px 0; font-family:monospace;
+    cursor:pointer; border:2px solid transparent; transition:border-color .2s;
+  }
+  .ref-link-box:active { border-color:var(--green); }
+  .ref-copy-btn {
+    width:100%; padding:12px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .ref-share-btn {
+    width:100%; padding:12px; background:var(--bg2); color:var(--text);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer; margin-top:6px;
+  }
+  .ref-stat-row { display:flex; gap:8px; margin-top:10px; }
+  .ref-stat-box { flex:1; background:var(--bg2); border-radius:10px; padding:10px; text-align:center; }
+  .ref-stat-val { font-size:20px; font-weight:800; }
+  .ref-stat-lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+  .prem-status-card {
+    border-radius:14px; padding:16px; margin-bottom:12px; text-align:center;
+  }
+  .prem-status-card.free    { background:var(--bg2); }
+  .prem-status-card.premium { background:linear-gradient(135deg,#1a237e,#283593); color:#fff; }
+  .prem-status-icon { font-size:40px; margin-bottom:8px; }
+  .prem-status-title { font-size:18px; font-weight:800; margin-bottom:4px; }
+  .prem-status-sub   { font-size:13px; opacity:.8; }
+  .prem-plan-card {
+    background:var(--card); border-radius:14px; padding:14px 16px;
+    margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer; border:2px solid transparent;
+  }
+  .prem-plan-card.selected { border-color:var(--green); }
+  .prem-plan-left h3 { margin:0 0 4px; font-size:15px; }
+  .prem-plan-left p  { margin:0; font-size:12px; color:var(--muted); }
+  .prem-plan-price { font-size:18px; font-weight:800; color:var(--green); }
+  .prem-buy-btn {
+    width:100%; padding:14px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .prem-card-btn {
+    width:100%; padding:12px; background:var(--bg2); color:var(--text);
+    border:none; border-radius:12px; font-size:14px; cursor:pointer; margin-top:6px;
+  }
+  .prem-features { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .prem-feature  { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+  .help-faq-item { background:var(--card); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+  .help-faq-q {
+    padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .help-faq-a { padding:0 14px; max-height:0; overflow:hidden; transition:max-height .3s, padding .3s; font-size:13px; color:var(--muted); line-height:1.5; }
+  .help-faq-a.open { max-height:300px; padding:0 14px 12px; }
+  .help-support-btn {
+    width:100%; padding:12px; border:none; border-radius:12px; font-size:14px;
+    font-weight:700; cursor:pointer; margin-bottom:8px;
+  }
+
+  
+  /* ===== ADMIN PAGE ===== */
+  .adm-section { display:none; }
+  .adm-section.active { display:block; }
+  .adm-nav { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .adm-nav-btn { padding:8px 12px; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; background:var(--bg2); color:var(--muted); }
+  .adm-nav-btn.active { background:var(--accent2); color:#fff; }
+  .adm-kpi-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .adm-kpi { flex:1; min-width:80px; background:var(--card); border-radius:12px; padding:12px; text-align:center; }
+  .adm-kpi-val { font-size:22px; font-weight:900; }
+  .adm-kpi-lbl { font-size:11px; color:var(--muted); margin-top:3px; }
+  .adm-user-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .adm-user-row  { display:flex; justify-content:space-between; align-items:center; }
+  .adm-user-name { font-weight:700; font-size:14px; }
+  .adm-user-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+  .adm-badge { padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; }
+  .adm-badge-prem { background:var(--accent); color:#fff; }
+  .adm-badge-free { background:var(--bg2); color:var(--muted); }
+  .adm-user-btns { display:flex; gap:6px; margin-top:8px; }
+  .adm-btn { padding:6px 12px; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .adm-btn-prem   { background:var(--accent); color:#fff; }
+  .adm-btn-unprem { background:var(--bg2); color:var(--text); }
+  .adm-search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .adm-search-row input { flex:1; padding:10px; background:var(--bg2); border:none; border-radius:10px; color:var(--text); font-size:14px; }
+  .adm-search-row button { padding:10px 14px; background:var(--green); color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer; }
+  .adm-pay-card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .adm-pay-row  { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .adm-pay-name { font-weight:700; font-size:14px; }
+  .adm-pay-btns { display:flex; gap:8px; }
+  .adm-btn-confirm { background:var(--green); color:#fff; }
+  .adm-btn-reject  { background:var(--accent2); color:#fff; }
+  .adm-pagination { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .adm-page-btn { padding:8px 14px; background:var(--bg2); border:none; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text); }
+
+  
+  /* ════════════════════════════════════════
+     DESIGN UPGRADE — animations, polish
+  ════════════════════════════════════════ */
+
+  /* Smooth page transitions */
+  .page { animation: none; }
+  .page.active { animation: pageIn .22s ease-out both; }
+  @keyframes pageIn {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* Cards — glass/shadow effect */
+  .stat-card, .diary-progress-card, .calc-total-card,
+  .sett-section, .mf-form, .he-info-card, .prem-features,
+  .ai-result-card, .adm-kpi, .adm-user-card, .adm-pay-card {
+    box-shadow: var(--shadow);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .stat-card:hover, .adm-user-card:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+
+  /* Buttons — press animation */
+  button:active { transform: scale(.96); }
+  .diary-add-btn, .calc-save-btn, .mf-save-btn, .imp-confirm-btn,
+  .sett-save-btn, .pdf-dl-btn, .ai-action-btn, .prem-buy-btn,
+  .ref-copy-btn, .adm-btn-confirm, .adm-btn-prem {
+    transition: filter .15s, transform .1s, box-shadow .15s;
+    position: relative; overflow: hidden;
+  }
+  .diary-add-btn:hover, .calc-save-btn:hover, .ai-action-btn:hover,
+  .prem-buy-btn:hover, .ref-copy-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: var(--glow-green);
+  }
+
+  /* Ripple effect on button click */
+  button.rippling::after {
+    content:''; position:absolute; border-radius:50%;
+    width:100px; height:100px;
+    background:rgba(255,255,255,.15);
+    transform:scale(0); animation:ripple .5s linear;
+    top:50%; left:50%; margin:-50px;
+  }
+  @keyframes ripple { to { transform:scale(3); opacity:0; } }
+
+  /* Progress bars — animated fill */
+  .diary-prog-fill, .micro-bar-fill, .he-prog-fill,
+  .stat-bar, .imp-progress-bar-fill {
+    transition: width .5s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg,var(--surface2) 25%,#2a2a3a 50%,var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* Active tab glow */
+  .tab.active {
+    box-shadow: 0 0 12px rgba(108,99,255,.5);
+  }
+
+  /* Streak counter — pulse when > 0 */
+  .stat-streak-val { animation: pulseGlow 2s infinite alternate; }
+  @keyframes pulseGlow {
+    from { text-shadow: 0 0 0px rgba(67,233,123,0); }
+    to   { text-shadow: 0 0 16px rgba(67,233,123,.6); }
+  }
+
+  /* Premium card gradient */
+  .prem-status-card.premium {
+    background: linear-gradient(135deg,#1a1a3e,#2d1b69,#1a3a2e) !important;
+    box-shadow: 0 4px 24px rgba(108,99,255,.4);
+    animation: premGlow 3s infinite alternate;
+  }
+  @keyframes premGlow {
+    from { box-shadow: 0 4px 24px rgba(108,99,255,.3); }
+    to   { box-shadow: 0 4px 32px rgba(67,233,123,.4); }
+  }
+
+  /* Input focus glow */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .calc-search-row input:focus, .mf-form input:focus,
+  .adm-search-row input:focus, #plan-restrictions:focus {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  /* Toast — nicer */
+  #toast {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5) !important;
+    backdrop-filter: blur(8px);
+    font-weight: 600;
+  }
+
+  /* Diary entry — swipe hint on first load */
+  .diary-entry { transition: background .15s; }
+  .diary-entry:active { background: rgba(255,100,132,.08); }
+
+  /* Calendar nav buttons */
+  .diary-date-nav button {
+    transition: background .15s, transform .1s;
+  }
+  .diary-date-nav button:hover { background: var(--accent); color: #fff; }
+
+  /* Leaderboard medals shimmer */
+  .lb-item:nth-child(1) .lb-rank { animation: goldGlow 2s infinite alternate; }
+  @keyframes goldGlow {
+    from { filter: drop-shadow(0 0 0px gold); }
+    to   { filter: drop-shadow(0 0 6px gold); }
+  }
+
+  /* FAQ accordion smooth */
+  .help-faq-a { transition: max-height .3s cubic-bezier(.4,0,.2,1), padding .3s !important; }
+
+  /* Micro HE badge */
+  .calc-he-badge {
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    box-shadow: 0 2px 8px rgba(108,99,255,.4);
+  }
+
+  /* Bottom safe area for phones */
+  .tabs { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+  /* Admin KPI cards */
+  .adm-kpi:nth-child(1) .adm-kpi-val { color: var(--green); }
+  .adm-kpi:nth-child(2) .adm-kpi-val { color: var(--accent); }
+  .adm-kpi:nth-child(3) .adm-kpi-val { color: #43c6ff; }
+  .adm-kpi:nth-child(4) .adm-kpi-val { color: #ffb74d; }
+
+  /* Scrollbar polish */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  </style>
 <script>
 // ============================================================
 // NUTRIO RUNNER v7
@@ -4820,5 +7565,567 @@ try {
   }
 }catch(e){}
 </script>
+
+
+<div class="page" id="page-calc">
+    <!-- Переключатель режимов -->
+    <div class="calc-mode-row">
+      <button class="calc-mode-btn active" id="calc-mode-kbzu" onclick="setCalcMode('kbzu')">🧮 КБЖУ</button>
+      <button class="calc-mode-btn" id="calc-mode-he" onclick="setCalcMode('he')">💉 ХЕ</button>
+    </div>
+
+    <!-- Режим КБЖУ -->
+    <div id="calc-kbzu-section">
+      <div class="calc-search-row">
+        <input type="text" id="calc-food-input" placeholder="Название продукта..."
+          onkeydown="if(event.key==='Enter') calcSearch()">
+      </div>
+      <div class="calc-weight-row">
+        <input type="number" id="calc-weight-input" value="100" min="1" max="5000">
+        <span class="calc-weight-lbl">г</span>
+        <button class="calc-add-btn" onclick="calcSearch()">🔍 Найти</button>
+      </div>
+      <!-- Превью найденного -->
+      <div class="calc-result-preview" id="calc-result-preview">
+        <div class="calc-result-name" id="calc-result-name">—</div>
+        <div class="calc-result-macros">
+          <div class="calc-result-macro" id="calc-r-kcal">0 ккал</div>
+          <div class="calc-result-macro" id="calc-r-prot">Б: 0</div>
+          <div class="calc-result-macro" id="calc-r-fat">Ж: 0</div>
+          <div class="calc-result-macro" id="calc-r-carb">У: 0</div>
+          <div class="calc-he-badge" id="calc-r-he">ХЕ: 0</div>
+        </div>
+        <button class="calc-add-btn" style="width:100%;margin-top:10px" onclick="calcAddItem()">➕ Добавить</button>
+      </div>
+
+      <!-- Список добавленных -->
+      <div class="calc-items-list" id="calc-items-list"></div>
+
+      <!-- Итого -->
+      <div class="calc-total-card" id="calc-total-card" style="display:none">
+        <div class="calc-total-title">📊 Итого:</div>
+        <div class="calc-total-row">
+          <span class="calc-total-kcal" id="calc-total-kcal">0 ккал</span>
+          <span class="calc-total-he" id="calc-total-he">ХЕ: 0</span>
+        </div>
+        <div class="calc-total-macros">
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-prot">0</div><div class="diary-macro-lbl">Белки, г</div></div>
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-fat">0</div><div class="diary-macro-lbl">Жиры, г</div></div>
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-carb">0</div><div class="diary-macro-lbl">Углеводы, г</div></div>
+        </div>
+      </div>
+
+      <!-- Сохранить -->
+      <div id="calc-save-section" style="display:none">
+        <select class="calc-meal-select" id="calc-meal-select">
+          <option value="завтрак">🌅 Завтрак</option>
+          <option value="обед" selected>☀️ Обед</option>
+          <option value="ужин">🌙 Ужин</option>
+          <option value="перекус">🍎 Перекус</option>
+          <option value="другое">🍽 Другое</option>
+        </select>
+        <button class="calc-save-btn" onclick="calcSave()">💾 Сохранить в дневник</button>
+        <button class="calc-clear-btn" onclick="calcClear()">🗑 Очистить список</button>
+      </div>
+    </div>
+
+    <!-- Режим ХЕ -->
+    <div id="calc-he-section" style="display:none">
+      <div class="he-info-card">
+        <div class="he-info-title">💉 Хлебные единицы сегодня</div>
+        <div class="he-daily-row">
+          <span class="he-daily-val" id="he-today-val">—</span>
+          <span class="he-daily-norm">норма 17–25 ХЕ/день</span>
+        </div>
+        <div class="he-prog-bar"><div class="he-prog-fill" id="he-today-prog" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--muted)">1 ХЕ = 12г углеводов</div>
+      </div>
+
+      <div class="calc-search-row">
+        <input type="text" id="he-food-input" placeholder="Продукт (напр. Хлеб)..."
+          onkeydown="if(event.key==='Enter') heSearch()">
+      </div>
+      <div class="calc-weight-row">
+        <input type="number" id="he-weight-input" value="100" min="1" max="5000">
+        <span class="calc-weight-lbl">г</span>
+        <button class="calc-add-btn" onclick="heSearch()">Рассчитать ХЕ</button>
+      </div>
+
+      <div class="he-result-card" id="he-result-card">
+        <div style="font-size:13px;font-weight:600;text-align:center;margin-bottom:4px" id="he-result-name">—</div>
+        <div class="he-result-val" id="he-result-val">0</div>
+        <div class="he-result-label" id="he-result-label">ХЕ</div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px" id="he-result-carbs"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="page" id="page-myfoods">
+    <div class="mf-search-row">
+      <input type="text" id="mf-search" placeholder="Поиск в моих продуктах...">
+      <button class="mf-add-btn" onclick="mfShowForm(null)">+ Новый</button>
+    </div>
+    <!-- Форма добавления/редактирования -->
+    <div class="mf-form" id="mf-form" style="display:none">
+      <div class="mf-form-title" id="mf-form-title">Новый продукт</div>
+      <input type="text" id="mf-f-name" placeholder="Название продукта">
+      <div class="mf-form-hint">КБЖУ на 100г:</div>
+      <div class="mf-form-row">
+        <input type="number" id="mf-f-cal"  placeholder="Калории" min="0">
+        <input type="number" id="mf-f-prot" placeholder="Белки" min="0" step="0.1">
+      </div>
+      <div class="mf-form-row">
+        <input type="number" id="mf-f-fat"  placeholder="Жиры" min="0" step="0.1">
+        <input type="number" id="mf-f-carb" placeholder="Углеводы" min="0" step="0.1">
+      </div>
+      <button class="mf-save-btn" onclick="mfSave()">💾 Сохранить</button>
+      <button class="mf-cancel-btn" onclick="mfHideForm()">Отмена</button>
+    </div>
+    <!-- Попап использования -->
+    <div class="mf-use-popup" id="mf-use-popup">
+      <div style="font-weight:700;margin-bottom:8px" id="mf-use-name">—</div>
+      <div class="calc-weight-row">
+        <input type="number" id="mf-use-weight" value="100" min="1">
+        <span class="calc-weight-lbl">г</span>
+      </div>
+      <select class="calc-meal-select" id="mf-use-meal">
+        <option value="завтрак">🌅 Завтрак</option>
+        <option value="обед" selected>☀️ Обед</option>
+        <option value="ужин">🌙 Ужин</option>
+        <option value="перекус">🍎 Перекус</option>
+      </select>
+      <button class="mf-save-btn" onclick="mfUseConfirm()">➕ Добавить в дневник</button>
+      <button class="mf-cancel-btn" onclick="mfHideUse()">Отмена</button>
+    </div>
+    <!-- Список -->
+    <div class="mf-list" id="mf-list">
+      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-statpage">
+    <!-- Стрик -->
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-streak-val" id="stat-streak">0</div>
+      <div class="stat-streak-lbl">🔥 дней подряд</div>
+    </div>
+    <!-- KPI -->
+    <div class="stat-card">
+      <div class="stat-card-title">📈 Неделя</div>
+      <div class="stat-kpi-row">
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-avg-kcal">—</div>
+          <div class="stat-kpi-lbl">Ср. ккал/день</div>
+        </div>
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-goal-pct">—</div>
+          <div class="stat-kpi-lbl">% от нормы</div>
+        </div>
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-days-logged">—</div>
+          <div class="stat-kpi-lbl">Дней за месяц</div>
+        </div>
+      </div>
+    </div>
+    <!-- График 7 дней -->
+    <div class="stat-card">
+      <div class="stat-card-title">📊 Последние 7 дней</div>
+      <div class="stat-bar-chart" id="stat-bar-chart"></div>
+    </div>
+    <!-- ИМТ -->
+    <div class="stat-card" id="stat-bmi-card" style="display:none">
+      <div class="stat-card-title">⚖️ ИМТ</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:28px;font-weight:900" id="stat-bmi-val">—</span>
+        <span style="font-size:13px;color:var(--muted)" id="stat-bmi-cat">—</span>
+      </div>
+      <div class="stat-bmi-bar"><div class="stat-bmi-pin" id="stat-bmi-pin"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+        <span>Дефицит</span><span>Норма</span><span>Избыток</span><span>Ожирение</span>
+      </div>
+    </div>
+    <!-- Топ продукты -->
+    <div class="stat-card" id="stat-top-card" style="display:none">
+      <div class="stat-card-title">🍽 Топ продуктов за месяц</div>
+      <div id="stat-top-list"></div>
+    </div>
+  </div>
+  <div class="page" id="page-aipage">
+    <div class="ai-mode-row">
+      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')">🤖 Нутрициолог</button>
+      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')">📅 Планировщик</button>
+      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')">👨‍🍳 Рецепты</button>
+    </div>
+
+    <!-- Нутрициолог -->
+    <div class="ai-section active" id="ai-section-nutri">
+      <div class="stat-card" style="font-size:13px;color:var(--muted);line-height:1.5">
+        🤖 AI проанализирует твоё питание за последние 14 дней и даст персональные рекомендации.
+        <div style="margin-top:6px;font-size:11px">Бесплатно: 3 раза в месяц · Premium: безлимит</div>
+      </div>
+      <button class="ai-action-btn" id="nutri-btn" onclick="runNutritionist()">🔍 Проанализировать питание</button>
+      <div class="ai-result-card" id="nutri-result"></div>
+    </div>
+
+    <!-- Планировщик -->
+    <div class="ai-section" id="ai-section-plan">
+      <div class="ai-sub-label">Количество дней:</div>
+      <div class="plan-days-row">
+        <button class="plan-day-btn" onclick="selectPlanDays(1)">1</button>
+        <button class="plan-day-btn selected" onclick="selectPlanDays(3)">3</button>
+        <button class="plan-day-btn" onclick="selectPlanDays(5)">5</button>
+        <button class="plan-day-btn" onclick="selectPlanDays(7)">7</button>
+      </div>
+      <div class="ai-sub-label">Ограничения (необязательно):</div>
+      <input type="text" id="plan-restrictions" placeholder="Без глютена, вегетарианское..."
+        style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
+      <button class="ai-action-btn" id="plan-btn" onclick="runMealPlan()">📅 Создать план питания</button>
+      <div class="ai-result-card" id="plan-result"></div>
+    </div>
+
+    <!-- Рецепты -->
+    <div class="ai-section" id="ai-section-recipe">
+      <div class="ai-sub-label">Категория:</div>
+      <div class="recipe-filters" id="recipe-filters">
+        <button class="recipe-filter-btn selected" data-key="random"    onclick="selectRecipeFilter(this)">🎲 Случайный</button>
+        <button class="recipe-filter-btn"          data-key="fast"      onclick="selectRecipeFilter(this)">⚡ До 15 мин</button>
+        <button class="recipe-filter-btn"          data-key="protein"   onclick="selectRecipeFilter(this)">💪 Много белка</button>
+        <button class="recipe-filter-btn"          data-key="lowcal"    onclick="selectRecipeFilter(this)">🔥 Мало калорий</button>
+        <button class="recipe-filter-btn"          data-key="breakfast" onclick="selectRecipeFilter(this)">🌅 Завтрак</button>
+        <button class="recipe-filter-btn"          data-key="lunch"     onclick="selectRecipeFilter(this)">🍽 Обед/Ужин</button>
+        <button class="recipe-filter-btn"          data-key="snack"     onclick="selectRecipeFilter(this)">🥗 Перекус</button>
+        <button class="recipe-filter-btn"          data-key="bulk"      onclick="selectRecipeFilter(this)">📈 На массу</button>
+      </div>
+      <button class="ai-action-btn" id="recipe-btn" onclick="runRecipe()">👨‍🍳 Сгенерировать рецепт</button>
+      <button class="ai-action-btn" id="recipe-next-btn"
+        style="display:none;background:var(--bg2);color:var(--text);margin-top:6px"
+        onclick="runRecipe()">🔄 Другой рецепт</button>
+      <div class="ai-result-card" id="recipe-result"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-micropage">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px">🔬 Микронутриенты</div>
+      <div style="font-size:12px;color:var(--muted)" id="micro-date-lbl">сегодня</div>
+    </div>
+    <div id="micro-container">
+      <div class="diary-empty"><div class="diary-empty-icon">🔬</div><div>Загрузка...</div></div>
+    </div>
+    <div class="micro-note" id="micro-note"></div>
+  </div>
+
+  <div class="page" id="page-lbpage">
+    <div class="lb-type-row">
+      <button class="lb-type-btn active" id="lb-btn-streak" onclick="loadLb('streak')">🔥 Стрик</button>
+      <button class="lb-type-btn"        id="lb-btn-achievements" onclick="loadLb('achievements')">🏅 Ачивки</button>
+    </div>
+    <div id="lb-container">
+      <div class="diary-empty"><div class="diary-empty-icon">🏆</div><div>Загрузка...</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-pdfpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📄 Экспорт в PDF</div>
+    <div class="pdf-option-card selected" id="pdf-opt-7" onclick="selectPdfDays(7, this)">
+      <div class="pdf-option-title">🆓 7 дней</div>
+      <div class="pdf-option-desc">Отчёт за последние 7 дней — бесплатно</div>
+    </div>
+    <div class="pdf-option-card" id="pdf-opt-30" onclick="selectPdfDays(30, this)">
+      <div class="pdf-option-title">30 дней <span class="pdf-premium-badge">Premium</span></div>
+      <div class="pdf-option-desc">Подробный отчёт за месяц</div>
+    </div>
+    <div class="pdf-option-card" id="pdf-opt-90" onclick="selectPdfDays(90, this)">
+      <div class="pdf-option-title">90 дней <span class="pdf-premium-badge">Premium</span></div>
+      <div class="pdf-option-desc">Полная история за 3 месяца</div>
+    </div>
+    <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Скачать PDF</button>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+      PDF откроется в браузере. Сохрани его через меню браузера.
+    </div>
+  </div>
+
+  <div class="page" id="page-importpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📥 Импорт данных</div>
+
+    <!-- Зона загрузки -->
+    <div class="imp-drop" id="imp-drop" onclick="document.getElementById('imp-file-input').click()">
+      <div class="imp-drop-icon">📂</div>
+      <div class="imp-drop-text">Нажми или перетащи CSV файл<br><small>MyFitnessPal, FatSecret, универсальный формат</small></div>
+      <input type="file" id="imp-file-input" accept=".csv" style="display:none">
+    </div>
+
+    <!-- Прогресс и результат -->
+    <div class="imp-progress" id="imp-progress">
+      <div style="font-weight:700;margin-bottom:4px" id="imp-progress-title">Обрабатываю файл...</div>
+      <div class="imp-progress-bar-wrap"><div class="imp-progress-bar-fill" id="imp-progress-bar" style="width:0%"></div></div>
+      <div class="imp-stats" id="imp-stats"></div>
+    </div>
+
+    <!-- Кнопки подтверждения -->
+    <div id="imp-confirm-section" style="display:none">
+      <button class="imp-confirm-btn" id="imp-confirm-btn" onclick="importConfirm()">✅ Импортировать</button>
+      <button class="imp-cancel-btn" onclick="importReset()">❌ Отмена</button>
+    </div>
+
+    <!-- Поддерживаемые форматы -->
+    <div style="margin-top:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">ПОДДЕРЖИВАЕМЫЕ ФОРМАТЫ</div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">📱 MyFitnessPal</div>
+        <div class="imp-format-desc">Экспорт → Настройки → Мои данные → Экспорт данных</div>
+      </div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">🍎 FatSecret</div>
+        <div class="imp-format-desc">Профиль → Экспорт данных → CSV</div>
+      </div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">📋 Универсальный CSV</div>
+        <div class="imp-format-desc">Колонки: date, food, calories, protein, fat, carbs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-settingspage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">⚙️ Настройки</div>
+
+    <!-- Профиль -->
+    <div class="sett-section">
+      <div class="sett-title">👤 Профиль</div>
+      <div class="sett-row">
+        <div><div class="sett-label">Текущий вес</div><div class="sett-sublabel">кг</div></div>
+        <input type="number" class="sett-input" id="sett-weight" min="30" max="300" step="0.1">
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Цель</div></div>
+        <select class="sett-select" id="sett-goal">
+          <option value="похудение">📉 Похудеть</option>
+          <option value="поддержание веса">⚖️ Поддержать вес</option>
+          <option value="набор массы">📈 Набрать массу</option>
+        </select>
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Язык</div></div>
+        <select class="sett-select" id="sett-lang">
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="uk">🇺🇦 Українська</option>
+        </select>
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Часовой пояс</div><div class="sett-sublabel">UTC+N</div></div>
+        <select class="sett-select" id="sett-tz">
+          <option value="0">UTC+0</option>
+          <option value="1">UTC+1</option>
+          <option value="2">UTC+2</option>
+          <option value="3">UTC+3 (МСК)</option>
+          <option value="4">UTC+4</option>
+          <option value="5">UTC+5</option>
+          <option value="6">UTC+6</option>
+          <option value="7">UTC+7 (Новосиб)</option>
+          <option value="8">UTC+8</option>
+          <option value="9">UTC+9</option>
+          <option value="10">UTC+10</option>
+          <option value="11">UTC+11</option>
+          <option value="12">UTC+12</option>
+          <option value="-1">UTC-1</option>
+          <option value="-2">UTC-2</option>
+          <option value="-3">UTC-3</option>
+          <option value="-4">UTC-4</option>
+          <option value="-5">UTC-5</option>
+        </select>
+      </div>
+    </div>
+    <!-- Цели -->
+    <div class="sett-section">
+      <div class="sett-title">🎯 Цели питания</div>
+      <div class="sett-row">
+        <div><div class="sett-label">Калории/день</div><div class="sett-sublabel">ккал</div></div>
+        <input type="number" class="sett-input" id="sett-kcal" min="500" max="10000" value="2000">
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Вода/день</div><div class="sett-sublabel">мл</div></div>
+        <input type="number" class="sett-input" id="sett-water" min="500" max="10000" value="2000">
+      </div>
+    </div>
+
+    <!-- Напоминания -->
+    <div class="sett-section">
+      <div class="sett-title">🔔 Напоминания</div>
+      <div class="sett-row">
+        <div>
+          <div class="sett-label">🍽 Еда</div>
+          <div class="sett-sublabel">Напомнить записать приём пищи</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="sett-select" id="sett-food-time" style="display:none">
+            <option value="">—</option>
+          </select>
+          <button class="sett-toggle" id="sett-food-toggle" onclick="toggleReminder('food')"></button>
+        </div>
+      </div>
+      <div class="sett-row">
+        <div>
+          <div class="sett-label">💧 Вода</div>
+          <div class="sett-sublabel">Напомнить выпить воду</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="sett-select" id="sett-water-time" style="display:none">
+            <option value="">—</option>
+          </select>
+          <button class="sett-toggle" id="sett-water-toggle" onclick="toggleReminder('water')"></button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">
+        ⚠️ Напоминания приходят в Telegram от бота в выбранный час
+      </div>
+    </div>
+
+    <button class="sett-save-btn" onclick="saveSettings()">💾 Сохранить</button>
+  </div>
+
+  <div class="page" id="page-refpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">👥 Пригласить друга</div>
+    <div class="stat-card" style="font-size:13px;line-height:1.6;color:var(--muted)">
+      За каждого друга который зарегистрируется по твоей ссылке и добавит первую еду —
+      ты получаешь <strong style="color:var(--green)">+7 дней Premium</strong>!
+    </div>
+    <div class="stat-card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Твоя реферальная ссылка:</div>
+      <div class="ref-link-box" id="ref-link-box" onclick="refCopyLink()">Загрузка...</div>
+      <button class="ref-copy-btn" onclick="refCopyLink()">📋 Скопировать ссылку</button>
+      <button class="ref-share-btn" id="ref-share-btn" onclick="refShare()">📤 Поделиться</button>
+    </div>
+    <div class="stat-card">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">📊 Твоя статистика</div>
+      <div class="ref-stat-row">
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-count">—</div>
+          <div class="ref-stat-lbl">Приглашено</div>
+        </div>
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-earned">—</div>
+          <div class="ref-stat-lbl">Дней заработано</div>
+        </div>
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-limit">10</div>
+          <div class="ref-stat-lbl">Лимит/месяц</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-prempage">
+    <div id="prem-status-card" class="prem-status-card free">
+      <div class="prem-status-icon" id="prem-icon">🆓</div>
+      <div class="prem-status-title" id="prem-title">Бесплатный план</div>
+      <div class="prem-status-sub" id="prem-sub">Обновись до Premium</div>
+    </div>
+    <div class="prem-features">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px">⭐ Premium даёт:</div>
+      <div class="prem-feature">✅ Безлимитный AI-нутрициолог</div>
+      <div class="prem-feature">✅ Безлимитный планировщик питания</div>
+      <div class="prem-feature">✅ Безлимитные рецепты</div>
+      <div class="prem-feature">✅ PDF отчёт за 90 дней</div>
+      <div class="prem-feature">✅ Полная история веса</div>
+    </div>
+    <div id="prem-buy-section">
+      <div class="prem-plan-card selected" id="plan-1m" onclick="selectPlan('1m',this)">
+        <div class="prem-plan-left"><h3>1 месяц</h3><p>30 дней доступа</p></div>
+        <div class="prem-plan-price">299 ⭐</div>
+      </div>
+      <div class="prem-plan-card" id="plan-3m" onclick="selectPlan('3m',this)">
+        <div class="prem-plan-left"><h3>3 месяца</h3><p>90 дней · экономия 14%</p></div>
+        <div class="prem-plan-price">749 ⭐</div>
+      </div>
+      <div class="prem-plan-card" id="plan-12m" onclick="selectPlan('12m',this)">
+        <div class="prem-plan-left"><h3>12 месяцев</h3><p>365 дней · экономия 44%</p></div>
+        <div class="prem-plan-price">1990 ⭐</div>
+      </div>
+      <button class="prem-buy-btn" onclick="premBuyStars()">⭐ Купить через Telegram Stars</button>
+      <button class="prem-card-btn" onclick="premBuyCard()">💳 Оплата картой (РФ)</button>
+    </div>
+  </div>
+
+  <div class="page" id="page-helppage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">❓ Помощь</div>
+    <div class="stat-card">
+      <div style="font-size:13px;line-height:1.6">
+        🤖 <strong>NutriO</strong> — умный дневник питания.<br>
+        Добавляй еду фото, голосом или вручную.<br>
+        Следи за КБЖУ, водой и прогрессом.
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin:12px 0 8px">ЧАСТЫЕ ВОПРОСЫ</div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как добавить еду? <span>▼</span></div>
+      <div class="help-faq-a">Используй вкладку 📷 (сканер или фото) или ✍️ (вручную). В боте также доступен голосовой ввод и анализ фото блюда.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает ХЕ? <span>▼</span></div>
+      <div class="help-faq-a">Хлебная единица (ХЕ) = 12г углеводов. Используется для учёта углеводов при диабете. Норма 17–25 ХЕ/день. Смотри вкладку 🧮 → ХЕ.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Что такое Premium? <span>▼</span></div>
+      <div class="help-faq-a">Premium даёт безлимитный AI-нутрициолог, планировщик питания, рецепты и PDF за 90 дней. Без Premium — 3 AI запроса, 1 план и 5 рецептов в месяц.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает реферальная программа? <span>▼</span></div>
+      <div class="help-faq-a">Пригласи друга по своей ссылке. Когда он зарегистрируется и добавит первую еду — ты получишь +7 дней Premium. Лимит 10 рефералов в месяц.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как импортировать данные? <span>▼</span></div>
+      <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные из приложения и загрузи файл.</div></div>
+    <div style="margin-top:16px">
+      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenBot()">💬 Написать в поддержку</button>
+      <button class="help-support-btn" style="background:var(--bg2);color:var(--text)" onclick="helpOpenBot()">🤖 Открыть бота</button>
+    </div>
+  </div>
+
+  <div class="page" id="page-adminpage">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px">🔧 Админ-панель</div>
+      <div style="font-size:11px;color:var(--accent2)" id="adm-admin-label">—</div>
+    </div>
+    <div class="adm-nav">
+      <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
+      <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
+      <button class="adm-nav-btn"        id="adm-btn-payments" onclick="admSection('payments')">💳 Оплаты</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="adm-section active" id="adm-section-dash">
+      <div class="adm-kpi-row">
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
+      </div>
+      <div class="stat-card" id="adm-pending-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700">💳 Ожидают оплаты</span>
+          <span class="adm-badge adm-badge-prem" id="adm-pending-cnt">0</span>
+        </div>
+        <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
+      </div>
+      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDash()">🔄 Обновить</button>
+    </div>
+
+    <!-- Users -->
+    <div class="adm-section" id="adm-section-users">
+      <div class="adm-search-row">
+        <input type="text" id="adm-search-input" placeholder="Имя, @username или ID..." onkeydown="if(event.key==='Enter')admSearchUsers()">
+        <button onclick="admSearchUsers()">🔍</button>
+      </div>
+      <div id="adm-users-list"></div>
+      <div class="adm-pagination" id="adm-pagination" style="display:none">
+        <button class="adm-page-btn" onclick="admUsersPage(-1)">← Назад</button>
+        <span style="font-size:13px;color:var(--muted)" id="adm-page-info"></span>
+        <button class="adm-page-btn" onclick="admUsersPage(1)">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div class="adm-section" id="adm-section-payments">
+      <div id="adm-payments-list">
+        <div class="ai-loading">Загружаю заявки...</div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
