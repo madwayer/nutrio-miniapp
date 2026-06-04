@@ -5,7 +5,103 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js">
+// ── Diary date picker ─────────────────────────────────────────────
+function openDatePicker() {
+  var existing = document.getElementById('datepicker-modal');
+  if (existing) { document.body.removeChild(existing); return; }
+  var modal = document.createElement('div');
+  modal.id = 'datepicker-modal';
+  modal.className = 'datepicker-modal';
+  var today = new Date().toISOString().split('T')[0];
+  var cur   = diaryDateStr(diaryDate);
+  modal.innerHTML = '<div class="datepicker-box">'
+    + '<div style="font-weight:700;margin-bottom:12px">📅 Выбери дату</div>'
+    + '<input type="date" id="datepicker-input" max="' + today + '" value="' + cur + '">'
+    + '<button class="datepicker-confirm" onclick="confirmDatePick()">Перейти</button>'
+    + '</div>';
+  modal.addEventListener('click', function(e){ if(e.target===modal) document.body.removeChild(modal); });
+  document.body.appendChild(modal);
+}
+function confirmDatePick() {
+  var val = document.getElementById('datepicker-input').value;
+  var modal = document.getElementById('datepicker-modal');
+  if (modal) document.body.removeChild(modal);
+  if (!val) return;
+  diaryDate = new Date(val + 'T12:00:00');
+  loadDiary();
+}
+
+// ── Diary edit entry ──────────────────────────────────────────────
+function editDiaryEntry(id) {
+  // Find entry in cached diary data
+  var entry = null;
+  if (diaryData && diaryData.meals) {
+    Object.values(diaryData.meals).forEach(function(meals) {
+      meals.forEach(function(e) { if (e.id === id) entry = e; });
+    });
+  }
+  if (!entry) { showToast('Запись не найдена', 'var(--accent2)'); return; }
+
+  var existing = document.getElementById('diary-edit-modal');
+  if (existing) document.body.removeChild(existing);
+
+  var modal = document.createElement('div');
+  modal.id = 'diary-edit-modal';
+  modal.className = 'diary-edit-modal';
+  modal.innerHTML = '<div class="diary-edit-box">'
+    + '<div class="diary-edit-title">✏️ Редактировать запись</div>'
+    + '<div class="diary-edit-lbl">Продукт</div>'
+    + '<div class="diary-edit-field"><input id="dedit-name" value="' + escHtml(entry.name||'') + '"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<div style="flex:1"><div class="diary-edit-lbl">Калории</div><div class="diary-edit-field"><input type="number" id="dedit-cal" value="' + (entry.calories||0) + '"></div></div>'
+    + '<div style="flex:1"><div class="diary-edit-lbl">Белки</div><div class="diary-edit-field"><input type="number" id="dedit-prot" step="0.1" value="' + (entry.protein||0) + '"></div></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<div style="flex:1"><div class="diary-edit-lbl">Жиры</div><div class="diary-edit-field"><input type="number" id="dedit-fat" step="0.1" value="' + (entry.fat||0) + '"></div></div>'
+    + '<div style="flex:1"><div class="diary-edit-lbl">Углеводы</div><div class="diary-edit-field"><input type="number" id="dedit-carb" step="0.1" value="' + (entry.carbs||0) + '"></div></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:4px">'
+    + '<button onclick="deditSave(' + id + ')" style="flex:2;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">💾 Сохранить</button>'
+    + '<button onclick="deditDelete(' + id + ')" style="flex:1;padding:12px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">🗑 Удалить</button>'
+    + '<button onclick="document.body.removeChild(document.getElementById('diary-edit-modal'))" style="flex:1;padding:12px;background:var(--bg2);color:var(--muted);border:none;border-radius:10px;cursor:pointer;touch-action:manipulation">Отмена</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+}
+
+async function deditSave(id) {
+  var userId = getUserId();
+  if (!userId) return;
+  var name = document.getElementById('dedit-name').value.trim();
+  var cal  = parseFloat(document.getElementById('dedit-cal').value) || 0;
+  var prot = parseFloat(document.getElementById('dedit-prot').value) || 0;
+  var fat  = parseFloat(document.getElementById('dedit-fat').value) || 0;
+  var carb = parseFloat(document.getElementById('dedit-carb').value) || 0;
+  if (!name) { showToast('Введи название', 'var(--accent2)'); return; }
+  // Delete old + add new
+  var del = await apiPost('/api/diary/delete', {entry_id: id});
+  if (!del.ok) { showToast('Ошибка', 'var(--accent2)'); return; }
+  var add = await apiPost('/api/calculator/save', {
+    meal_type: 'другое',
+    items: [{name: name.charAt(0).toUpperCase()+name.slice(1), calories: cal, protein: prot, fat: fat, carbs: carb, weight: 0, he: carb/12}]
+  });
+  var modal = document.getElementById('diary-edit-modal');
+  if (modal) document.body.removeChild(modal);
+  if (add.ok) { showToast('✅ Обновлено!', 'var(--green)'); loadDiary(); }
+  else showToast('Ошибка сохранения', 'var(--accent2)');
+}
+
+async function deditDelete(id) {
+  var userId = getUserId();
+  if (!userId || !confirm('Удалить запись?')) return;
+  var modal = document.getElementById('diary-edit-modal');
+  if (modal) document.body.removeChild(modal);
+  var data = await apiPost('/api/diary/delete', {entry_id: id});
+  if (data.ok) { showToast('Удалено', 'var(--green)'); loadDiary(); }
+  else showToast('Ошибка', 'var(--accent2)');
+}
+
+</script>
 <script>
 // ===== ДНЕВНИК =====
 function getUserId() {
@@ -186,12 +282,12 @@ function renderDiary(data) {
     entries.forEach(function(e) {
       html += '<div class="diary-entry" data-id="' + e.id + '">';
       html += '<div class="diary-entry-info">';
-      html += '<div class="diary-entry-name">' + escHtml(e.name) + '</div>';
+      html += '<div class="diary-entry-name">' + escHtml((e.name||'').charAt(0).toUpperCase()+(e.name||'').slice(1)) + '</div>';
       html += '<div class="diary-entry-meta">Б ' + e.protein + ' · Ж ' + e.fat + ' · У ' + e.carbs;
       if (e.time) html += ' · ' + e.time;
       html += '</div></div>';
       html += '<div class="diary-entry-kcal">' + e.calories + '</div>';
-      html += '<button class="diary-entry-del" onclick="deleteDiaryEntry(' + e.id + ', this)" title="Удалить">✕</button>';
+      html += '<button class="diary-entry-edit" onclick="editDiaryEntry(' + e.id + ')" title="Редактировать">✏️</button>';
       html += '</div>';
     });
     html += '</div></div>';
@@ -268,7 +364,8 @@ async function calcSearch() {
     var data = await apiGet('/api/search', {food: food, weight: weight});
     if (!data.ok) { showToast('Не найдено: ' + (data.error||''), 'var(--accent2)'); return; }
     calcCurrentResult = data;
-    document.getElementById('calc-result-name').textContent = data.name + ' — ' + weight + 'г';
+    var dname = (data.name||'').charAt(0).toUpperCase()+(data.name||'').slice(1);
+    document.getElementById('calc-result-name').textContent = dname + ' — ' + weight + 'г';
     document.getElementById('calc-r-kcal').textContent = data.calories + ' ккал';
     document.getElementById('calc-r-prot').textContent = 'Б: ' + data.protein;
     document.getElementById('calc-r-fat').textContent  = 'Ж: ' + data.fat;
@@ -642,7 +739,7 @@ function renderStats(data) {
     if (topList) {
       topList.innerHTML = data.top_foods.map(function(f, i) {
         return '<div class="stat-top-item">'
-          + '<span class="stat-top-name">' + (i+1) + '. ' + escHtml(f.name) + '</span>'
+          + '<span class="stat-top-name">' + (i+1) + '. ' + escHtml((f.name||'').charAt(0).toUpperCase()+(f.name||'').slice(1)) + '</span>'
           + '<span class="stat-top-count">' + f.count + ' раз</span>'
           + '</div>';
       }).join('');
@@ -909,7 +1006,7 @@ async function downloadPdf() {
   var btn = document.getElementById('pdf-dl-btn');
   btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
   try {
-    var url = API_BASE + '/pdf?user_id=' + userId + '&days=' + pdfDays;
+    var url = API_BASE + '/api/pdf?user_id=' + userId + '&days=' + pdfDays;
     var res = await fetch(url);
     if (!res.ok) {
       var ct = (res.headers.get('content-type')||'');
@@ -1264,26 +1361,23 @@ function selectPlan(plan, el) {
 }
 
 function premBuyStars() {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg && tg.close) tg.close();
-  // Открываем бота с командой покупки
-  var planMap = {'1m': '299', '3m': '749', '12m': '1990'};
-  showToast('Открой бота и введи /buy для покупки через Stars', 'var(--green)');
-  setTimeout(function() {
-    var url = 'https://t.me/CaloriePilotAI_Bot?start=buy_' + selectedPlan;
-    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+  var url = 'https://t.me/CaloriePilotAI_Bot?start=buy_' + selectedPlan;
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
+    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
     else window.open(url, '_blank');
-  }, 800);
+  } catch(e) { window.open(url, '_blank'); }
 }
 
 function premBuyCard() {
-  showToast('Открываю оплату картой...', 'var(--green)');
-  setTimeout(function() {
+  var url = 'https://t.me/CaloriePilotAI_Bot?start=pay_' + selectedPlan;
+  try {
     var tg = window.Telegram && window.Telegram.WebApp;
-    var url = 'https://t.me/CaloriePilotAI_Bot?start=pay_' + selectedPlan;
-    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
+    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
     else window.open(url, '_blank');
-  }, 500);
+  } catch(e) { window.open(url, '_blank'); }
 }
 
 // ===== ПОМОЩЬ =====
@@ -1303,10 +1397,15 @@ function toggleFaq(header) {
 }
 
 function helpOpenBot() {
-  var url = 'https://t.me/CaloriePilotAI_Bot';
+  openTgLink('https://t.me/CaloriePilotAI_Bot');
+}
+function helpOpenSupport() {
+  openTgLink('https://t.me/CaloriePilotAI_Bot?start=support');
+}
+function openTgLink(url) {
   try {
     var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openLink) tg.openLink(url);
+    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
     else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
     else window.open(url, '_blank');
   } catch(e) { window.open(url, '_blank'); }
@@ -1328,7 +1427,7 @@ function _adminHeaders() {
 
 async function _admFetch(action, extra) {
   var body = Object.assign({action: action}, extra || {});
-  var res  = await fetch('/api/proxy/admin', {
+  var res  = await fetch('/api/proxy/api/admin', {
     method:'POST', headers:_adminHeaders(), body:JSON.stringify(body)
   });
   if (res.status === 403) { showToast('Нет доступа', 'var(--accent2)'); throw new Error('forbidden'); }
@@ -1370,7 +1469,7 @@ function admSection(name) {
 // ── DASHBOARD ──────────────────────────────────────────
 async function admLoadDash() {
   try {
-    var res  = await fetch('/api/proxy/admin?action=dashboard', {headers:_adminHeaders()});
+    var res  = await fetch('/api/proxy/api/admin?action=dashboard', {headers:_adminHeaders()});
     var data = await res.json();
     if (!data.ok) return;
     document.getElementById('adm-total').textContent   = data.total_users   || 0;
@@ -1441,7 +1540,7 @@ async function admSetPremium(uid, give) {
 
 async function admUserDetail(uid) {
   try {
-    var res  = await fetch('/api/proxy/admin?action=user_detail&id='+uid, {headers:_adminHeaders()});
+    var res  = await fetch('/api/proxy/api/admin?action=user_detail&id='+uid, {headers:_adminHeaders()});
     var data = await res.json();
     if (!data.ok) return;
     var u = data.user;
@@ -2248,10 +2347,10 @@ document.addEventListener('click', function(e) {
     border-radius:8px; color:var(--text); font-size:13px;
   }
   .sett-toggle {
-    width:44px; height:24px; background:var(--bg2); border:none; border-radius:12px;
+    width:44px; height:24px; background:#444; border:2px solid #666; border-radius:12px;
     cursor:pointer; position:relative; transition:background .2s;
   }
-  .sett-toggle.on { background:var(--green); }
+  .sett-toggle.on { background:var(--green); border-color:var(--green); }
   .sett-toggle::after {
     content:''; position:absolute; width:18px; height:18px; background:#fff;
     border-radius:50%; top:3px; left:3px; transition:left .2s;
@@ -2498,6 +2597,61 @@ document.addEventListener('click', function(e) {
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
 
+  
+  /* ===== DIARY EDIT ===== */
+  .diary-entry-edit {
+    width:32px; height:32px; background:var(--bg2); border:none;
+    color:var(--text2); font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%; flex-shrink:0;
+    -webkit-tap-highlight-color: rgba(108,99,255,.3);
+    touch-action: manipulation;
+  }
+  .diary-entry-edit:active { background:var(--accent); color:#fff; }
+  .diary-edit-modal {
+    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .diary-edit-box {
+    background:var(--surface); border-radius:16px 16px 0 0;
+    padding:20px; width:100%; max-width:480px;
+  }
+  .diary-edit-title { font-weight:700; font-size:15px; margin-bottom:14px; }
+  .diary-edit-row { display:flex; gap:8px; margin-bottom:10px; }
+  .diary-edit-row input {
+    flex:1; padding:10px; background:var(--bg2); border:none;
+    border-radius:10px; color:var(--text); font-size:14px;
+  }
+  .diary-edit-lbl { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .diary-edit-field { margin-bottom:10px; }
+  .diary-edit-field input {
+    width:100%; box-sizing:border-box; padding:10px; background:var(--bg2);
+    border:none; border-radius:10px; color:var(--text); font-size:14px;
+  }
+
+  
+  /* ===== DATE PICKER ===== */
+  .diary-date-label { font-weight:700; font-size:15px; cursor:pointer; text-decoration:underline dotted; }
+  .diary-date-label:hover { color:var(--accent); }
+  .datepicker-modal {
+    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .datepicker-box {
+    background:var(--surface); border-radius:16px; padding:20px;
+    width:90%; max-width:320px;
+  }
+  .datepicker-box input[type=date] {
+    width:100%; box-sizing:border-box; padding:12px; background:var(--bg2);
+    border:none; border-radius:10px; color:var(--text); font-size:16px;
+    margin-bottom:12px;
+  }
+  .datepicker-confirm {
+    width:100%; padding:12px; background:var(--green); color:#fff;
+    border:none; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer;
+    touch-action:manipulation;
+  }
+
   </style>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
@@ -2525,7 +2679,7 @@ document.addEventListener('click', function(e) {
   <button class="tab" onclick="switchTab('pdfpage')" id="tab-pdfpage"><span class="tab-icon">📄</span><span class="tab-lbl">PDF</span></button>
   <button class="tab" onclick="switchTab('importpage')" id="tab-importpage"><span class="tab-icon">📥</span><span class="tab-lbl">Импорт</span></button>
   <button class="tab" onclick="switchTab('settingspage')" id="tab-settingspage"><span class="tab-icon">⚙️</span><span class="tab-lbl">Настр.</span></button>
-  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage"><span class="tab-icon">👥</span><span class="tab-lbl">Друзья</span></button>
+  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage"><span class="tab-icon">👥</span><span class="tab-lbl">Рефер.</span></button>
   <button class="tab" onclick="switchTab('prempage')" id="tab-prempage"><span class="tab-icon">⭐</span><span class="tab-lbl">Premium</span></button>
   <button class="tab" onclick="switchTab('helppage')" id="tab-helppage"><span class="tab-icon">❓</span><span class="tab-lbl">Помощь</span></button>
   <button class="tab" onclick="switchTab('adminpage')" id="tab-adminpage" style="display:none">🔧</button>
@@ -2658,7 +2812,7 @@ document.addEventListener('click', function(e) {
     <div class="page" id="page-diary">
     <div class="diary-date-nav">
       <button onclick="diaryPrevDay()">‹</button>
-      <span class="diary-date-label" id="diary-date-label">—</span>
+      <span class="diary-date-label" id="diary-date-label" onclick="openDatePicker()">—</span>
       <button onclick="diaryNextDay()" id="diary-next-btn">›</button>
     </div>
     <div class="diary-progress-card">
@@ -3045,8 +3199,8 @@ document.addEventListener('click', function(e) {
 
   <div class="page" id="page-lbpage">
     <div class="lb-type-row">
-      <button class="lb-type-btn active" id="lb-btn-streak" onclick="loadLb('streak')">🔥 Стрик</button>
-      <button class="lb-type-btn"        id="lb-btn-achievements" onclick="loadLb('achievements')">🏅 Ачивки</button>
+      <button class="lb-type-btn active" id="lb-btn-streak" onclick="loadLb('streak')">🔥 Стрик дней</button>
+      <button class="lb-type-btn" id="lb-btn-achievements" onclick="loadLb('achievements')">🏅 Достижения</button>
     </div>
     <div id="lb-container">
       <div class="diary-empty"><div class="diary-empty-icon">🏆</div><div>Загрузка...</div></div>
@@ -3299,7 +3453,7 @@ document.addEventListener('click', function(e) {
     <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как импортировать данные? <span>▼</span></div>
       <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные из приложения и загрузи файл.</div></div>
     <div style="margin-top:16px">
-      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenBot()">💬 Написать в поддержку</button>
+      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenSupport()">💬 Написать в поддержку</button>
       <button class="help-support-btn" style="background:var(--bg2);color:var(--text)" onclick="helpOpenBot()">🤖 Открыть бота</button>
     </div>
   </div>
@@ -6294,7 +6448,7 @@ function sendManual() {
   fetch(apiBase + '/api/manual', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ user_id: userId, food_name: name, meal_type: meal, weight: parseInt(weight) })
+    body: JSON.stringify({ user_id: userId, food_name: name.charAt(0).toUpperCase()+name.slice(1), meal_type: meal, weight: parseInt(weight) })
   }).then(r => r.json())
     .then(d => {
       if(d.ok || d.status === 'ok'){
@@ -6665,10 +6819,10 @@ function sendManual() {
     border-radius:8px; color:var(--text); font-size:13px;
   }
   .sett-toggle {
-    width:44px; height:24px; background:var(--bg2); border:none; border-radius:12px;
+    width:44px; height:24px; background:#444; border:2px solid #666; border-radius:12px;
     cursor:pointer; position:relative; transition:background .2s;
   }
-  .sett-toggle.on { background:var(--green); }
+  .sett-toggle.on { background:var(--green); border-color:var(--green); }
   .sett-toggle::after {
     content:''; position:absolute; width:18px; height:18px; background:#fff;
     border-radius:50%; top:3px; left:3px; transition:left .2s;
