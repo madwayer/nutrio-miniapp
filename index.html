@@ -77,15 +77,14 @@ function showLangPicker(){
   _spp('sync-btn',           i18n.load_data_btn||'🔄 Load data from bot');
   _spp('progress-note',      i18n.sync_note||'Open bot and tap Progress');
 
-window.applyTranslations = applyTranslations;
 function _initUI(){
-  applyTranslations();
-
+  if(typeof applyTranslations === 'function') applyTranslations();
 }
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', _initUI);
 } else {
-  _initUI();
+  // Delay to let all script blocks load first
+  setTimeout(_initUI, 0);
 }
 
 // ===== ДНЕВНИК =====
@@ -5939,7 +5938,6 @@ function showLangPicker(){
   _spp('sync-btn',           i18n.load_data_btn||'🔄 Load data from bot');
   _spp('progress-note',      i18n.sync_note||'Open bot and tap Progress');
 
-window.applyTranslations = applyTranslations;
 function _initUI(){
   applyTranslations();
 }
