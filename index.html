@@ -103,6 +103,46 @@ function getUserId() {
   }
   return id || 0;
 }
+
+var API_BASE = '/api/proxy';
+async function apiGet(path, params) {
+  var uid = getUserId();
+  var url = API_BASE + path + '?user_id=' + uid;
+  if (params) { for(var k in params) url += '&'+k+'='+encodeURIComponent(params[k]); }
+  try {
+    var r = await fetch(url);
+    return await r.json();
+  } catch(e) { return {error: e.message}; }
+}
+async function apiPost(path, body) {
+  if (!body) body = {};
+  if (!body.user_id) body.user_id = parseInt(getUserId());
+  try {
+    var r = await fetch(API_BASE + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    var d = await r.json();
+    if (r.status === 402) d._limit = true;
+    return d;
+  } catch(e) { return {error: e.message}; }
+}
+async function apiDelete(path, body) {
+  if (!body) body = {};
+  if (!body.user_id) body.user_id = parseInt(getUserId());
+  try {
+    var r = await fetch(API_BASE + path, {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    return await r.json();
+  } catch(e) { return {error: e.message}; }
+}
+function showPageError(id, msg) {
+  var el=document.getElementById(id); if(!el)return;
+  el.innerHTML='<div class="diary-empty" style="padding:24px"><div style="font-size:32px">⚠️</div>'
+    +'<div style="color:var(--accent2);margin-top:8px">'+(msg||'Ошибка загрузки')+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:6px">Убедись что бот запущен</div></div>';
+}
+function showPageLoading(id, txt) {
+  var el=document.getElementById(id);
+  if(el) el.innerHTML='<div class="ai-loading">'+(txt||'⏳ Загрузка...')+'</div>';
+}
+
 var diaryDate = new Date();
 var diaryData = null;
 
@@ -162,10 +202,9 @@ async function loadDiary() {
   if (nextBtn) nextBtn.style.opacity = dd.getTime() >= today.getTime() ? '0.3' : '1';
 
   try {
-    var url = '/api/proxy/diary?user_id=' + userId + '&date=' + diaryDateStr(diaryDate);
-    var res = await fetch(url);
-    var data = await res.json();
-    if (data.error) { showToast(data.error, 'var(--accent2)'); return; }
+    showPageLoading('diary-meals-container', '📔 Загрузка...');
+    var data = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
+    if (data.error) { showPageError('diary-meals-container', data.error); return; }
     diaryData = data;
     renderDiary(data);
   } catch(e) {
@@ -258,12 +297,7 @@ async function deleteDiaryEntry(entryId, btn) {
   if (row) row.style.opacity = '0.4';
 
   try {
-    var res = await fetch('/api/proxy/diary/delete', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), entry_id: entryId})
-    });
-    var data = await res.json();
+    var data = await apiPost('/api/diary/delete', {entry_id: entryId});
     if (data.ok) {
       showToast('Удалено', 'var(--green)');
       loadDiary();
@@ -311,13 +345,8 @@ async function calcSearch() {
   if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
   try {
-    var url = '/api/proxy/search?food=' + encodeURIComponent(food) + '&weight=' + weight;
-    var res = await fetch(url);
-    var data = await res.json();
-    if (data.error || !data.ok) {
-      showToast('Продукт не найден', 'var(--accent2)');
-      return;
-    }
+    var data = await apiGet('/api/search', {food: food, weight: weight});
+    if (!data.ok) { showToast('Не найдено: ' + (data.error||''), 'var(--accent2)'); return; }
     calcCurrentResult = data;
     document.getElementById('calc-result-name').textContent = data.name + ' — ' + weight + 'г';
     document.getElementById('calc-r-kcal').textContent = data.calories + ' ккал';
@@ -393,11 +422,9 @@ async function calcSave() {
   var btn = document.querySelector('.calc-save-btn');
   if (btn) { btn.textContent = '⏳ Сохраняю...'; btn.disabled = true; }
   try {
-    var res = await fetch('/api/proxy/calculator/save', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), meal_type: meal, items: calcItems})
-    });
+    var res = await apiPost('/api/calculator/save', {meal_type: meal, items: calcItems});
+    var data = res;
+    // hack to keep compatible
     var data = await res.json();
     if (data.ok) {
       showToast('✅ Сохранено в дневник!', 'var(--green)');
@@ -427,8 +454,7 @@ async function loadHeDailyData() {
   var userId = getUserId();
   if (!userId) return;
   try {
-    var res  = await fetch('/api/proxy/diary?user_id=' + userId);
-    var data = await res.json();
+    var data = await apiGet('/api/diary');
     if (data.error) return;
     var totalHe = Math.round(data.total.carbs / 12 * 10) / 10;
     var heNorm  = 21; // средняя норма 17-25
@@ -447,10 +473,8 @@ async function heSearch() {
   if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
   try {
-    var url = '/api/proxy/search?food=' + encodeURIComponent(food) + '&weight=' + weight;
-    var res = await fetch(url);
-    var data = await res.json();
-    if (data.error || !data.ok) { showToast('Продукт не найден', 'var(--accent2)'); return; }
+    var data = await apiGet('/api/search', {food: food, weight: weight});
+    if (!data.ok) { showToast('Не найдено', 'var(--accent2)'); return; }
 
     var he    = data.he;
     var label = he <= 2 ? '🟢 Норма' : (he <= 4 ? '🟡 Умеренно' : '🔴 Много');
@@ -484,9 +508,10 @@ async function loadMyFoods() {
   var userId = getUserId();
   if (!userId) return;
   try {
-    var res  = await fetch('/api/proxy/myfoods?user_id=' + userId);
-    var data = await res.json();
+    showPageLoading('mf-list', '⭐ Загрузка...');
+    var data = await apiGet('/api/myfoods');
     if (data.ok) { mfData = data.foods || []; mfRender(''); }
+    else showPageError('mf-list', data.error || 'Ошибка загрузки');
   } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
 }
 
@@ -561,11 +586,7 @@ async function mfSave() {
   if (mfEditId) body.id = mfEditId;
 
   try {
-    var res  = await fetch('/api/proxy/myfoods', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body)
-    });
-    var data = await res.json();
+    var data = await apiPost('/api/myfoods', body);
     if (data.ok) {
       showToast(mfEditId ? '✅ Обновлено!' : '✅ Добавлено!', 'var(--green)');
       mfHideForm();
@@ -580,11 +601,7 @@ async function mfDelete(id) {
   var userId = getUserId();
   if (!userId || !confirm('Удалить продукт?')) return;
   try {
-    var res  = await fetch('/api/proxy/myfoods', {
-      method: 'DELETE', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), food_id: id})
-    });
-    var data = await res.json();
+    var data = await apiDelete('/api/myfoods', {food_id: id});
     if (data.ok) { showToast('Удалено', 'var(--green)'); await loadMyFoods(); }
     else showToast(data.error || 'Ошибка', 'var(--accent2)');
   } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
@@ -618,11 +635,7 @@ async function mfUseConfirm() {
     carbs:    Math.round(mfUseItem.carbs   * factor * 10) / 10,
   };
   try {
-    var res  = await fetch('/api/proxy/calculator/save', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), meal_type: meal, items: [item]})
-    });
-    var data = await res.json();
+    var data = await apiPost('/api/calculator/save', {meal_type: meal, items: [item]});
     if (data.ok) {
       showToast('✅ Добавлено в дневник!', 'var(--green)');
       mfHideUse();
@@ -640,9 +653,8 @@ async function initStatPage() {
     return;
   }
   try {
-    var res  = await fetch('/api/proxy/stats?user_id=' + userId);
-    var data = await res.json();
-    if (data.error) { showToast(data.error, 'var(--accent2)'); return; }
+    var data = await apiGet('/api/stats');
+    if (data.error) { showToast('Ошибка: ' + data.error, 'var(--accent2)'); return; }
     renderStats(data);
   } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
 }
@@ -774,12 +786,8 @@ async function runNutritionist() {
   res.className = 'ai-result-card show';
   res.innerHTML = '<div class="ai-loading">🤖 Анализирую питание за 14 дней...</div>';
   try {
-    var r    = await fetch('/api/proxy/nutritionist', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), lang: lang})
-    });
-    var data = await r.json();
-    if (r.status === 402) {
+    var data = await apiPost('/api/nutritionist', {lang: lang});
+    if (data._limit || data.error === 'limit') {
       res.innerHTML = _aiLimitMsg(data);
     } else if (data.error === 'no_data') {
       res.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">'
@@ -807,13 +815,8 @@ async function runMealPlan() {
   res.className = 'ai-result-card show';
   res.innerHTML = '<div class="ai-loading">📅 Генерирую план на ' + planDays + ' дней...</div>';
   try {
-    var r    = await fetch('/api/proxy/meal_plan', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), lang: lang,
-                             days: planDays, restrictions: restr})
-    });
-    var data = await r.json();
-    if (r.status === 402) {
+    var data = await apiPost('/api/meal_plan', {lang: lang, days: planDays, restrictions: restr});
+    if (data._limit || data.error === 'limit') {
       res.innerHTML = _aiLimitMsg(data);
     } else if (data.ok) {
       res.textContent = data.text;
@@ -839,13 +842,10 @@ async function runRecipe() {
   res.className = 'ai-result-card show';
   res.innerHTML = '<div class="ai-loading">👨‍🍳 Генерирую рецепт...</div>';
   try {
-    var r    = await fetch('/api/proxy/recipe', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({user_id: parseInt(userId), lang: lang,
-                             filter: recipeFilter, history: recipeHistory})
-    });
+    var data = await apiPost('/api/recipe', {lang: lang, filter: recipeFilter, history: recipeHistory});
+    var r = {status: data._limit ? 402 : 200};
     var data = await r.json();
-    if (r.status === 402) {
+    if (data._limit || data.error === 'limit') {
       res.innerHTML = _aiLimitMsg(data);
       nextBtn.style.display = 'none';
     } else if (data.ok) {
@@ -882,10 +882,10 @@ async function initMicroPage() {
     return;
   }
   try {
+    showPageLoading('micro-container', '🔬 Загрузка...');
     var today = new Date().toISOString().split('T')[0];
-    var res   = await fetch('/api/proxy/micronutrients?user_id=' + userId + '&date=' + today);
-    var data  = await res.json();
-    if (data.error) { container.innerHTML = '<div class="lb-empty">Ошибка: ' + data.error + '</div>'; return; }
+    var data  = await apiGet('/api/micronutrients', {date: today});
+    if (data.error) { showPageError('micro-container', data.error); return; }
 
     if (!data.entries_count || data.entries_count === 0) {
       container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">🔬</div>'
@@ -948,10 +948,9 @@ async function loadLb(type) {
   container.innerHTML = '<div class="ai-loading">🏆 Загружаю рейтинг...</div>';
 
   try {
-    var url = '/api/proxy/leaderboard?type=' + type + (userId ? '&user_id=' + userId : '');
-    var res  = await fetch(url);
-    var data = await res.json();
-    if (!data.ok || !data.entries.length) {
+    showPageLoading('lb-container', '🏆 Загрузка...');
+    var data  = await apiGet('/api/leaderboard', {type: type});
+    if (!data.ok || !data.entries || !data.entries.length) {
       container.innerHTML = '<div class="lb-empty"><div style="font-size:40px">🏆</div><div>Пока нет данных</div></div>';
       return;
     }
@@ -990,15 +989,12 @@ async function downloadPdf() {
   var btn = document.getElementById('pdf-dl-btn');
   btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
   try {
-    var url = '/api/proxy/pdf?user_id=' + userId + '&days=' + pdfDays;
+    var url = API_BASE + '/pdf?user_id=' + userId + '&days=' + pdfDays;
     var res = await fetch(url);
     if (!res.ok) {
-      var err = await res.json().catch(function(){ return {error:'?'}; });
-      if (err.error === 'premium_required') {
-        showToast('Нужен Premium для этого периода', 'var(--accent2)');
-      } else {
-        showToast('Ошибка: ' + (err.error || res.status), 'var(--accent2)');
-      }
+      var ct = (res.headers.get('content-type')||'');
+      var err = ct.includes('json') ? await res.json().catch(()=>({})) : {};
+      showToast('Ошибка: ' + (err.error || 'HTTP '+res.status), 'var(--accent2)');
       return;
     }
     var blob = await res.blob();
@@ -1149,11 +1145,7 @@ async function importConfirm() {
       var chunk = importParsed.slice(i, i + batch);
       var pct   = Math.round((i + chunk.length) / importParsed.length * 100);
       document.getElementById('imp-progress-bar').style.width = pct + '%';
-      var res  = await fetch('/api/proxy/import', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({user_id: parseInt(userId), entries: chunk})
-      });
-      var data = await res.json();
+      var data = await apiPost('/api/import', {entries: chunk});
       if (data.ok) { total += data.saved; skip += data.skipped; }
     }
     showToast('✅ Импортировано: ' + total + ' записей', 'var(--green)');
@@ -1180,9 +1172,8 @@ async function initSettingsPage() {
   var userId = getUserId();
   if (!userId) return;
   try {
-    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
-    var data = await res.json();
-    if (!data.ok) return;
+    var data = await apiGet('/api/settings');
+    if (!data.ok) { showToast('Настройки не загружены', 'var(--accent2)'); return; }
     settData = data;
 
     document.getElementById('sett-kcal').value   = data.daily_goal || 2000;
@@ -1262,11 +1253,7 @@ async function saveSettings() {
   var btn = document.querySelector('.sett-save-btn');
   btn.disabled = true; btn.textContent = '⏳ Сохраняю...';
   try {
-    var res  = await fetch('/api/proxy/settings', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    var data = await res.json();
+      var data = await apiPost('/api/settings', body);
     if (data.ok) {
       showToast('✅ Настройки сохранены', 'var(--green)');
     } else {
@@ -1293,8 +1280,7 @@ async function initRefPage() {
   document.getElementById('ref-link-box').textContent = refLink;
   // Загружаем статистику через settings
   try {
-    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
-    var data = await res.json();
+    var data = await apiGet('/api/settings');
     if (data.ok) {
       var count = data.referral_count || 0;
       document.getElementById('ref-count').textContent  = count;
@@ -1332,9 +1318,8 @@ async function initPremPage() {
   var userId = getUserId();
   if (!userId) return;
   try {
-    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
-    var data = await res.json();
-    if (!data.ok) return;
+    var data = await apiGet('/api/settings');
+    if (!data.ok) { showToast('Настройки не загружены', 'var(--accent2)'); return; }
 
     var card  = document.getElementById('prem-status-card');
     var icon  = document.getElementById('prem-icon');
@@ -1640,6 +1625,7 @@ document.addEventListener('click', function(e) {
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button, [onclick] { touch-action: manipulation; }
   button, [onclick] { touch-action: manipulation; cursor: pointer; }
 
   body {
@@ -5769,11 +5755,12 @@ function applyTranslations(){
   const set  = (id, val) => { const el=byId(id); if(el) el.textContent=val; };
 
   // Вкладки
-  set("tab-scanner",  i18n.tab_scan);
-  set("tab-manual",   i18n.tab_manual);
-  set("tab-water",    i18n.tab_water||"💧");
-  set("tab-progress", i18n.tab_progress||"📈");
-  set("tab-game",     i18n.tab_game);
+  const setTabLbl = (id, val) => { const btn=byId(id); if(!btn)return; const lbl=btn.querySelector('.tab-lbl'); if(lbl)lbl.textContent=val; else btn.textContent=val; };
+  setTabLbl("tab-scanner",  i18n.tab_scan || "Сканер");
+  setTabLbl("tab-manual",   i18n.tab_manual || "Вручную");
+  setTabLbl("tab-water",    i18n.tab_water || "Вода");
+  setTabLbl("tab-progress", i18n.tab_progress || "Прогресс");
+  setTabLbl("tab-game",     i18n.tab_game || "Игра");
   const langBtn = byId("tab-lang");
   if(langBtn){
     const _F={ru:"🇷🇺",en:"🇬🇧",uk:"🇺🇦",de:"🇩🇪",fr:"🇫🇷",es:"🇪🇸",it:"🇮🇹",pt:"🇧🇷",tr:"🇹🇷",pl:"🇵🇱",kk:"🇰🇿",uz:"🇺🇿",be:"🇧🇾",ar:"🇸🇦",he:"🇮🇱",zh:"🇨🇳",ja:"🇯🇵",ko:"🇰🇷"};
