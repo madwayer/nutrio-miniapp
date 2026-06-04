@@ -5757,7 +5757,7 @@ function applyTranslations(){
   const set  = (id, val) => { const el=byId(id); if(el) el.textContent=val; };
 
   // Вкладки
-  const setTabLbl = (id, val) => { const btn=byId(id); if(!btn)return; const lbl=btn.querySelector('.tab-lbl'); if(lbl)lbl.textContent=val; else btn.textContent=val; };
+  const setTabLbl = (id, val) => { const btn=byId(id); if(!btn)return; const lbl=btn.querySelector('.tab-lbl'); if(lbl)lbl.textContent=(val||'').replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\u20E3 ]+/u,'').trim(); else btn.textContent=val; };
   setTabLbl("tab-scanner",  i18n.tab_scan || "Сканер");
   setTabLbl("tab-manual",   i18n.tab_manual || "Вручную");
   setTabLbl("tab-water",    i18n.tab_water || "Вода");
