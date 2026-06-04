@@ -5,7 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
-<script src="https://telegram.org/js/telegram-web-app.js">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
 var LANG_FLAGS = {
   ru:'🇷🇺 Русский', en:'🇬🇧 English', uk:'🇺🇦 Українська',
   de:'🇩🇪 Deutsch', fr:'🇫🇷 Français', es:'🇪🇸 Español',
@@ -1625,6 +1626,7 @@ document.addEventListener('click', function(e) {
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button,[onclick]{touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none;}
   button, [onclick] { touch-action: manipulation; }
   button, [onclick] { touch-action: manipulation; cursor: pointer; }
 
@@ -2621,8 +2623,8 @@ document.addEventListener('click', function(e) {
 
     <div class="scanner-hero" id="scanner-hero">
       <span class="scanner-icon">📷</span>
-      <h2>Умный сканер еды</h2>
-      <p>Наведи камеру на штрихкод или сфотографируй блюдо — приложение мгновенно определит КБЖУ</p>
+      <h2>Сканер</h2>
+      <p>Наведи камеру на штрихкод или сфотографируй блюдо</p>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button class="btn btn-secondary" id="mode-barcode-btn" onclick="setCameraMode('barcode')" style="flex:1;font-size:13px;">📦 Штрихкод</button>
@@ -3463,7 +3465,7 @@ const MINI_I18N = {
     no_data_yet:"Нет данных",
     history_3day:"История за 3 дня:",
     subtitle:"Умный дневник питания",
-    tab_scan:"📷 Умный сканер еды", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
+    tab_scan:"📷 Сканер", tab_manual:"✍️ Вручную", tab_game:"🎮 Игра",
     scan_title:"Сканер штрихкодов и еды",
     scan_sub:"Наведи камеру на штрихкод упаковки или еду — бот найдёт КБЖУ автоматически",
     open_cam:"📷 Открыть камеру", stop:"⏹ Остановить", searching:"Ищу штрихкод...",
@@ -3571,7 +3573,7 @@ const MINI_I18N = {
     no_data_yet:"No data yet",
     history_3day:"3-day history:",
     subtitle:"Smart nutrition diary",
-    tab_scan:"📷 Умный сканер еды", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
+    tab_scan:"📷 Сканер", tab_manual:"✍️ Manual", tab_game:"🎮 Game",
     scan_title:"Barcode scanner",
     scan_sub:"Point camera at barcode — bot finds nutrition automatically",
     open_cam:"📷 Open camera", stop:"⏹ Stop", searching:"Scanning...",
@@ -3684,7 +3686,7 @@ const MINI_I18N = {
     water_history:"Сьогодні:",
 
     subtitle:"Розумний щоденник харчування",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Вручну",
     tab_game:"🎮 Гра",
     scan_title:"Сканер штрихкодів",
@@ -3855,7 +3857,7 @@ const MINI_I18N = {
     water_history:"Heute:",
 
     subtitle:"Smartes Ernährungstagebuch",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manuell",
     tab_game:"🎮 Spiel",
     scan_title:"Barcode-Scanner",
@@ -4024,7 +4026,7 @@ const MINI_I18N = {
     water_history:"Aujourd'hui:",
 
     subtitle:"Journal nutritionnel intelligent",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Jeu",
     scan_title:"Scanner code-barres",
@@ -4193,7 +4195,7 @@ const MINI_I18N = {
     water_history:"Hoy:",
 
     subtitle:"Diario nutricional inteligente",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Juego",
     scan_title:"Escáner de código",
@@ -4362,7 +4364,7 @@ const MINI_I18N = {
     water_history:"Oggi:",
 
     subtitle:"Diario nutrizionale smart",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manuale",
     tab_game:"🎮 Gioco",
     scan_title:"Scanner codice",
@@ -4487,7 +4489,7 @@ const MINI_I18N = {
     water_history:"Hoje:",
 
     subtitle:"Diário nutricional inteligente",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manual",
     tab_game:"🎮 Jogo",
     scan_title:"Scanner de código",
@@ -4612,7 +4614,7 @@ const MINI_I18N = {
     water_history:"Bugün:",
 
     subtitle:"Akıllı beslenme günlüğü",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Manuel",
     tab_game:"🎮 Oyun",
     scan_title:"Barkod tarayıcı",
@@ -4737,7 +4739,7 @@ const MINI_I18N = {
     water_history:"Dziś:",
 
     subtitle:"Inteligentny dziennik żywienia",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Ręcznie",
     tab_game:"🎮 Gra",
     scan_title:"Skaner kodów",
@@ -4862,7 +4864,7 @@ const MINI_I18N = {
     water_history:"Бүгін:",
 
     subtitle:"Ақылды тамақтану күнделігі",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Қолмен",
     tab_game:"🎮 Ойын",
     scan_title:"Штрих-код сканері",
@@ -4967,7 +4969,7 @@ const MINI_I18N = {
   uz: {
     water_custom_ph:"ml",
     subtitle:"Aqlli ovqatlanish kundaligi",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ Qo'lda",
     tab_game:"🎮 O'yin",
     scan_title:"Shtrix-kod skaneri",
@@ -5090,7 +5092,7 @@ const MINI_I18N = {
   ar: {
     water_custom_ph:"ml",
     subtitle:"مذكرة التغذية الذكية",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ يدوي",
     tab_game:"🎮 لعبة",
     scan_title:"ماسح الباركود",
@@ -5213,7 +5215,7 @@ const MINI_I18N = {
   he: {
     water_custom_ph:"ml",
     subtitle:"יומן תזונה חכם",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ ידני",
     tab_game:"🎮 משחק",
     scan_title:"סורק ברקוד",
@@ -5356,7 +5358,7 @@ const MINI_I18N = {
     water_history:"今天:",
 
     subtitle:"智能营养日记",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ 手动",
     tab_game:"🎮 游戏",
     scan_title:"条形码扫描器",
@@ -5481,7 +5483,7 @@ const MINI_I18N = {
     water_history:"今日:",
 
     subtitle:"スマート栄養日記",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ 手動",
     tab_game:"🎮 ゲーム",
     scan_title:"バーコードスキャナー",
@@ -5606,7 +5608,7 @@ const MINI_I18N = {
     water_history:"오늘:",
 
     subtitle:"스마트 영양 일기",
-    tab_scan:"📷 Умный сканер еды",
+    tab_scan:"📷 Сканер",
     tab_manual:"✍️ 수동",
     tab_game:"🎮 게임",
     scan_title:"바코드 스캐너",
@@ -5764,7 +5766,7 @@ function applyTranslations(){
   const langBtn = byId("tab-lang");
   if(langBtn){
     const _F={ru:"🇷🇺",en:"🇬🇧",uk:"🇺🇦",de:"🇩🇪",fr:"🇫🇷",es:"🇪🇸",it:"🇮🇹",pt:"🇧🇷",tr:"🇹🇷",pl:"🇵🇱",kk:"🇰🇿",uz:"🇺🇿",be:"🇧🇾",ar:"🇸🇦",he:"🇮🇱",zh:"🇨🇳",ja:"🇯🇵",ko:"🇰🇷"};
-    langBtn.textContent = _F[LANG] || "🌍";
+    var _li=langBtn.querySelector(".tab-icon"); if(_li) _li.textContent=_F[LANG]||"🌍"; else langBtn.textContent=_F[LANG] || "🌍";
   }
 
   // Сканер
