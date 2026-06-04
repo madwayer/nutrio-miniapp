@@ -97,6 +97,10 @@ function getUserId() {
       id = p.get('user_id') || localStorage.getItem('nutrio_user_id');
     } catch(e) {}
   }
+  // Save for reuse across sessions
+  if (id) {
+    try { localStorage.setItem('nutrio_user_id', String(id)); } catch(e) {}
+  }
   return id || 0;
 }
 var diaryDate = new Date();
@@ -141,7 +145,11 @@ function initDiaryPage() {
 
 async function loadDiary() {
   var userId = getUserId();
-  if (!userId) { return; }
+  if (!userId) {
+    var container = document.getElementById('diary-meals-container');
+    if (container) container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">📔</div><div>Открой из Telegram</div></div>';
+    return;
+  }
 
   // Обновляем заголовок
   var lbl = document.getElementById('diary-date-label');
@@ -627,7 +635,10 @@ async function mfUseConfirm() {
 // ===== СТАТИСТИКА =====
 async function initStatPage() {
   var userId = getUserId();
-  if (!userId) return;
+  if (!userId) {
+    document.getElementById('stat-streak').textContent = '?';
+    return;
+  }
   try {
     var res  = await fetch('/api/proxy/stats?user_id=' + userId);
     var data = await res.json();
@@ -866,15 +877,21 @@ async function initMicroPage() {
   var note      = document.getElementById('micro-note');
   container.innerHTML = '<div class="ai-loading">🔬 Загружаю данные...</div>';
 
+  if (!userId) {
+    container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">🔬</div><div>Открой из Telegram чтобы увидеть данные</div></div>';
+    return;
+  }
   try {
     var today = new Date().toISOString().split('T')[0];
     var res   = await fetch('/api/proxy/micronutrients?user_id=' + userId + '&date=' + today);
     var data  = await res.json();
     if (data.error) { container.innerHTML = '<div class="lb-empty">Ошибка: ' + data.error + '</div>'; return; }
 
-    if (data.entries_count === 0) {
+    if (!data.entries_count || data.entries_count === 0) {
       container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">🔬</div>'
-        + '<div>Нет записей еды сегодня.<br>Добавь еду чтобы видеть микронутриенты.</div></div>';
+        + '<div>Нет записей еды сегодня.<br>Сначала добавь еду в дневник.</div></div>';
+      var noteEl = document.getElementById('micro-note');
+      if (noteEl) noteEl.textContent = '';
       return;
     }
 
@@ -922,11 +939,11 @@ async function initLbPage() { await loadLb(lbType); }
 async function loadLb(type) {
   lbType = type;
   ['streak','achievements'].forEach(function(t) {
-    document.getElementById('lb-btn-' + t).className =
-      'lb-type-btn' + (t === type ? ' active' : '');
+    var el = document.getElementById('lb-btn-' + t);
+    if (el) el.className = 'lb-type-btn' + (t === type ? ' active' : '');
   });
 
-  var userId    = getUserId();
+  var userId    = getUserId() || 0;
   var container = document.getElementById('lb-container');
   container.innerHTML = '<div class="ai-loading">🏆 Загружаю рейтинг...</div>';
 
@@ -1172,6 +1189,19 @@ async function initSettingsPage() {
     document.getElementById('sett-water').value  = data.water_goal || 2000;
     if (data.weight) document.getElementById('sett-weight').value = data.weight;
 
+    // Load goal/lang/tz
+    var goalSel = document.getElementById('sett-goal');
+    var langSel = document.getElementById('sett-lang');
+    var tzSel   = document.getElementById('sett-tz');
+    if (goalSel && data.goal) {
+      var gv = data.goal.toLowerCase();
+      goalSel.value = gv.includes('похуд') || gv.includes('loss') ? 'похудение'
+                    : gv.includes('набор') || gv.includes('gain') ? 'набор массы'
+                    : 'поддержание веса';
+    }
+    if (langSel && data.language) langSel.value = data.language;
+    if (tzSel   && data.timezone_offset !== undefined) tzSel.value = String(data.timezone_offset);
+
     // Заполняем часы в селектах
     ['food','water'].forEach(function(type) {
       var sel = document.getElementById('sett-' + type + '-time');
@@ -1213,12 +1243,18 @@ async function saveSettings() {
   var foodSel     = document.getElementById('sett-food-time').value;
   var waterSel    = document.getElementById('sett-water-time').value;
 
+  var goalSel2 = document.getElementById('sett-goal');
+  var langSel2 = document.getElementById('sett-lang');
+  var tzSel2   = document.getElementById('sett-tz');
   var body = {
     user_id:            parseInt(userId),
     daily_goal:         parseInt(document.getElementById('sett-kcal').value)  || 2000,
     water_goal:         parseInt(document.getElementById('sett-water').value) || 2000,
     food_reminder_time: foodToggle  && foodSel  ? parseInt(foodSel)  : null,
     water_reminder_time: waterToggle && waterSel ? parseInt(waterSel) : null,
+    goal:     goalSel2 ? goalSel2.value : undefined,
+    language: langSel2 ? langSel2.value : undefined,
+    timezone_offset: tzSel2 ? parseInt(tzSel2.value) : undefined,
   };
   var w = document.getElementById('sett-weight').value;
   if (w) body.weight = parseFloat(w);
@@ -1249,7 +1285,10 @@ var refLink = '';
 
 async function initRefPage() {
   var userId = getUserId();
-  if (!userId) return;
+  if (!userId) {
+    document.getElementById('ref-link-box').textContent = 'Открой из Telegram';
+    return;
+  }
   refLink = 'https://t.me/CaloriePilotAI_Bot?start=ref_' + userId;
   document.getElementById('ref-link-box').textContent = refLink;
   // Загружаем статистику через settings
@@ -1359,61 +1398,16 @@ function toggleFaq(header) {
 }
 
 function helpOpenBot() {
-  var tg  = window.Telegram && window.Telegram.WebApp;
   var url = 'https://t.me/CaloriePilotAI_Bot';
-  if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
-  else window.open(url, '_blank');
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.openLink) tg.openLink(url);
+    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  } catch(e) { window.open(url, '_blank'); }
 }
 
-// ===== РАСШИРЕННЫЕ НАСТРОЙКИ =====
-// Патч initSettingsPage для новых полей
-var _origInitSettings = initSettingsPage;
-initSettingsPage = async function() {
-  await _origInitSettings();
-  var userId = getUserId();
-  if (!userId) return;
-  try {
-    var res  = await fetch('/api/proxy/settings?user_id=' + userId);
-    var data = await res.json();
-    if (!data.ok) return;
-    var goalSel = document.getElementById('sett-goal');
-    var langSel = document.getElementById('sett-lang');
-    var tzSel   = document.getElementById('sett-tz');
-    if (goalSel && data.goal) {
-      // Пытаемся сопоставить
-      var goalVal = data.goal.toLowerCase();
-      if (goalVal.includes('похуд') || goalVal.includes('loss')) goalSel.value = 'похудение';
-      else if (goalVal.includes('набор') || goalVal.includes('gain')) goalSel.value = 'набор массы';
-      else goalSel.value = 'поддержание веса';
-    }
-    if (langSel && data.language) langSel.value = data.language;
-    if (tzSel   && data.timezone_offset !== undefined) tzSel.value = String(data.timezone_offset);
-  } catch(e) {}
-};
-
-// Патч saveSettings для новых полей
-var _origSaveSettings = saveSettings;
-saveSettings = async function() {
-  // Добавляем новые поля в body перед отправкой
-  var origFetch = window.fetch;
-  window.fetch = async function(url, opts) {
-    if (url === '/api/proxy/settings' && opts && opts.method === 'POST') {
-      try {
-        var body = JSON.parse(opts.body);
-        var goalSel = document.getElementById('sett-goal');
-        var langSel = document.getElementById('sett-lang');
-        var tzSel   = document.getElementById('sett-tz');
-        if (goalSel) body.goal = goalSel.value;
-        if (langSel) body.language = langSel.value;
-        if (tzSel)   body.timezone_offset = parseInt(tzSel.value);
-        opts.body = JSON.stringify(body);
-      } catch(e) {}
-    }
-    return origFetch.apply(this, arguments);
-  };
-  await _origSaveSettings();
-  window.fetch = origFetch;
-};
+// Extended settings fields loaded in initSettingsPage directly
 
 
 // ═══════════════════════════════════════════════════════
@@ -1646,6 +1640,7 @@ document.addEventListener('click', function(e) {
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button, [onclick] { touch-action: manipulation; cursor: pointer; }
 
   body {
     font-family: 'Manrope', sans-serif;
@@ -1683,9 +1678,9 @@ document.addEventListener('click', function(e) {
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -1693,7 +1688,14 @@ document.addEventListener('click', function(e) {
     transition: all 0.2s;
     background: var(--surface);
     color: var(--text2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 44px;
   }
+  .tab .tab-icon { font-size: 18px; line-height: 1; }
+  .tab .tab-lbl  { font-size: 9px; line-height: 1; opacity: .8; }
   .tab.active {
     background: var(--accent);
     color: white;
@@ -2237,6 +2239,8 @@ document.addEventListener('click', function(e) {
     padding:9px 14px; border:none; border-radius:10px; white-space:nowrap;
     font-size:13px; font-weight:700; cursor:pointer;
     background:var(--bg2); color:var(--muted); flex-shrink:0;
+    -webkit-tap-highlight-color: rgba(108,99,255,.3);
+    touch-action: manipulation;
   }
   .ai-mode-btn.active { background:var(--green); color:#fff; }
   .ai-section { display:none; }
@@ -2380,6 +2384,8 @@ document.addEventListener('click', function(e) {
     background:var(--card); border-radius:14px; padding:14px 16px;
     margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
     cursor:pointer; border:2px solid transparent;
+    -webkit-tap-highlight-color: rgba(108,99,255,.3);
+    user-select:none;
   }
   .prem-plan-card.selected { border-color:var(--green); }
   .prem-plan-left h3 { margin:0 0 4px; font-size:15px; }
@@ -2399,6 +2405,8 @@ document.addEventListener('click', function(e) {
   .help-faq-q {
     padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
     display:flex; justify-content:space-between; align-items:center;
+    -webkit-tap-highlight-color: rgba(108,99,255,.2);
+    user-select:none;
   }
   .help-faq-a { padding:0 14px; max-height:0; overflow:hidden; transition:max-height .3s, padding .3s; font-size:13px; color:var(--muted); line-height:1.5; }
   .help-faq-a.open { max-height:300px; padding:0 14px 12px; }
@@ -2598,25 +2606,25 @@ document.addEventListener('click', function(e) {
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner">📷</button>
-  <button class="tab" onclick="switchTab('manual')" id="tab-manual">✍️</button>
-  <button class="tab" onclick="switchTab('diary')" id="tab-diary">📔</button>
-  <button class="tab" onclick="switchTab('calc')" id="tab-calc">🧮</button>
-  <button class="tab" onclick="switchTab('myfoods')" id="tab-myfoods">⭐</button>
-  <button class="tab" onclick="switchTab('statpage')" id="tab-statpage">📊</button>
-  <button class="tab" onclick="switchTab('aipage')" id="tab-aipage">🤖</button>
-  <button class="tab" onclick="switchTab('micropage')" id="tab-micropage">🔬</button>
-  <button class="tab" onclick="switchTab('lbpage')" id="tab-lbpage">🏆</button>
-  <button class="tab" onclick="switchTab('pdfpage')" id="tab-pdfpage">📄</button>
-  <button class="tab" onclick="switchTab('importpage')" id="tab-importpage">📥</button>
-  <button class="tab" onclick="switchTab('settingspage')" id="tab-settingspage">⚙️</button>
-  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage">👥</button>
-  <button class="tab" onclick="switchTab('prempage')" id="tab-prempage">⭐</button>
-  <button class="tab" onclick="switchTab('helppage')" id="tab-helppage">❓</button>
+  <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner"><span class="tab-icon">📷</span><span class="tab-lbl">Сканер</span></button>
+  <button class="tab" onclick="switchTab('manual')" id="tab-manual"><span class="tab-icon">✍️</span><span class="tab-lbl">Еда</span></button>
+  <button class="tab" onclick="switchTab('diary')" id="tab-diary"><span class="tab-icon">📔</span><span class="tab-lbl">Дневник</span></button>
+  <button class="tab" onclick="switchTab('calc')" id="tab-calc"><span class="tab-icon">🧮</span><span class="tab-lbl">Кальк.</span></button>
+  <button class="tab" onclick="switchTab('myfoods')" id="tab-myfoods"><span class="tab-icon">⭐</span><span class="tab-lbl">Продукты</span></button>
+  <button class="tab" onclick="switchTab('statpage')" id="tab-statpage"><span class="tab-icon">📊</span><span class="tab-lbl">Стат.</span></button>
+  <button class="tab" onclick="switchTab('aipage')" id="tab-aipage"><span class="tab-icon">🤖</span><span class="tab-lbl">AI</span></button>
+  <button class="tab" onclick="switchTab('micropage')" id="tab-micropage"><span class="tab-icon">🔬</span><span class="tab-lbl">Микро</span></button>
+  <button class="tab" onclick="switchTab('lbpage')" id="tab-lbpage"><span class="tab-icon">🏆</span><span class="tab-lbl">Рейтинг</span></button>
+  <button class="tab" onclick="switchTab('pdfpage')" id="tab-pdfpage"><span class="tab-icon">📄</span><span class="tab-lbl">PDF</span></button>
+  <button class="tab" onclick="switchTab('importpage')" id="tab-importpage"><span class="tab-icon">📥</span><span class="tab-lbl">Импорт</span></button>
+  <button class="tab" onclick="switchTab('settingspage')" id="tab-settingspage"><span class="tab-icon">⚙️</span><span class="tab-lbl">Настр.</span></button>
+  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage"><span class="tab-icon">👥</span><span class="tab-lbl">Друзья</span></button>
+  <button class="tab" onclick="switchTab('prempage')" id="tab-prempage"><span class="tab-icon">⭐</span><span class="tab-lbl">Premium</span></button>
+  <button class="tab" onclick="switchTab('helppage')" id="tab-helppage"><span class="tab-icon">❓</span><span class="tab-lbl">Помощь</span></button>
   <button class="tab" onclick="switchTab('adminpage')" id="tab-adminpage" style="display:none">🔧</button>
-  <button class="tab" onclick="switchTab('water')" id="tab-water">💧</button>
-  <button class="tab" onclick="switchTab('progress')" id="tab-progress">📈</button>
-  <button class="tab" onclick="switchTab('game')" id="tab-game">🎮</button>
+  <button class="tab" onclick="switchTab('water')" id="tab-water"><span class="tab-icon">💧</span><span class="tab-lbl">Вода</span></button>
+  <button class="tab" onclick="switchTab('progress')" id="tab-progress"><span class="tab-icon">📈</span><span class="tab-lbl">Прогресс</span></button>
+  <button class="tab" onclick="switchTab('game')" id="tab-game"><span class="tab-icon">🎮</span><span class="tab-lbl">Игра</span></button>
   <button class="tab" onclick="showLangPicker()" id="tab-lang" style="font-size:18px;min-width:44px;">🌍</button>
 </div>
 
@@ -2878,6 +2886,568 @@ document.addEventListener('click', function(e) {
     </div>
     <p style="text-align:center; font-size:11px; color:var(--text2); margin-top:6px;"></p>
   </div>
+
+
+<div class="page" id="page-calc">
+    <!-- Переключатель режимов -->
+    <div class="calc-mode-row">
+      <button class="calc-mode-btn active" id="calc-mode-kbzu" onclick="setCalcMode('kbzu')">🧮 КБЖУ</button>
+      <button class="calc-mode-btn" id="calc-mode-he" onclick="setCalcMode('he')">💉 ХЕ</button>
+    </div>
+
+    <!-- Режим КБЖУ -->
+    <div id="calc-kbzu-section">
+      <div class="calc-search-row">
+        <input type="text" id="calc-food-input" placeholder="Название продукта..."
+          onkeydown="if(event.key==='Enter') calcSearch()">
+      </div>
+      <div class="calc-weight-row">
+        <input type="number" id="calc-weight-input" value="100" min="1" max="5000">
+        <span class="calc-weight-lbl">г</span>
+        <button class="calc-add-btn" onclick="calcSearch()">🔍 Найти</button>
+      </div>
+      <!-- Превью найденного -->
+      <div class="calc-result-preview" id="calc-result-preview">
+        <div class="calc-result-name" id="calc-result-name">—</div>
+        <div class="calc-result-macros">
+          <div class="calc-result-macro" id="calc-r-kcal">0 ккал</div>
+          <div class="calc-result-macro" id="calc-r-prot">Б: 0</div>
+          <div class="calc-result-macro" id="calc-r-fat">Ж: 0</div>
+          <div class="calc-result-macro" id="calc-r-carb">У: 0</div>
+          <div class="calc-he-badge" id="calc-r-he">ХЕ: 0</div>
+        </div>
+        <button class="calc-add-btn" style="width:100%;margin-top:10px" onclick="calcAddItem()">➕ Добавить</button>
+      </div>
+
+      <!-- Список добавленных -->
+      <div class="calc-items-list" id="calc-items-list"></div>
+
+      <!-- Итого -->
+      <div class="calc-total-card" id="calc-total-card" style="display:none">
+        <div class="calc-total-title">📊 Итого:</div>
+        <div class="calc-total-row">
+          <span class="calc-total-kcal" id="calc-total-kcal">0 ккал</span>
+          <span class="calc-total-he" id="calc-total-he">ХЕ: 0</span>
+        </div>
+        <div class="calc-total-macros">
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-prot">0</div><div class="diary-macro-lbl">Белки, г</div></div>
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-fat">0</div><div class="diary-macro-lbl">Жиры, г</div></div>
+          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-carb">0</div><div class="diary-macro-lbl">Углеводы, г</div></div>
+        </div>
+      </div>
+
+      <!-- Сохранить -->
+      <div id="calc-save-section" style="display:none">
+        <select class="calc-meal-select" id="calc-meal-select">
+          <option value="завтрак">🌅 Завтрак</option>
+          <option value="обед" selected>☀️ Обед</option>
+          <option value="ужин">🌙 Ужин</option>
+          <option value="перекус">🍎 Перекус</option>
+          <option value="другое">🍽 Другое</option>
+        </select>
+        <button class="calc-save-btn" onclick="calcSave()">💾 Сохранить в дневник</button>
+        <button class="calc-clear-btn" onclick="calcClear()">🗑 Очистить список</button>
+      </div>
+    </div>
+
+    <!-- Режим ХЕ -->
+    <div id="calc-he-section" style="display:none">
+      <div class="he-info-card">
+        <div class="he-info-title">💉 Хлебные единицы сегодня</div>
+        <div class="he-daily-row">
+          <span class="he-daily-val" id="he-today-val">—</span>
+          <span class="he-daily-norm">норма 17–25 ХЕ/день</span>
+        </div>
+        <div class="he-prog-bar"><div class="he-prog-fill" id="he-today-prog" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--muted)">1 ХЕ = 12г углеводов</div>
+      </div>
+
+      <div class="calc-search-row">
+        <input type="text" id="he-food-input" placeholder="Продукт (напр. Хлеб)..."
+          onkeydown="if(event.key==='Enter') heSearch()">
+      </div>
+      <div class="calc-weight-row">
+        <input type="number" id="he-weight-input" value="100" min="1" max="5000">
+        <span class="calc-weight-lbl">г</span>
+        <button class="calc-add-btn" onclick="heSearch()">Рассчитать ХЕ</button>
+      </div>
+
+      <div class="he-result-card" id="he-result-card">
+        <div style="font-size:13px;font-weight:600;text-align:center;margin-bottom:4px" id="he-result-name">—</div>
+        <div class="he-result-val" id="he-result-val">0</div>
+        <div class="he-result-label" id="he-result-label">ХЕ</div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px" id="he-result-carbs"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="page" id="page-myfoods">
+    <div class="mf-search-row">
+      <input type="text" id="mf-search" placeholder="Поиск в моих продуктах...">
+      <button class="mf-add-btn" onclick="mfShowForm(null)">+ Новый</button>
+    </div>
+    <!-- Форма добавления/редактирования -->
+    <div class="mf-form" id="mf-form" style="display:none">
+      <div class="mf-form-title" id="mf-form-title">Новый продукт</div>
+      <input type="text" id="mf-f-name" placeholder="Название продукта">
+      <div class="mf-form-hint">КБЖУ на 100г:</div>
+      <div class="mf-form-row">
+        <input type="number" id="mf-f-cal"  placeholder="Калории" min="0">
+        <input type="number" id="mf-f-prot" placeholder="Белки" min="0" step="0.1">
+      </div>
+      <div class="mf-form-row">
+        <input type="number" id="mf-f-fat"  placeholder="Жиры" min="0" step="0.1">
+        <input type="number" id="mf-f-carb" placeholder="Углеводы" min="0" step="0.1">
+      </div>
+      <button class="mf-save-btn" onclick="mfSave()">💾 Сохранить</button>
+      <button class="mf-cancel-btn" onclick="mfHideForm()">Отмена</button>
+    </div>
+    <!-- Попап использования -->
+    <div class="mf-use-popup" id="mf-use-popup">
+      <div style="font-weight:700;margin-bottom:8px" id="mf-use-name">—</div>
+      <div class="calc-weight-row">
+        <input type="number" id="mf-use-weight" value="100" min="1">
+        <span class="calc-weight-lbl">г</span>
+      </div>
+      <select class="calc-meal-select" id="mf-use-meal">
+        <option value="завтрак">🌅 Завтрак</option>
+        <option value="обед" selected>☀️ Обед</option>
+        <option value="ужин">🌙 Ужин</option>
+        <option value="перекус">🍎 Перекус</option>
+      </select>
+      <button class="mf-save-btn" onclick="mfUseConfirm()">➕ Добавить в дневник</button>
+      <button class="mf-cancel-btn" onclick="mfHideUse()">Отмена</button>
+    </div>
+    <!-- Список -->
+    <div class="mf-list" id="mf-list">
+      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-statpage">
+    <!-- Стрик -->
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-streak-val" id="stat-streak">0</div>
+      <div class="stat-streak-lbl">🔥 дней подряд</div>
+    </div>
+    <!-- KPI -->
+    <div class="stat-card">
+      <div class="stat-card-title">📈 Неделя</div>
+      <div class="stat-kpi-row">
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-avg-kcal">—</div>
+          <div class="stat-kpi-lbl">Ср. ккал/день</div>
+        </div>
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-goal-pct">—</div>
+          <div class="stat-kpi-lbl">% от нормы</div>
+        </div>
+        <div class="stat-kpi-box">
+          <div class="stat-kpi-val" id="stat-days-logged">—</div>
+          <div class="stat-kpi-lbl">Дней за месяц</div>
+        </div>
+      </div>
+    </div>
+    <!-- График 7 дней -->
+    <div class="stat-card">
+      <div class="stat-card-title">📊 Последние 7 дней</div>
+      <div class="stat-bar-chart" id="stat-bar-chart"></div>
+    </div>
+    <!-- ИМТ -->
+    <div class="stat-card" id="stat-bmi-card" style="display:none">
+      <div class="stat-card-title">⚖️ ИМТ</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:28px;font-weight:900" id="stat-bmi-val">—</span>
+        <span style="font-size:13px;color:var(--muted)" id="stat-bmi-cat">—</span>
+      </div>
+      <div class="stat-bmi-bar"><div class="stat-bmi-pin" id="stat-bmi-pin"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+        <span>Дефицит</span><span>Норма</span><span>Избыток</span><span>Ожирение</span>
+      </div>
+    </div>
+    <!-- Топ продукты -->
+    <div class="stat-card" id="stat-top-card" style="display:none">
+      <div class="stat-card-title">🍽 Топ продуктов за месяц</div>
+      <div id="stat-top-list"></div>
+    </div>
+  </div>
+  <div class="page" id="page-aipage">
+    <div class="ai-mode-row">
+      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')">🤖 Нутрициолог</button>
+      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')">📅 Планировщик</button>
+      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')">👨‍🍳 Рецепты</button>
+    </div>
+
+    <!-- Нутрициолог -->
+    <div class="ai-section active" id="ai-section-nutri">
+      <div class="stat-card" style="font-size:13px;color:var(--muted);line-height:1.5">
+        🤖 AI проанализирует твоё питание за последние 14 дней и даст персональные рекомендации.
+        <div style="margin-top:6px;font-size:11px">Бесплатно: 3 раза в месяц · Premium: безлимит</div>
+      </div>
+      <button class="ai-action-btn" id="nutri-btn" onclick="runNutritionist()">🔍 Проанализировать питание</button>
+      <div class="ai-result-card" id="nutri-result"></div>
+    </div>
+
+    <!-- Планировщик -->
+    <div class="ai-section" id="ai-section-plan">
+      <div class="ai-sub-label">Количество дней:</div>
+      <div class="plan-days-row">
+        <button class="plan-day-btn" onclick="selectPlanDays(1)">1</button>
+        <button class="plan-day-btn selected" onclick="selectPlanDays(3)">3</button>
+        <button class="plan-day-btn" onclick="selectPlanDays(5)">5</button>
+        <button class="plan-day-btn" onclick="selectPlanDays(7)">7</button>
+      </div>
+      <div class="ai-sub-label">Ограничения (необязательно):</div>
+      <input type="text" id="plan-restrictions" placeholder="Без глютена, вегетарианское..."
+        style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
+      <button class="ai-action-btn" id="plan-btn" onclick="runMealPlan()">📅 Создать план питания</button>
+      <div class="ai-result-card" id="plan-result"></div>
+    </div>
+
+    <!-- Рецепты -->
+    <div class="ai-section" id="ai-section-recipe">
+      <div class="ai-sub-label">Категория:</div>
+      <div class="recipe-filters" id="recipe-filters">
+        <button class="recipe-filter-btn selected" data-key="random"    onclick="selectRecipeFilter(this)">🎲 Случайный</button>
+        <button class="recipe-filter-btn"          data-key="fast"      onclick="selectRecipeFilter(this)">⚡ До 15 мин</button>
+        <button class="recipe-filter-btn"          data-key="protein"   onclick="selectRecipeFilter(this)">💪 Много белка</button>
+        <button class="recipe-filter-btn"          data-key="lowcal"    onclick="selectRecipeFilter(this)">🔥 Мало калорий</button>
+        <button class="recipe-filter-btn"          data-key="breakfast" onclick="selectRecipeFilter(this)">🌅 Завтрак</button>
+        <button class="recipe-filter-btn"          data-key="lunch"     onclick="selectRecipeFilter(this)">🍽 Обед/Ужин</button>
+        <button class="recipe-filter-btn"          data-key="snack"     onclick="selectRecipeFilter(this)">🥗 Перекус</button>
+        <button class="recipe-filter-btn"          data-key="bulk"      onclick="selectRecipeFilter(this)">📈 На массу</button>
+      </div>
+      <button class="ai-action-btn" id="recipe-btn" onclick="runRecipe()">👨‍🍳 Сгенерировать рецепт</button>
+      <button class="ai-action-btn" id="recipe-next-btn"
+        style="display:none;background:var(--bg2);color:var(--text);margin-top:6px"
+        onclick="runRecipe()">🔄 Другой рецепт</button>
+      <div class="ai-result-card" id="recipe-result"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-micropage">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px">🔬 Микронутриенты</div>
+      <div style="font-size:12px;color:var(--muted)" id="micro-date-lbl">сегодня</div>
+    </div>
+    <div id="micro-container">
+      <div class="diary-empty"><div class="diary-empty-icon">🔬</div><div>Загрузка...</div></div>
+    </div>
+    <div class="micro-note" id="micro-note"></div>
+  </div>
+
+  <div class="page" id="page-lbpage">
+    <div class="lb-type-row">
+      <button class="lb-type-btn active" id="lb-btn-streak" onclick="loadLb('streak')">🔥 Стрик</button>
+      <button class="lb-type-btn"        id="lb-btn-achievements" onclick="loadLb('achievements')">🏅 Ачивки</button>
+    </div>
+    <div id="lb-container">
+      <div class="diary-empty"><div class="diary-empty-icon">🏆</div><div>Загрузка...</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-pdfpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📄 Экспорт в PDF</div>
+    <div class="pdf-option-card selected" id="pdf-opt-7" onclick="selectPdfDays(7, this)">
+      <div class="pdf-option-title">🆓 7 дней</div>
+      <div class="pdf-option-desc">Отчёт за последние 7 дней — бесплатно</div>
+    </div>
+    <div class="pdf-option-card" id="pdf-opt-30" onclick="selectPdfDays(30, this)">
+      <div class="pdf-option-title">30 дней <span class="pdf-premium-badge">Premium</span></div>
+      <div class="pdf-option-desc">Подробный отчёт за месяц</div>
+    </div>
+    <div class="pdf-option-card" id="pdf-opt-90" onclick="selectPdfDays(90, this)">
+      <div class="pdf-option-title">90 дней <span class="pdf-premium-badge">Premium</span></div>
+      <div class="pdf-option-desc">Полная история за 3 месяца</div>
+    </div>
+    <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Скачать PDF</button>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+      PDF откроется в браузере. Сохрани его через меню браузера.
+    </div>
+  </div>
+
+  <div class="page" id="page-importpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📥 Импорт данных</div>
+
+    <!-- Зона загрузки -->
+    <div class="imp-drop" id="imp-drop" onclick="document.getElementById('imp-file-input').click()">
+      <div class="imp-drop-icon">📂</div>
+      <div class="imp-drop-text">Нажми или перетащи CSV файл<br><small>MyFitnessPal, FatSecret, универсальный формат</small></div>
+      <input type="file" id="imp-file-input" accept=".csv" style="display:none">
+    </div>
+
+    <!-- Прогресс и результат -->
+    <div class="imp-progress" id="imp-progress">
+      <div style="font-weight:700;margin-bottom:4px" id="imp-progress-title">Обрабатываю файл...</div>
+      <div class="imp-progress-bar-wrap"><div class="imp-progress-bar-fill" id="imp-progress-bar" style="width:0%"></div></div>
+      <div class="imp-stats" id="imp-stats"></div>
+    </div>
+
+    <!-- Кнопки подтверждения -->
+    <div id="imp-confirm-section" style="display:none">
+      <button class="imp-confirm-btn" id="imp-confirm-btn" onclick="importConfirm()">✅ Импортировать</button>
+      <button class="imp-cancel-btn" onclick="importReset()">❌ Отмена</button>
+    </div>
+
+    <!-- Поддерживаемые форматы -->
+    <div style="margin-top:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">ПОДДЕРЖИВАЕМЫЕ ФОРМАТЫ</div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">📱 MyFitnessPal</div>
+        <div class="imp-format-desc">Экспорт → Настройки → Мои данные → Экспорт данных</div>
+      </div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">🍎 FatSecret</div>
+        <div class="imp-format-desc">Профиль → Экспорт данных → CSV</div>
+      </div>
+      <div class="imp-format-card">
+        <div class="imp-format-name">📋 Универсальный CSV</div>
+        <div class="imp-format-desc">Колонки: date, food, calories, protein, fat, carbs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-settingspage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">⚙️ Настройки</div>
+
+    <!-- Профиль -->
+    <div class="sett-section">
+      <div class="sett-title">👤 Профиль</div>
+      <div class="sett-row">
+        <div><div class="sett-label">Текущий вес</div><div class="sett-sublabel">кг</div></div>
+        <input type="number" class="sett-input" id="sett-weight" min="30" max="300" step="0.1">
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Цель</div></div>
+        <select class="sett-select" id="sett-goal">
+          <option value="похудение">📉 Похудеть</option>
+          <option value="поддержание веса">⚖️ Поддержать вес</option>
+          <option value="набор массы">📈 Набрать массу</option>
+        </select>
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Язык</div></div>
+        <select class="sett-select" id="sett-lang">
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="uk">🇺🇦 Українська</option>
+        </select>
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Часовой пояс</div><div class="sett-sublabel">UTC+N</div></div>
+        <select class="sett-select" id="sett-tz">
+          <option value="0">UTC+0</option>
+          <option value="1">UTC+1</option>
+          <option value="2">UTC+2</option>
+          <option value="3">UTC+3 (МСК)</option>
+          <option value="4">UTC+4</option>
+          <option value="5">UTC+5</option>
+          <option value="6">UTC+6</option>
+          <option value="7">UTC+7 (Новосиб)</option>
+          <option value="8">UTC+8</option>
+          <option value="9">UTC+9</option>
+          <option value="10">UTC+10</option>
+          <option value="11">UTC+11</option>
+          <option value="12">UTC+12</option>
+          <option value="-1">UTC-1</option>
+          <option value="-2">UTC-2</option>
+          <option value="-3">UTC-3</option>
+          <option value="-4">UTC-4</option>
+          <option value="-5">UTC-5</option>
+        </select>
+      </div>
+    </div>
+    <!-- Цели -->
+    <div class="sett-section">
+      <div class="sett-title">🎯 Цели питания</div>
+      <div class="sett-row">
+        <div><div class="sett-label">Калории/день</div><div class="sett-sublabel">ккал</div></div>
+        <input type="number" class="sett-input" id="sett-kcal" min="500" max="10000" value="2000">
+      </div>
+      <div class="sett-row">
+        <div><div class="sett-label">Вода/день</div><div class="sett-sublabel">мл</div></div>
+        <input type="number" class="sett-input" id="sett-water" min="500" max="10000" value="2000">
+      </div>
+    </div>
+
+    <!-- Напоминания -->
+    <div class="sett-section">
+      <div class="sett-title">🔔 Напоминания</div>
+      <div class="sett-row">
+        <div>
+          <div class="sett-label">🍽 Еда</div>
+          <div class="sett-sublabel">Напомнить записать приём пищи</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="sett-select" id="sett-food-time" style="display:none">
+            <option value="">—</option>
+          </select>
+          <button class="sett-toggle" id="sett-food-toggle" onclick="toggleReminder('food')"></button>
+        </div>
+      </div>
+      <div class="sett-row">
+        <div>
+          <div class="sett-label">💧 Вода</div>
+          <div class="sett-sublabel">Напомнить выпить воду</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="sett-select" id="sett-water-time" style="display:none">
+            <option value="">—</option>
+          </select>
+          <button class="sett-toggle" id="sett-water-toggle" onclick="toggleReminder('water')"></button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">
+        ⚠️ Напоминания приходят в Telegram от бота в выбранный час
+      </div>
+    </div>
+
+    <button class="sett-save-btn" onclick="saveSettings()">💾 Сохранить</button>
+  </div>
+
+  <div class="page" id="page-refpage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">👥 Пригласить друга</div>
+    <div class="stat-card" style="font-size:13px;line-height:1.6;color:var(--muted)">
+      За каждого друга который зарегистрируется по твоей ссылке и добавит первую еду —
+      ты получаешь <strong style="color:var(--green)">+7 дней Premium</strong>!
+    </div>
+    <div class="stat-card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Твоя реферальная ссылка:</div>
+      <div class="ref-link-box" id="ref-link-box" onclick="refCopyLink()">Загрузка...</div>
+      <button class="ref-copy-btn" onclick="refCopyLink()">📋 Скопировать ссылку</button>
+      <button class="ref-share-btn" id="ref-share-btn" onclick="refShare()">📤 Поделиться</button>
+    </div>
+    <div class="stat-card">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">📊 Твоя статистика</div>
+      <div class="ref-stat-row">
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-count">—</div>
+          <div class="ref-stat-lbl">Приглашено</div>
+        </div>
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-earned">—</div>
+          <div class="ref-stat-lbl">Дней заработано</div>
+        </div>
+        <div class="ref-stat-box">
+          <div class="ref-stat-val" id="ref-limit">10</div>
+          <div class="ref-stat-lbl">Лимит/месяц</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-prempage">
+    <div id="prem-status-card" class="prem-status-card free">
+      <div class="prem-status-icon" id="prem-icon">🆓</div>
+      <div class="prem-status-title" id="prem-title">Бесплатный план</div>
+      <div class="prem-status-sub" id="prem-sub">Обновись до Premium</div>
+    </div>
+    <div class="prem-features">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px">⭐ Premium даёт:</div>
+      <div class="prem-feature">✅ Безлимитный AI-нутрициолог</div>
+      <div class="prem-feature">✅ Безлимитный планировщик питания</div>
+      <div class="prem-feature">✅ Безлимитные рецепты</div>
+      <div class="prem-feature">✅ PDF отчёт за 90 дней</div>
+      <div class="prem-feature">✅ Полная история веса</div>
+    </div>
+    <div id="prem-buy-section">
+      <div class="prem-plan-card selected" id="plan-1m" onclick="selectPlan('1m',this)">
+        <div class="prem-plan-left"><h3>1 месяц</h3><p>30 дней доступа</p></div>
+        <div class="prem-plan-price">299 ⭐</div>
+      </div>
+      <div class="prem-plan-card" id="plan-3m" onclick="selectPlan('3m',this)">
+        <div class="prem-plan-left"><h3>3 месяца</h3><p>90 дней · экономия 14%</p></div>
+        <div class="prem-plan-price">749 ⭐</div>
+      </div>
+      <div class="prem-plan-card" id="plan-12m" onclick="selectPlan('12m',this)">
+        <div class="prem-plan-left"><h3>12 месяцев</h3><p>365 дней · экономия 44%</p></div>
+        <div class="prem-plan-price">1990 ⭐</div>
+      </div>
+      <button class="prem-buy-btn" onclick="premBuyStars()">⭐ Купить через Telegram Stars</button>
+      <button class="prem-card-btn" onclick="premBuyCard()">💳 Оплата картой (РФ)</button>
+    </div>
+  </div>
+
+  <div class="page" id="page-helppage">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px">❓ Помощь</div>
+    <div class="stat-card">
+      <div style="font-size:13px;line-height:1.6">
+        🤖 <strong>NutriO</strong> — умный дневник питания.<br>
+        Добавляй еду фото, голосом или вручную.<br>
+        Следи за КБЖУ, водой и прогрессом.
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin:12px 0 8px">ЧАСТЫЕ ВОПРОСЫ</div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как добавить еду? <span>▼</span></div>
+      <div class="help-faq-a">Используй вкладку 📷 (сканер или фото) или ✍️ (вручную). В боте также доступен голосовой ввод и анализ фото блюда.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает ХЕ? <span>▼</span></div>
+      <div class="help-faq-a">Хлебная единица (ХЕ) = 12г углеводов. Используется для учёта углеводов при диабете. Норма 17–25 ХЕ/день. Смотри вкладку 🧮 → ХЕ.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Что такое Premium? <span>▼</span></div>
+      <div class="help-faq-a">Premium даёт безлимитный AI-нутрициолог, планировщик питания, рецепты и PDF за 90 дней. Без Premium — 3 AI запроса, 1 план и 5 рецептов в месяц.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает реферальная программа? <span>▼</span></div>
+      <div class="help-faq-a">Пригласи друга по своей ссылке. Когда он зарегистрируется и добавит первую еду — ты получишь +7 дней Premium. Лимит 10 рефералов в месяц.</div></div>
+    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как импортировать данные? <span>▼</span></div>
+      <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные из приложения и загрузи файл.</div></div>
+    <div style="margin-top:16px">
+      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenBot()">💬 Написать в поддержку</button>
+      <button class="help-support-btn" style="background:var(--bg2);color:var(--text)" onclick="helpOpenBot()">🤖 Открыть бота</button>
+    </div>
+  </div>
+
+  <div class="page" id="page-adminpage">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:700;font-size:15px">🔧 Админ-панель</div>
+      <div style="font-size:11px;color:var(--accent2)" id="adm-admin-label">—</div>
+    </div>
+    <div class="adm-nav">
+      <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
+      <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
+      <button class="adm-nav-btn"        id="adm-btn-payments" onclick="admSection('payments')">💳 Оплаты</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="adm-section active" id="adm-section-dash">
+      <div class="adm-kpi-row">
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
+      </div>
+      <div class="stat-card" id="adm-pending-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700">💳 Ожидают оплаты</span>
+          <span class="adm-badge adm-badge-prem" id="adm-pending-cnt">0</span>
+        </div>
+        <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
+      </div>
+      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDash()">🔄 Обновить</button>
+    </div>
+
+    <!-- Users -->
+    <div class="adm-section" id="adm-section-users">
+      <div class="adm-search-row">
+        <input type="text" id="adm-search-input" placeholder="Имя, @username или ID..." onkeydown="if(event.key==='Enter')admSearchUsers()">
+        <button onclick="admSearchUsers()">🔍</button>
+      </div>
+      <div id="adm-users-list"></div>
+      <div class="adm-pagination" id="adm-pagination" style="display:none">
+        <button class="adm-page-btn" onclick="admUsersPage(-1)">← Назад</button>
+        <span style="font-size:13px;color:var(--muted)" id="adm-page-info"></span>
+        <button class="adm-page-btn" onclick="admUsersPage(1)">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div class="adm-section" id="adm-section-payments">
+      <div id="adm-payments-list">
+        <div class="ai-loading">Загружаю заявки...</div>
+      </div>
+    </div>
+  </div>
+
 
 </div>
 
@@ -5227,7 +5797,10 @@ function applyTranslations(){
   if(addBtn)    addBtn.textContent    = i18n.add;
 
   // Приёмы пищи в select
+  // Only translate meal selects (not settings selects)
+  const MEAL_SELECT_IDS = ["manual-meal","diary-add-meal","mf-use-meal","calc-meal-select"];
   document.querySelectorAll("select").forEach(sel => {
+    if (!MEAL_SELECT_IDS.includes(sel.id)) return;  // skip settings selects
     const keys = ["meal_breakfast","meal_lunch","meal_dinner","meal_snack"];
     sel.querySelectorAll("option").forEach((opt,idx) => { if(keys[idx]) opt.textContent = i18n[keys[idx]]; });
   });
@@ -5494,6 +6067,9 @@ async function _startBarcodeScanner() {
         return;
       }
       Quagga.start();
+      // Show overlay only after camera successfully started
+      var overlay = document.getElementById('scan-overlay');
+      if (overlay) overlay.style.display = 'flex';
     });
 
     Quagga.onDetected(function(result) {
@@ -5693,19 +6269,20 @@ function setCameraMode(mode) {
   var bb = document.getElementById('mode-barcode-btn');
   var pb = document.getElementById('mode-photo-btn');
   var overlay = document.getElementById('scan-overlay');
+  // Always hide overlay first — only show for barcode AFTER camera opens
+  if (overlay) overlay.style.display = 'none';
   if (mode === 'barcode') {
     if(bb) bb.className='btn btn-primary';
     if(pb) pb.className='btn btn-secondary';
     var cbtn = document.getElementById('capture-btn'); if(cbtn) cbtn.style.display='none';
     var pr = document.getElementById('photo-result'); if(pr) pr.style.display='none';
-    if(overlay) overlay.style.display='flex';
   } else {
     if(bb) bb.className='btn btn-secondary';
     if(pb) pb.className='btn btn-primary';
-    if(overlay) overlay.style.display='none';
   }
   if(typeof stopScanner==='function') stopScanner();
-  var sb=document.getElementById('scan-btn'); if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📷 Открыть камеру';}
+  var sb=document.getElementById('scan-btn');
+  if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📸 Сфотографировать';}
   var st=document.getElementById('stop-btn'); if(st) st.style.display='none';
   var cb2=document.getElementById('capture-btn'); if(cb2) cb2.style.display='none';
 }
@@ -5715,13 +6292,15 @@ function startScanner() {
     var video = document.getElementById('scanner-video');
     var container = document.getElementById('video-container');
     var hero = document.getElementById('scanner-hero');
-    // Убираем анимацию сканирования в фото-режиме
     var overlay = document.getElementById('scan-overlay');
     if (overlay) overlay.style.display = 'none';
     if (video) video.style.display = 'block';
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    // Stop existing stream first to avoid repeated permission requests
+    if (stream) { stream.getTracks().forEach(function(t){t.stop();}); stream = null; }
+    if (video) video.srcObject = null;
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
       .then(function(s){
-        stream = s;  // сохраняем в глобальную переменную для stopScanner
+        stream = s;
         video.srcObject = s;
         if(container) container.style.display='block';
         if(hero) hero.style.display='none';
@@ -6079,10 +6658,10 @@ function sendManual() {
     padding:9px 14px; border:none; border-radius:10px; white-space:nowrap;
     font-size:13px; font-weight:700; cursor:pointer;
     background:var(--bg2); color:var(--muted); flex-shrink:0;
+    -webkit-tap-highlight-color: rgba(108,99,255,.3);
+    touch-action: manipulation;
   }
   .ai-mode-btn.active { background:var(--green); color:#fff; }
-  .ai-section { display:none; }
-  .ai-section.active { display:block; }
   .ai-result-card {
     background:var(--card); border-radius:14px; padding:14px 16px;
     margin-top:12px; white-space:pre-wrap; line-height:1.6;
@@ -6222,6 +6801,8 @@ function sendManual() {
     background:var(--card); border-radius:14px; padding:14px 16px;
     margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
     cursor:pointer; border:2px solid transparent;
+    -webkit-tap-highlight-color: rgba(108,99,255,.3);
+    user-select:none;
   }
   .prem-plan-card.selected { border-color:var(--green); }
   .prem-plan-left h3 { margin:0 0 4px; font-size:15px; }
@@ -6241,6 +6822,8 @@ function sendManual() {
   .help-faq-q {
     padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
     display:flex; justify-content:space-between; align-items:center;
+    -webkit-tap-highlight-color: rgba(108,99,255,.2);
+    user-select:none;
   }
   .help-faq-a { padding:0 14px; max-height:0; overflow:hidden; transition:max-height .3s, padding .3s; font-size:13px; color:var(--muted); line-height:1.5; }
   .help-faq-a.open { max-height:300px; padding:0 14px 12px; }
@@ -7566,566 +8149,6 @@ try {
 }catch(e){}
 </script>
 
-
-<div class="page" id="page-calc">
-    <!-- Переключатель режимов -->
-    <div class="calc-mode-row">
-      <button class="calc-mode-btn active" id="calc-mode-kbzu" onclick="setCalcMode('kbzu')">🧮 КБЖУ</button>
-      <button class="calc-mode-btn" id="calc-mode-he" onclick="setCalcMode('he')">💉 ХЕ</button>
-    </div>
-
-    <!-- Режим КБЖУ -->
-    <div id="calc-kbzu-section">
-      <div class="calc-search-row">
-        <input type="text" id="calc-food-input" placeholder="Название продукта..."
-          onkeydown="if(event.key==='Enter') calcSearch()">
-      </div>
-      <div class="calc-weight-row">
-        <input type="number" id="calc-weight-input" value="100" min="1" max="5000">
-        <span class="calc-weight-lbl">г</span>
-        <button class="calc-add-btn" onclick="calcSearch()">🔍 Найти</button>
-      </div>
-      <!-- Превью найденного -->
-      <div class="calc-result-preview" id="calc-result-preview">
-        <div class="calc-result-name" id="calc-result-name">—</div>
-        <div class="calc-result-macros">
-          <div class="calc-result-macro" id="calc-r-kcal">0 ккал</div>
-          <div class="calc-result-macro" id="calc-r-prot">Б: 0</div>
-          <div class="calc-result-macro" id="calc-r-fat">Ж: 0</div>
-          <div class="calc-result-macro" id="calc-r-carb">У: 0</div>
-          <div class="calc-he-badge" id="calc-r-he">ХЕ: 0</div>
-        </div>
-        <button class="calc-add-btn" style="width:100%;margin-top:10px" onclick="calcAddItem()">➕ Добавить</button>
-      </div>
-
-      <!-- Список добавленных -->
-      <div class="calc-items-list" id="calc-items-list"></div>
-
-      <!-- Итого -->
-      <div class="calc-total-card" id="calc-total-card" style="display:none">
-        <div class="calc-total-title">📊 Итого:</div>
-        <div class="calc-total-row">
-          <span class="calc-total-kcal" id="calc-total-kcal">0 ккал</span>
-          <span class="calc-total-he" id="calc-total-he">ХЕ: 0</span>
-        </div>
-        <div class="calc-total-macros">
-          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-prot">0</div><div class="diary-macro-lbl">Белки, г</div></div>
-          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-fat">0</div><div class="diary-macro-lbl">Жиры, г</div></div>
-          <div class="diary-macro-box"><div class="diary-macro-val" id="calc-total-carb">0</div><div class="diary-macro-lbl">Углеводы, г</div></div>
-        </div>
-      </div>
-
-      <!-- Сохранить -->
-      <div id="calc-save-section" style="display:none">
-        <select class="calc-meal-select" id="calc-meal-select">
-          <option value="завтрак">🌅 Завтрак</option>
-          <option value="обед" selected>☀️ Обед</option>
-          <option value="ужин">🌙 Ужин</option>
-          <option value="перекус">🍎 Перекус</option>
-          <option value="другое">🍽 Другое</option>
-        </select>
-        <button class="calc-save-btn" onclick="calcSave()">💾 Сохранить в дневник</button>
-        <button class="calc-clear-btn" onclick="calcClear()">🗑 Очистить список</button>
-      </div>
-    </div>
-
-    <!-- Режим ХЕ -->
-    <div id="calc-he-section" style="display:none">
-      <div class="he-info-card">
-        <div class="he-info-title">💉 Хлебные единицы сегодня</div>
-        <div class="he-daily-row">
-          <span class="he-daily-val" id="he-today-val">—</span>
-          <span class="he-daily-norm">норма 17–25 ХЕ/день</span>
-        </div>
-        <div class="he-prog-bar"><div class="he-prog-fill" id="he-today-prog" style="width:0%"></div></div>
-        <div style="font-size:11px;color:var(--muted)">1 ХЕ = 12г углеводов</div>
-      </div>
-
-      <div class="calc-search-row">
-        <input type="text" id="he-food-input" placeholder="Продукт (напр. Хлеб)..."
-          onkeydown="if(event.key==='Enter') heSearch()">
-      </div>
-      <div class="calc-weight-row">
-        <input type="number" id="he-weight-input" value="100" min="1" max="5000">
-        <span class="calc-weight-lbl">г</span>
-        <button class="calc-add-btn" onclick="heSearch()">Рассчитать ХЕ</button>
-      </div>
-
-      <div class="he-result-card" id="he-result-card">
-        <div style="font-size:13px;font-weight:600;text-align:center;margin-bottom:4px" id="he-result-name">—</div>
-        <div class="he-result-val" id="he-result-val">0</div>
-        <div class="he-result-label" id="he-result-label">ХЕ</div>
-        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px" id="he-result-carbs"></div>
-      </div>
-    </div>
-  </div>
-
-<div class="page" id="page-myfoods">
-    <div class="mf-search-row">
-      <input type="text" id="mf-search" placeholder="Поиск в моих продуктах...">
-      <button class="mf-add-btn" onclick="mfShowForm(null)">+ Новый</button>
-    </div>
-    <!-- Форма добавления/редактирования -->
-    <div class="mf-form" id="mf-form" style="display:none">
-      <div class="mf-form-title" id="mf-form-title">Новый продукт</div>
-      <input type="text" id="mf-f-name" placeholder="Название продукта">
-      <div class="mf-form-hint">КБЖУ на 100г:</div>
-      <div class="mf-form-row">
-        <input type="number" id="mf-f-cal"  placeholder="Калории" min="0">
-        <input type="number" id="mf-f-prot" placeholder="Белки" min="0" step="0.1">
-      </div>
-      <div class="mf-form-row">
-        <input type="number" id="mf-f-fat"  placeholder="Жиры" min="0" step="0.1">
-        <input type="number" id="mf-f-carb" placeholder="Углеводы" min="0" step="0.1">
-      </div>
-      <button class="mf-save-btn" onclick="mfSave()">💾 Сохранить</button>
-      <button class="mf-cancel-btn" onclick="mfHideForm()">Отмена</button>
-    </div>
-    <!-- Попап использования -->
-    <div class="mf-use-popup" id="mf-use-popup">
-      <div style="font-weight:700;margin-bottom:8px" id="mf-use-name">—</div>
-      <div class="calc-weight-row">
-        <input type="number" id="mf-use-weight" value="100" min="1">
-        <span class="calc-weight-lbl">г</span>
-      </div>
-      <select class="calc-meal-select" id="mf-use-meal">
-        <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед" selected>☀️ Обед</option>
-        <option value="ужин">🌙 Ужин</option>
-        <option value="перекус">🍎 Перекус</option>
-      </select>
-      <button class="mf-save-btn" onclick="mfUseConfirm()">➕ Добавить в дневник</button>
-      <button class="mf-cancel-btn" onclick="mfHideUse()">Отмена</button>
-    </div>
-    <!-- Список -->
-    <div class="mf-list" id="mf-list">
-      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов</div></div>
-    </div>
-  </div>
-
-  <div class="page" id="page-statpage">
-    <!-- Стрик -->
-    <div class="stat-card" style="text-align:center">
-      <div class="stat-streak-val" id="stat-streak">0</div>
-      <div class="stat-streak-lbl">🔥 дней подряд</div>
-    </div>
-    <!-- KPI -->
-    <div class="stat-card">
-      <div class="stat-card-title">📈 Неделя</div>
-      <div class="stat-kpi-row">
-        <div class="stat-kpi-box">
-          <div class="stat-kpi-val" id="stat-avg-kcal">—</div>
-          <div class="stat-kpi-lbl">Ср. ккал/день</div>
-        </div>
-        <div class="stat-kpi-box">
-          <div class="stat-kpi-val" id="stat-goal-pct">—</div>
-          <div class="stat-kpi-lbl">% от нормы</div>
-        </div>
-        <div class="stat-kpi-box">
-          <div class="stat-kpi-val" id="stat-days-logged">—</div>
-          <div class="stat-kpi-lbl">Дней за месяц</div>
-        </div>
-      </div>
-    </div>
-    <!-- График 7 дней -->
-    <div class="stat-card">
-      <div class="stat-card-title">📊 Последние 7 дней</div>
-      <div class="stat-bar-chart" id="stat-bar-chart"></div>
-    </div>
-    <!-- ИМТ -->
-    <div class="stat-card" id="stat-bmi-card" style="display:none">
-      <div class="stat-card-title">⚖️ ИМТ</div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:28px;font-weight:900" id="stat-bmi-val">—</span>
-        <span style="font-size:13px;color:var(--muted)" id="stat-bmi-cat">—</span>
-      </div>
-      <div class="stat-bmi-bar"><div class="stat-bmi-pin" id="stat-bmi-pin"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
-        <span>Дефицит</span><span>Норма</span><span>Избыток</span><span>Ожирение</span>
-      </div>
-    </div>
-    <!-- Топ продукты -->
-    <div class="stat-card" id="stat-top-card" style="display:none">
-      <div class="stat-card-title">🍽 Топ продуктов за месяц</div>
-      <div id="stat-top-list"></div>
-    </div>
-  </div>
-  <div class="page" id="page-aipage">
-    <div class="ai-mode-row">
-      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')">🤖 Нутрициолог</button>
-      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')">📅 Планировщик</button>
-      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')">👨‍🍳 Рецепты</button>
-    </div>
-
-    <!-- Нутрициолог -->
-    <div class="ai-section active" id="ai-section-nutri">
-      <div class="stat-card" style="font-size:13px;color:var(--muted);line-height:1.5">
-        🤖 AI проанализирует твоё питание за последние 14 дней и даст персональные рекомендации.
-        <div style="margin-top:6px;font-size:11px">Бесплатно: 3 раза в месяц · Premium: безлимит</div>
-      </div>
-      <button class="ai-action-btn" id="nutri-btn" onclick="runNutritionist()">🔍 Проанализировать питание</button>
-      <div class="ai-result-card" id="nutri-result"></div>
-    </div>
-
-    <!-- Планировщик -->
-    <div class="ai-section" id="ai-section-plan">
-      <div class="ai-sub-label">Количество дней:</div>
-      <div class="plan-days-row">
-        <button class="plan-day-btn" onclick="selectPlanDays(1)">1</button>
-        <button class="plan-day-btn selected" onclick="selectPlanDays(3)">3</button>
-        <button class="plan-day-btn" onclick="selectPlanDays(5)">5</button>
-        <button class="plan-day-btn" onclick="selectPlanDays(7)">7</button>
-      </div>
-      <div class="ai-sub-label">Ограничения (необязательно):</div>
-      <input type="text" id="plan-restrictions" placeholder="Без глютена, вегетарианское..."
-        style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
-      <button class="ai-action-btn" id="plan-btn" onclick="runMealPlan()">📅 Создать план питания</button>
-      <div class="ai-result-card" id="plan-result"></div>
-    </div>
-
-    <!-- Рецепты -->
-    <div class="ai-section" id="ai-section-recipe">
-      <div class="ai-sub-label">Категория:</div>
-      <div class="recipe-filters" id="recipe-filters">
-        <button class="recipe-filter-btn selected" data-key="random"    onclick="selectRecipeFilter(this)">🎲 Случайный</button>
-        <button class="recipe-filter-btn"          data-key="fast"      onclick="selectRecipeFilter(this)">⚡ До 15 мин</button>
-        <button class="recipe-filter-btn"          data-key="protein"   onclick="selectRecipeFilter(this)">💪 Много белка</button>
-        <button class="recipe-filter-btn"          data-key="lowcal"    onclick="selectRecipeFilter(this)">🔥 Мало калорий</button>
-        <button class="recipe-filter-btn"          data-key="breakfast" onclick="selectRecipeFilter(this)">🌅 Завтрак</button>
-        <button class="recipe-filter-btn"          data-key="lunch"     onclick="selectRecipeFilter(this)">🍽 Обед/Ужин</button>
-        <button class="recipe-filter-btn"          data-key="snack"     onclick="selectRecipeFilter(this)">🥗 Перекус</button>
-        <button class="recipe-filter-btn"          data-key="bulk"      onclick="selectRecipeFilter(this)">📈 На массу</button>
-      </div>
-      <button class="ai-action-btn" id="recipe-btn" onclick="runRecipe()">👨‍🍳 Сгенерировать рецепт</button>
-      <button class="ai-action-btn" id="recipe-next-btn"
-        style="display:none;background:var(--bg2);color:var(--text);margin-top:6px"
-        onclick="runRecipe()">🔄 Другой рецепт</button>
-      <div class="ai-result-card" id="recipe-result"></div>
-    </div>
-  </div>
-
-  <div class="page" id="page-micropage">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-weight:700;font-size:15px">🔬 Микронутриенты</div>
-      <div style="font-size:12px;color:var(--muted)" id="micro-date-lbl">сегодня</div>
-    </div>
-    <div id="micro-container">
-      <div class="diary-empty"><div class="diary-empty-icon">🔬</div><div>Загрузка...</div></div>
-    </div>
-    <div class="micro-note" id="micro-note"></div>
-  </div>
-
-  <div class="page" id="page-lbpage">
-    <div class="lb-type-row">
-      <button class="lb-type-btn active" id="lb-btn-streak" onclick="loadLb('streak')">🔥 Стрик</button>
-      <button class="lb-type-btn"        id="lb-btn-achievements" onclick="loadLb('achievements')">🏅 Ачивки</button>
-    </div>
-    <div id="lb-container">
-      <div class="diary-empty"><div class="diary-empty-icon">🏆</div><div>Загрузка...</div></div>
-    </div>
-  </div>
-
-  <div class="page" id="page-pdfpage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📄 Экспорт в PDF</div>
-    <div class="pdf-option-card selected" id="pdf-opt-7" onclick="selectPdfDays(7, this)">
-      <div class="pdf-option-title">🆓 7 дней</div>
-      <div class="pdf-option-desc">Отчёт за последние 7 дней — бесплатно</div>
-    </div>
-    <div class="pdf-option-card" id="pdf-opt-30" onclick="selectPdfDays(30, this)">
-      <div class="pdf-option-title">30 дней <span class="pdf-premium-badge">Premium</span></div>
-      <div class="pdf-option-desc">Подробный отчёт за месяц</div>
-    </div>
-    <div class="pdf-option-card" id="pdf-opt-90" onclick="selectPdfDays(90, this)">
-      <div class="pdf-option-title">90 дней <span class="pdf-premium-badge">Premium</span></div>
-      <div class="pdf-option-desc">Полная история за 3 месяца</div>
-    </div>
-    <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Скачать PDF</button>
-    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
-      PDF откроется в браузере. Сохрани его через меню браузера.
-    </div>
-  </div>
-
-  <div class="page" id="page-importpage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">📥 Импорт данных</div>
-
-    <!-- Зона загрузки -->
-    <div class="imp-drop" id="imp-drop" onclick="document.getElementById('imp-file-input').click()">
-      <div class="imp-drop-icon">📂</div>
-      <div class="imp-drop-text">Нажми или перетащи CSV файл<br><small>MyFitnessPal, FatSecret, универсальный формат</small></div>
-      <input type="file" id="imp-file-input" accept=".csv" style="display:none">
-    </div>
-
-    <!-- Прогресс и результат -->
-    <div class="imp-progress" id="imp-progress">
-      <div style="font-weight:700;margin-bottom:4px" id="imp-progress-title">Обрабатываю файл...</div>
-      <div class="imp-progress-bar-wrap"><div class="imp-progress-bar-fill" id="imp-progress-bar" style="width:0%"></div></div>
-      <div class="imp-stats" id="imp-stats"></div>
-    </div>
-
-    <!-- Кнопки подтверждения -->
-    <div id="imp-confirm-section" style="display:none">
-      <button class="imp-confirm-btn" id="imp-confirm-btn" onclick="importConfirm()">✅ Импортировать</button>
-      <button class="imp-cancel-btn" onclick="importReset()">❌ Отмена</button>
-    </div>
-
-    <!-- Поддерживаемые форматы -->
-    <div style="margin-top:16px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">ПОДДЕРЖИВАЕМЫЕ ФОРМАТЫ</div>
-      <div class="imp-format-card">
-        <div class="imp-format-name">📱 MyFitnessPal</div>
-        <div class="imp-format-desc">Экспорт → Настройки → Мои данные → Экспорт данных</div>
-      </div>
-      <div class="imp-format-card">
-        <div class="imp-format-name">🍎 FatSecret</div>
-        <div class="imp-format-desc">Профиль → Экспорт данных → CSV</div>
-      </div>
-      <div class="imp-format-card">
-        <div class="imp-format-name">📋 Универсальный CSV</div>
-        <div class="imp-format-desc">Колонки: date, food, calories, protein, fat, carbs</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="page" id="page-settingspage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">⚙️ Настройки</div>
-
-    <!-- Профиль -->
-    <div class="sett-section">
-      <div class="sett-title">👤 Профиль</div>
-      <div class="sett-row">
-        <div><div class="sett-label">Текущий вес</div><div class="sett-sublabel">кг</div></div>
-        <input type="number" class="sett-input" id="sett-weight" min="30" max="300" step="0.1">
-      </div>
-      <div class="sett-row">
-        <div><div class="sett-label">Цель</div></div>
-        <select class="sett-select" id="sett-goal">
-          <option value="похудение">📉 Похудеть</option>
-          <option value="поддержание веса">⚖️ Поддержать вес</option>
-          <option value="набор массы">📈 Набрать массу</option>
-        </select>
-      </div>
-      <div class="sett-row">
-        <div><div class="sett-label">Язык</div></div>
-        <select class="sett-select" id="sett-lang">
-          <option value="ru">🇷🇺 Русский</option>
-          <option value="en">🇬🇧 English</option>
-          <option value="de">🇩🇪 Deutsch</option>
-          <option value="fr">🇫🇷 Français</option>
-          <option value="es">🇪🇸 Español</option>
-          <option value="uk">🇺🇦 Українська</option>
-        </select>
-      </div>
-      <div class="sett-row">
-        <div><div class="sett-label">Часовой пояс</div><div class="sett-sublabel">UTC+N</div></div>
-        <select class="sett-select" id="sett-tz">
-          <option value="0">UTC+0</option>
-          <option value="1">UTC+1</option>
-          <option value="2">UTC+2</option>
-          <option value="3">UTC+3 (МСК)</option>
-          <option value="4">UTC+4</option>
-          <option value="5">UTC+5</option>
-          <option value="6">UTC+6</option>
-          <option value="7">UTC+7 (Новосиб)</option>
-          <option value="8">UTC+8</option>
-          <option value="9">UTC+9</option>
-          <option value="10">UTC+10</option>
-          <option value="11">UTC+11</option>
-          <option value="12">UTC+12</option>
-          <option value="-1">UTC-1</option>
-          <option value="-2">UTC-2</option>
-          <option value="-3">UTC-3</option>
-          <option value="-4">UTC-4</option>
-          <option value="-5">UTC-5</option>
-        </select>
-      </div>
-    </div>
-    <!-- Цели -->
-    <div class="sett-section">
-      <div class="sett-title">🎯 Цели питания</div>
-      <div class="sett-row">
-        <div><div class="sett-label">Калории/день</div><div class="sett-sublabel">ккал</div></div>
-        <input type="number" class="sett-input" id="sett-kcal" min="500" max="10000" value="2000">
-      </div>
-      <div class="sett-row">
-        <div><div class="sett-label">Вода/день</div><div class="sett-sublabel">мл</div></div>
-        <input type="number" class="sett-input" id="sett-water" min="500" max="10000" value="2000">
-      </div>
-    </div>
-
-    <!-- Напоминания -->
-    <div class="sett-section">
-      <div class="sett-title">🔔 Напоминания</div>
-      <div class="sett-row">
-        <div>
-          <div class="sett-label">🍽 Еда</div>
-          <div class="sett-sublabel">Напомнить записать приём пищи</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <select class="sett-select" id="sett-food-time" style="display:none">
-            <option value="">—</option>
-          </select>
-          <button class="sett-toggle" id="sett-food-toggle" onclick="toggleReminder('food')"></button>
-        </div>
-      </div>
-      <div class="sett-row">
-        <div>
-          <div class="sett-label">💧 Вода</div>
-          <div class="sett-sublabel">Напомнить выпить воду</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <select class="sett-select" id="sett-water-time" style="display:none">
-            <option value="">—</option>
-          </select>
-          <button class="sett-toggle" id="sett-water-toggle" onclick="toggleReminder('water')"></button>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px">
-        ⚠️ Напоминания приходят в Telegram от бота в выбранный час
-      </div>
-    </div>
-
-    <button class="sett-save-btn" onclick="saveSettings()">💾 Сохранить</button>
-  </div>
-
-  <div class="page" id="page-refpage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">👥 Пригласить друга</div>
-    <div class="stat-card" style="font-size:13px;line-height:1.6;color:var(--muted)">
-      За каждого друга который зарегистрируется по твоей ссылке и добавит первую еду —
-      ты получаешь <strong style="color:var(--green)">+7 дней Premium</strong>!
-    </div>
-    <div class="stat-card">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Твоя реферальная ссылка:</div>
-      <div class="ref-link-box" id="ref-link-box" onclick="refCopyLink()">Загрузка...</div>
-      <button class="ref-copy-btn" onclick="refCopyLink()">📋 Скопировать ссылку</button>
-      <button class="ref-share-btn" id="ref-share-btn" onclick="refShare()">📤 Поделиться</button>
-    </div>
-    <div class="stat-card">
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px">📊 Твоя статистика</div>
-      <div class="ref-stat-row">
-        <div class="ref-stat-box">
-          <div class="ref-stat-val" id="ref-count">—</div>
-          <div class="ref-stat-lbl">Приглашено</div>
-        </div>
-        <div class="ref-stat-box">
-          <div class="ref-stat-val" id="ref-earned">—</div>
-          <div class="ref-stat-lbl">Дней заработано</div>
-        </div>
-        <div class="ref-stat-box">
-          <div class="ref-stat-val" id="ref-limit">10</div>
-          <div class="ref-stat-lbl">Лимит/месяц</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="page" id="page-prempage">
-    <div id="prem-status-card" class="prem-status-card free">
-      <div class="prem-status-icon" id="prem-icon">🆓</div>
-      <div class="prem-status-title" id="prem-title">Бесплатный план</div>
-      <div class="prem-status-sub" id="prem-sub">Обновись до Premium</div>
-    </div>
-    <div class="prem-features">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px">⭐ Premium даёт:</div>
-      <div class="prem-feature">✅ Безлимитный AI-нутрициолог</div>
-      <div class="prem-feature">✅ Безлимитный планировщик питания</div>
-      <div class="prem-feature">✅ Безлимитные рецепты</div>
-      <div class="prem-feature">✅ PDF отчёт за 90 дней</div>
-      <div class="prem-feature">✅ Полная история веса</div>
-    </div>
-    <div id="prem-buy-section">
-      <div class="prem-plan-card selected" id="plan-1m" onclick="selectPlan('1m',this)">
-        <div class="prem-plan-left"><h3>1 месяц</h3><p>30 дней доступа</p></div>
-        <div class="prem-plan-price">299 ⭐</div>
-      </div>
-      <div class="prem-plan-card" id="plan-3m" onclick="selectPlan('3m',this)">
-        <div class="prem-plan-left"><h3>3 месяца</h3><p>90 дней · экономия 14%</p></div>
-        <div class="prem-plan-price">749 ⭐</div>
-      </div>
-      <div class="prem-plan-card" id="plan-12m" onclick="selectPlan('12m',this)">
-        <div class="prem-plan-left"><h3>12 месяцев</h3><p>365 дней · экономия 44%</p></div>
-        <div class="prem-plan-price">1990 ⭐</div>
-      </div>
-      <button class="prem-buy-btn" onclick="premBuyStars()">⭐ Купить через Telegram Stars</button>
-      <button class="prem-card-btn" onclick="premBuyCard()">💳 Оплата картой (РФ)</button>
-    </div>
-  </div>
-
-  <div class="page" id="page-helppage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">❓ Помощь</div>
-    <div class="stat-card">
-      <div style="font-size:13px;line-height:1.6">
-        🤖 <strong>NutriO</strong> — умный дневник питания.<br>
-        Добавляй еду фото, голосом или вручную.<br>
-        Следи за КБЖУ, водой и прогрессом.
-      </div>
-    </div>
-    <div style="font-weight:700;font-size:13px;color:var(--muted);margin:12px 0 8px">ЧАСТЫЕ ВОПРОСЫ</div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как добавить еду? <span>▼</span></div>
-      <div class="help-faq-a">Используй вкладку 📷 (сканер или фото) или ✍️ (вручную). В боте также доступен голосовой ввод и анализ фото блюда.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает ХЕ? <span>▼</span></div>
-      <div class="help-faq-a">Хлебная единица (ХЕ) = 12г углеводов. Используется для учёта углеводов при диабете. Норма 17–25 ХЕ/день. Смотри вкладку 🧮 → ХЕ.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Что такое Premium? <span>▼</span></div>
-      <div class="help-faq-a">Premium даёт безлимитный AI-нутрициолог, планировщик питания, рецепты и PDF за 90 дней. Без Premium — 3 AI запроса, 1 план и 5 рецептов в месяц.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает реферальная программа? <span>▼</span></div>
-      <div class="help-faq-a">Пригласи друга по своей ссылке. Когда он зарегистрируется и добавит первую еду — ты получишь +7 дней Premium. Лимит 10 рефералов в месяц.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как импортировать данные? <span>▼</span></div>
-      <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные из приложения и загрузи файл.</div></div>
-    <div style="margin-top:16px">
-      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenBot()">💬 Написать в поддержку</button>
-      <button class="help-support-btn" style="background:var(--bg2);color:var(--text)" onclick="helpOpenBot()">🤖 Открыть бота</button>
-    </div>
-  </div>
-
-  <div class="page" id="page-adminpage">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-weight:700;font-size:15px">🔧 Админ-панель</div>
-      <div style="font-size:11px;color:var(--accent2)" id="adm-admin-label">—</div>
-    </div>
-    <div class="adm-nav">
-      <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
-      <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
-      <button class="adm-nav-btn"        id="adm-btn-payments" onclick="admSection('payments')">💳 Оплаты</button>
-    </div>
-
-    <!-- Dashboard -->
-    <div class="adm-section active" id="adm-section-dash">
-      <div class="adm-kpi-row">
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
-      </div>
-      <div class="stat-card" id="adm-pending-card" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:700">💳 Ожидают оплаты</span>
-          <span class="adm-badge adm-badge-prem" id="adm-pending-cnt">0</span>
-        </div>
-        <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
-      </div>
-      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDash()">🔄 Обновить</button>
-    </div>
-
-    <!-- Users -->
-    <div class="adm-section" id="adm-section-users">
-      <div class="adm-search-row">
-        <input type="text" id="adm-search-input" placeholder="Имя, @username или ID..." onkeydown="if(event.key==='Enter')admSearchUsers()">
-        <button onclick="admSearchUsers()">🔍</button>
-      </div>
-      <div id="adm-users-list"></div>
-      <div class="adm-pagination" id="adm-pagination" style="display:none">
-        <button class="adm-page-btn" onclick="admUsersPage(-1)">← Назад</button>
-        <span style="font-size:13px;color:var(--muted)" id="adm-page-info"></span>
-        <button class="adm-page-btn" onclick="admUsersPage(1)">Далее →</button>
-      </div>
-    </div>
-
-    <!-- Payments -->
-    <div class="adm-section" id="adm-section-payments">
-      <div id="adm-payments-list">
-        <div class="ai-loading">Загружаю заявки...</div>
-      </div>
-    </div>
-  </div>
 
 </body>
 </html>
