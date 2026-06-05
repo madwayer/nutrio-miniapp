@@ -1127,7 +1127,13 @@ function renderStats(data) {
           +'<div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:4px;transition:height .4s"></div>'
           +'</div>';
       }).join('');
-      if (lbl) lbl.textContent = wh.map(function(w){ return w.date; }).join('  ');
+      if (lbl) {
+        lbl.innerHTML = '<div style="display:flex;gap:3px">'
+          + wh.map(function(w){
+              return '<div style="flex:1;text-align:center;overflow:hidden;white-space:nowrap;font-size:9px;color:var(--text2)">' + w.date + '</div>';
+            }).join('')
+          + '</div>';
+      }
     }
   }
 }
