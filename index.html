@@ -5,7 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
-<script src="https://telegram.org/js/telegram-web-app.js">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
 // ── Calc helper functions ─────────────────────────────────────────
 function calcSetWeight(w) {
   var inp = document.getElementById('calc-weight-input');
@@ -58,6 +59,22 @@ function calcSelectMeal(meal, btn) {
     btn.style.fontWeight  = '700';
   }
 }
+// Exports from block 0
+window.calcSetWeight   = calcSetWeight;
+window.calcUpdateWeight= calcUpdateWeight;
+window.calcSelectMeal  = calcSelectMeal;
+window.openDatePicker  = openDatePicker;
+window.dpPick          = dpPick;
+window.dpClose         = dpClose;
+window.dpRender        = dpRender;
+window.dpPrevMonth     = dpPrevMonth;
+window.dpNextMonth     = dpNextMonth;
+window.dpClose2        = dpClose2;
+window.editDiaryEntry  = editDiaryEntry;
+window.deditSave       = deditSave;
+window.deditDelete     = deditDelete;
+window.statAddWeight   = statAddWeight;
+
 
 </script>
 <script>
