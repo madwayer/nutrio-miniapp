@@ -3194,97 +3194,123 @@ window.showConfirm      = showConfirm;
   <!-- SCANNER PAGE -->
   <div class="page active" id="page-scanner">
 
-    <div class="scanner-hero" id="scanner-hero">
-      <span class="scanner-icon">📷</span>
-      <h2>Сканер</h2>
-      <p>Наведи камеру на штрихкод или сфотографируй блюдо</p>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button class="btn btn-secondary" id="mode-barcode-btn" onclick="setCameraMode('barcode')" style="flex:1;font-size:13px;">📦 Штрихкод</button>
-      <button class="btn btn-primary"   id="mode-photo-btn"   onclick="setCameraMode('photo')"   style="flex:1;font-size:13px;">🍽 Еда по фото</button>
-    </div>
-
-    <div id="status-area"></div>
-    <div id="video-container">
-      <video id="scanner-video" autoplay playsinline muted></video>
-      <button id="capture-btn-overlay" onclick="capturePhoto()">📸 Сфотографировать</button>
-      <div class="scan-overlay" id="scan-overlay">
-        <div class="scan-frame">
-          <div class="scan-line"></div>
-        </div>
-      </div>
+    <!-- Mode toggle -->
+    <div style="display:flex;background:var(--surface);border-radius:14px;padding:4px;margin-bottom:14px">
+      <button id="scan-mode-barcode" onclick="scanSetMode('barcode')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:var(--accent);color:#fff;transition:all .2s">
+        📦 Штрихкод
+      </button>
+      <button id="scan-mode-photo" onclick="scanSetMode('photo')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:transparent;color:var(--text2);transition:all .2s">
+        🍽 Фото блюда
+      </button>
     </div>
 
-    <div class="product-card" id="product-card">
-      <div class="product-name" id="product-name">—</div>
-      <div class="macros-grid">
-        <div class="macro-item cal">
-          <div class="macro-value" id="m-cal">—</div>
-          <div class="macro-label">ккал</div>
-        </div>
-        <div class="macro-item prot">
-          <div class="macro-value" id="m-prot">—</div>
-          <div class="macro-label">белки</div>
-        </div>
-        <div class="macro-item fat">
-          <div class="macro-value" id="m-fat">—</div>
-          <div class="macro-label">жиры</div>
-        </div>
-        <div class="macro-item carb">
-          <div class="macro-value" id="m-carb">—</div>
-          <div class="macro-label">углев.</div>
+    <!-- Camera area -->
+    <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px">
+      <video id="scan-video" autoplay playsinline muted
+        style="width:100%;display:block;max-height:55vh;object-fit:cover"></video>
+      <!-- Barcode overlay -->
+      <div id="scan-barcode-overlay" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none">
+        <div style="width:70%;max-width:260px;height:100px;border:2px solid var(--accent);border-radius:12px;position:relative">
+          <div id="scan-line" style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);animation:scanline 1.5s linear infinite"></div>
         </div>
       </div>
-      <div class="weight-input-block">
-        <label>Вес порции (граммы)</label>
-        <div class="weight-row">
-          <button class="weight-btn" onclick="adjustWeight(-10)">−</button>
-          <input type="number" class="weight-input" id="weight-input" value="100" min="1" max="2000">
-          <button class="weight-btn" onclick="adjustWeight(10)">+</button>
+      <!-- Photo capture button overlay -->
+      <div id="scan-photo-ctrl" style="display:none;position:absolute;bottom:12px;left:0;right:0;text-align:center">
+        <button onclick="scanCapture()"
+          style="padding:12px 32px;background:rgba(108,99,255,.92);color:#fff;border:none;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;backdrop-filter:blur(4px)">
+          📸 Сфотографировать
+        </button>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="scan-status" style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px"></div>
+
+    <!-- Start button -->
+    <button id="scan-start-btn" onclick="scanStart()"
+      style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-bottom:8px">
+      📷 Открыть камеру
+    </button>
+    <button id="scan-stop-btn" onclick="scanStop()" style="display:none;width:100%;padding:12px;background:var(--surface);color:var(--text2);border:none;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">
+      ⏹ Остановить
+    </button>
+
+    <!-- Barcode result -->
+    <div id="scan-barcode-result" style="display:none;background:var(--surface);border-radius:14px;padding:16px;margin-bottom:10px">
+      <div id="scan-br-name" style="font-size:16px;font-weight:800;margin-bottom:10px">—</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px">
+        <div style="background:rgba(108,99,255,.1);border-radius:10px;padding:10px">
+          <div id="scan-br-cal" style="font-size:18px;font-weight:800;color:var(--accent)">—</div>
+          <div style="font-size:10px;color:var(--text2)">ккал</div>
+        </div>
+        <div style="background:rgba(129,199,132,.1);border-radius:10px;padding:10px">
+          <div id="scan-br-prot" style="font-size:18px;font-weight:800;color:#81c784">—</div>
+          <div style="font-size:10px;color:var(--text2)">белки</div>
+        </div>
+        <div style="background:rgba(255,183,77,.1);border-radius:10px;padding:10px">
+          <div id="scan-br-fat" style="font-size:18px;font-weight:800;color:#ffb74d">—</div>
+          <div style="font-size:10px;color:var(--text2)">жиры</div>
+        </div>
+        <div style="background:rgba(100,181,246,.1);border-radius:10px;padding:10px">
+          <div id="scan-br-carb" style="font-size:18px;font-weight:800;color:#64b5f6">—</div>
+          <div style="font-size:10px;color:var(--text2)">углев</div>
         </div>
       </div>
-      <select class="meal-select" id="meal-select-scanner">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:13px;color:var(--text2)">Порция:</span>
+        <button onclick="scanAdjWeight(-10)" style="width:32px;height:32px;background:var(--surface2);border:none;border-radius:8px;font-size:18px;cursor:pointer;touch-action:manipulation">−</button>
+        <input type="number" id="scan-br-weight" value="100" min="1"
+          style="width:70px;padding:8px;background:var(--bg2);border:none;border-radius:8px;color:var(--text);font-size:16px;text-align:center;font-weight:700">
+        <button onclick="scanAdjWeight(10)"  style="width:32px;height:32px;background:var(--surface2);border:none;border-radius:8px;font-size:18px;cursor:pointer;touch-action:manipulation">+</button>
+        <span style="font-size:13px;color:var(--text2)">г</span>
+      </div>
+      <select id="scan-br-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:10px">
         <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед">☀️ Обед</option>
+        <option value="обед" selected>☀️ Обед</option>
         <option value="ужин">🌙 Ужин</option>
         <option value="перекус">🍎 Перекус</option>
       </select>
-      <button class="btn btn-primary" onclick="saveProduct()">✅ Записать в дневник</button>
-      <button class="btn btn-danger" onclick="resetScanner()">🔄 Сканировать снова</button>
+      <button onclick="scanBrSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">✅ Записать в дневник</button>
+      <button onclick="scanReset()" style="width:100%;padding:11px;background:var(--surface);color:var(--text2);border:none;border-radius:10px;font-size:13px;cursor:pointer;touch-action:manipulation">🔄 Сканировать снова</button>
     </div>
 
-    <button class="btn btn-primary" id="scan-btn" onclick="startScanner()">
-      📷 Открыть камеру
-    </button>
-    <button class="btn btn-secondary" id="stop-btn" onclick="stopScanner()" style="display:none">
-      ⏹ Остановить
-    </button>
-    <div id="photo-result" style="display:none;margin-top:12px;background:var(--surface);border-radius:14px;padding:16px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div id="photo-result-name" style="font-size:16px;font-weight:700;flex:1"></div>
-        <button onclick="photoRename()" style="padding:5px 10px;background:var(--surface2);border:none;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;touch-action:manipulation;white-space:nowrap">✏️ Переименовать</button>
+    <!-- Photo result -->
+    <div id="scan-photo-result" style="display:none;background:var(--surface);border-radius:14px;padding:16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div id="scan-pr-name" style="font-size:16px;font-weight:800;flex:1">—</div>
+        <button onclick="photoRename()" style="padding:5px 10px;background:var(--surface2);border:none;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;touch-action:manipulation">✏️</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px;">
-        <div><div id="pr-cal"  style="font-size:18px;font-weight:700;color:var(--accent);">—</div><div style="font-size:10px;color:var(--text2);">ккал</div></div>
-        <div><div id="pr-prot" style="font-size:18px;font-weight:700;color:#81c784;">—</div><div style="font-size:10px;color:var(--text2);">белки</div></div>
-        <div><div id="pr-fat"  style="font-size:18px;font-weight:700;color:#ffb74d;">—</div><div style="font-size:10px;color:var(--text2);">жиры</div></div>
-        <div><div id="pr-carb" style="font-size:18px;font-weight:700;color:#e57373;">—</div><div style="font-size:10px;color:var(--text2);">углев</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:12px">
+        <div style="background:rgba(108,99,255,.1);border-radius:10px;padding:10px">
+          <div id="scan-pr-cal" style="font-size:18px;font-weight:800;color:var(--accent)">—</div>
+          <div style="font-size:10px;color:var(--text2)">ккал</div>
+        </div>
+        <div style="background:rgba(129,199,132,.1);border-radius:10px;padding:10px">
+          <div id="scan-pr-prot" style="font-size:18px;font-weight:800;color:#81c784">—</div>
+          <div style="font-size:10px;color:var(--text2)">белки</div>
+        </div>
+        <div style="background:rgba(255,183,77,.1);border-radius:10px;padding:10px">
+          <div id="scan-pr-fat" style="font-size:18px;font-weight:800;color:#ffb74d">—</div>
+          <div style="font-size:10px;color:var(--text2)">жиры</div>
+        </div>
+        <div style="background:rgba(100,181,246,.1);border-radius:10px;padding:10px">
+          <div id="scan-pr-carb" style="font-size:18px;font-weight:800;color:#64b5f6">—</div>
+          <div style="font-size:10px;color:var(--text2)">углев</div>
+        </div>
       </div>
-      <div style="margin-bottom:10px;">
-        <select class="meal-select" id="photo-result-meal-type">
-          <option value="завтрак">🌅 Завтрак</option>
-          <option value="обед" selected>☀️ Обед</option>
-          <option value="ужин">🌙 Ужин</option>
-          <option value="перекус">🍎 Перекус</option>
-        </select>
-      </div>
-      <button class="btn btn-primary"   onclick="savePhotoResult()"  style="width:100%;">✅ Записать в дневник</button>
-      <button class="btn btn-secondary" onclick="resetPhotoResult()" style="width:100%;margin-top:8px;">🔄 Сфотографировать снова</button>
+      <select id="scan-pr-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:10px">
+        <option value="завтрак">🌅 Завтрак</option>
+        <option value="обед" selected>☀️ Обед</option>
+        <option value="ужин">🌙 Ужин</option>
+        <option value="перекус">🍎 Перекус</option>
+      </select>
+      <button onclick="scanPhotoSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">✅ Записать в дневник</button>
+      <button onclick="scanReset()" style="width:100%;padding:11px;background:var(--surface);color:var(--text2);border:none;border-radius:10px;font-size:13px;cursor:pointer;touch-action:manipulation">📸 Сфотографировать снова</button>
     </div>
 
   </div>
-
-  <!-- MANUAL PAGE -->
   <div class="page" id="page-manual">
     <div class="section-title" id="lbl-manual-title"></div>
     <div class="input-group">
@@ -6803,110 +6829,9 @@ function setStatus(type, text) {
   area.innerHTML = `<div class="status-badge status-${type}"><div class="status-dot"></div>${text}</div>`;
 }
 
-async function _startBarcodeScanner() {
-  document.getElementById('scan-btn').style.display = 'none';
-  document.getElementById('stop-btn').style.display = 'flex';
-  document.getElementById('scanner-hero').style.display = 'none';
-  document.getElementById('video-container').style.display = 'block';
-  document.getElementById('product-card').classList.remove('show');
 
-  // Скрываем scanner-video — Quagga создаёт свой video элемент
-  var sv = document.getElementById('scanner-video');
-  if (sv) sv.style.display = 'none';
+function stopScanner() { if(typeof scanStop==='function') scanStop(); }
 
-  // Показываем анимацию сканирования
-  var overlay = document.getElementById('scan-overlay');
-  if (overlay) overlay.style.display = 'flex';
-
-  setStatus('scanning', 'Ищу штрихкод...');
-  detecting = true;
-
-  if (typeof Quagga === 'undefined') {
-    showToast('Библиотека сканера не загружена', 'var(--accent2)');
-    resetScanner();
-    return;
-  }
-
-  try {
-    var videoContainer = document.getElementById('video-container');
-    videoContainer.classList.remove('photo-mode');
-
-    // Small delay to ensure previous stream is fully released
-    await new Promise(function(r){ setTimeout(r, 300); });
-
-    Quagga.init({
-      inputStream: {
-        name: 'Live',
-        type: 'LiveStream',
-        target: videoContainer,
-        constraints: {
-          facingMode: 'environment',
-          width:  { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      },
-      decoder: {
-        readers: [
-          'ean_reader',
-          'ean_8_reader',
-          'upc_reader',
-          'upc_e_reader',
-          'code_128_reader',
-        ],
-        multiple: false,
-      },
-      locate: true,
-      numOfWorkers: 0,
-      frequency: 10,
-    }, function(err) {
-      if (err) {
-        showToast('Нет доступа к камере', 'var(--accent2)');
-        resetScanner();
-        return;
-      }
-      Quagga.start();
-      // Show overlay only after camera successfully started
-      var overlay = document.getElementById('scan-overlay');
-      if (overlay) overlay.style.display = 'flex';
-    });
-
-    Quagga.onDetected(function(result) {
-      if (!detecting) return;
-      var code = result.codeResult.code;
-      if (!code || code.length < 8) return;  // фильтруем мусор
-      detecting = false;
-      Quagga.stop();
-      setStatus('scanning', '\u{1F50D} ' + (i18n.searching||'Поиск...') + ' ' + code);
-      lookupBarcode(code);
-    });
-
-  } catch(e) {
-    showToast('Ошибка камеры: ' + e.message, 'var(--accent2)');
-    resetScanner();
-  }
-}
-
-
-function stopScanner() {
-  detecting = false;
-  if (animFrame) { clearTimeout(animFrame); animFrame = null; }
-  // Останавливаем Quagga
-  try { if (typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
-  // Останавливаем ручной стрим (для фото режима)
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  var video = document.getElementById('scanner-video');
-  if (video) { video.srcObject = null; video.style.display = 'block'; }
-  // Убираем видео которое Quagga добавил
-  var vc = document.getElementById('video-container');
-  if (vc) { var vids = vc.querySelectorAll('video'); vids.forEach(function(v) { if(v.id !== 'scanner-video') v.remove(); }); }
-  document.getElementById('video-container').style.display = 'none';
-  var cbo = document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
-  document.getElementById('scan-btn').style.display = 'flex';
-  document.getElementById('stop-btn').style.display = 'none';
-  var cb = document.getElementById('capture-btn'); if(cb) cb.style.display = 'none';
-  document.getElementById('scanner-hero').style.display = 'block';
-  setStatus(null);
-}
 
 async function lookupBarcode(code) {
   setStatus('scanning', `🔍 ${i18n.searching||'Поиск...'}`);
@@ -6919,25 +6844,20 @@ async function lookupBarcode(code) {
   if (!product) product = await tryBotBarcodeDB(code);
 
   if (!product) {
-    const notFound = (LANG === 'ru')
-      ? `Штрихкод ${code} не найден 😔\nПопробуй добавить вручную`
-      : `Barcode ${code} not found 😔\nTry adding manually`;
-    setStatus('scanning', notFound);
-    document.getElementById('scan-btn').style.display = 'flex';
-    document.getElementById('stop-btn').style.display = 'none';
+    _scanSetStatus('Штрихкод ' + code + ' не найден 😔');
+    document.getElementById('scan-start-btn').style.display = 'block';
+    document.getElementById('scan-stop-btn').style.display  = 'none';
     return;
   }
 
-  currentProduct = product;
-  document.getElementById('product-name').textContent = currentProduct.name;
-  document.getElementById('m-cal').textContent = currentProduct.cal;
-  document.getElementById('m-prot').textContent = currentProduct.prot;
-  document.getElementById('m-fat').textContent = currentProduct.fat;
-  document.getElementById('m-carb').textContent = currentProduct.carb;
-  document.getElementById('product-card').classList.add('show');
-  document.getElementById('video-container').style.display = 'none';
-  document.getElementById('stop-btn').style.display = 'none';
-  setStatus('found', `Найдено: ${currentProduct.name}`);
+  // Show result using new UI
+  _onBarcodeFound({
+    name:     product.name,
+    calories: product.cal,
+    protein:  product.prot,
+    fat:      product.fat,
+    carbs:    product.carb
+  });
 }
 
 function parseOFFProduct(data) {
@@ -7053,152 +6973,259 @@ function saveProduct() {
   }
 }
 
-function resetScanner() {
-  currentProduct = null;
-  document.getElementById('product-card').classList.remove('show');
-  startScanner();
+function resetScanner() { if(typeof scanReset==='function') scanReset(); }
+
+
+
+// ════════════════════════════════════════════
+// SCANNER — clean rewrite
+// ════════════════════════════════════════════
+var _scanMode    = 'barcode'; // 'barcode' | 'photo'
+var _scanStream  = null;
+var _scanActive  = false;
+var _scanData    = null;     // last barcode result data
+var photoResultData = null;  // last photo result data
+
+function scanSetMode(mode) {
+  _scanMode = mode;
+  var bb = document.getElementById('scan-mode-barcode');
+  var pb = document.getElementById('scan-mode-photo');
+  if (bb) { bb.style.background = mode==='barcode'?'var(--accent)':'transparent'; bb.style.color = mode==='barcode'?'#fff':'var(--text2)'; }
+  if (pb) { pb.style.background = mode==='photo'  ?'var(--accent)':'transparent'; pb.style.color = mode==='photo'  ?'#fff':'var(--text2)'; }
+  scanReset();
 }
 
-
-var cameraMode = 'barcode';
-var photoResultData = null;
-
-function setCameraMode(mode) {
-  cameraMode = mode;
-  var bb = document.getElementById('mode-barcode-btn');
-  var pb = document.getElementById('mode-photo-btn');
-  var overlay = document.getElementById('scan-overlay');
-  // Always hide overlay first — only show for barcode AFTER camera opens
-  if (overlay) overlay.style.display = 'none';
-  if (mode === 'barcode') {
-    if(bb) bb.className='btn btn-primary';
-    if(pb) pb.className='btn btn-secondary';
-    var cbtn = document.getElementById('capture-btn'); if(cbtn) cbtn.style.display='none';
-    var pr = document.getElementById('photo-result'); if(pr) pr.style.display='none';
-  } else {
-    if(bb) bb.className='btn btn-secondary';
-    if(pb) pb.className='btn btn-primary';
-  }
-  // Stop current stream + Quagga before switching
-  try { if(typeof Quagga!=='undefined') Quagga.stop(); } catch(e){}
-  if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
-  var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
-  // Set photo-mode class for CSS
-  var vc=document.getElementById('video-container');
-  if(vc) { vc.classList.toggle('photo-mode', mode==='photo'); }
-  // Hide overlay capture button
-  var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
-  var sb=document.getElementById('scan-btn');
-  if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📸 Сфотографировать';}
-  var st=document.getElementById('stop-btn'); if(st) st.style.display='none';
-  var cb2=document.getElementById('capture-btn'); if(cb2) cb2.style.display='none';
+function scanStart() {
+  if (_scanMode === 'barcode') _scanStartBarcode();
+  else _scanStartPhoto();
 }
 
-function startScanner() {
-  if (cameraMode === 'photo') {
-    var video = document.getElementById('scanner-video');
-    var container = document.getElementById('video-container');
-    var hero = document.getElementById('scanner-hero');
-    var overlay = document.getElementById('scan-overlay');
-    if (overlay) overlay.style.display = 'none';
-    if (video) video.style.display = 'block';
-    // Stop existing stream first to avoid repeated permission requests
-    if (stream) { stream.getTracks().forEach(function(t){t.stop();}); stream = null; }
-    if (video) video.srcObject = null;
-    function doStartCamera() {
-      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
-        .then(function(s){
-          stream = s;
-          video.srcObject = s;
-          video.play();
-          if(container) container.style.display='block';
-          if(hero) hero.style.display='none';
-          var sb=document.getElementById('scan-btn'); if(sb) sb.style.display='none';
-          var st=document.getElementById('stop-btn'); if(st) st.style.display='block';
-          var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='none';
-          var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='block';
-          // Retry if black screen after 2s
-          setTimeout(function(){
-            if(video.videoWidth === 0 && stream) {
-              stream.getTracks().forEach(function(t){t.stop();}); stream=null;
-              video.srcObject=null;
-              doStartCamera();
-            }
-          }, 2000);
-        })
-        .catch(function(e){ showToast('Нет доступа к камере: '+e.message,'var(--accent2)'); });
-    }
-    doStartCamera();
+function scanStop() {
+  _scanActive = false;
+  // Stop stream
+  if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream = null; }
+  var v = document.getElementById('scan-video'); if(v) v.srcObject = null;
+  // Stop Quagga safely
+  try { if(typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
+  // UI
+  var wrap = document.getElementById('scan-camera-wrap');   if(wrap) wrap.style.display='none';
+  var startBtn = document.getElementById('scan-start-btn'); if(startBtn) startBtn.style.display='block';
+  var stopBtn  = document.getElementById('scan-stop-btn');  if(stopBtn)  stopBtn.style.display='none';
+  var overlay  = document.getElementById('scan-barcode-overlay'); if(overlay) overlay.style.display='none';
+  var photoCtrl = document.getElementById('scan-photo-ctrl'); if(photoCtrl) photoCtrl.style.display='none';
+  _scanSetStatus('');
+}
+
+function scanReset() {
+  scanStop();
+  document.getElementById('scan-barcode-result').style.display = 'none';
+  document.getElementById('scan-photo-result').style.display   = 'none';
+  _scanData = null; photoResultData = null;
+}
+
+function _scanSetStatus(msg) {
+  var el = document.getElementById('scan-status');
+  if (el) el.textContent = msg;
+}
+
+// ── BARCODE ──────────────────────────────────────────────────────
+function _scanStartBarcode() {
+  if (typeof Quagga === 'undefined') {
+    showToast('Библиотека сканера не загружена', 'var(--accent2)');
     return;
   }
-  _startBarcodeScanner();
+  _scanActive = true;
+  var wrap = document.getElementById('scan-camera-wrap');
+  if (wrap) wrap.style.display = 'block';
+  document.getElementById('scan-start-btn').style.display = 'none';
+  document.getElementById('scan-stop-btn').style.display  = 'block';
+  document.getElementById('scan-barcode-result').style.display = 'none';
+  document.getElementById('scan-photo-ctrl').style.display     = 'none';
+  _scanSetStatus('🔍 Ищу штрихкод...');
+
+  var video = document.getElementById('scan-video');
+  if (video) video.style.display = 'none'; // Quagga creates its own
+
+  // Stop any previous Quagga
+  try { Quagga.stop(); } catch(e) {}
+
+  setTimeout(function() {
+    Quagga.init({
+      inputStream: {
+        name: 'Live',
+        type: 'LiveStream',
+        target: document.getElementById('scan-camera-wrap'),
+        constraints: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+      },
+      decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'], multiple: false },
+      locate: true, numOfWorkers: 0, frequency: 10
+    }, function(err) {
+      if (err) {
+        showToast('Нет доступа к камере', 'var(--accent2)');
+        scanStop(); return;
+      }
+      Quagga.start();
+      var overlay = document.getElementById('scan-barcode-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    });
+
+    Quagga.onDetected(function(result) {
+      if (!_scanActive) return;
+      var code = result.codeResult.code;
+      if (!code || code.length < 6) return;
+      _scanActive = false;
+      try { Quagga.stop(); } catch(e) {}
+      _scanSetStatus('🔍 Ищу продукт: ' + code);
+      lookupBarcode(code);
+    });
+  }, 200);
 }
 
-function capturePhoto() {
-  var video = document.getElementById('scanner-video');
-  if(!video || !video.srcObject){ showToast('❌ Камера не запущена','var(--accent2)'); return; }
+// ── PHOTO ────────────────────────────────────────────────────────
+function _scanStartPhoto() {
+  _scanActive = true;
+  var wrap = document.getElementById('scan-camera-wrap');
+  if (wrap) wrap.style.display = 'block';
+  document.getElementById('scan-start-btn').style.display  = 'none';
+  document.getElementById('scan-stop-btn').style.display   = 'block';
+  document.getElementById('scan-photo-result').style.display = 'none';
+  document.getElementById('scan-barcode-overlay').style.display = 'none';
+  _scanSetStatus('');
+
+  var video = document.getElementById('scan-video');
+  if (video) video.style.display = 'block';
+
+  if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
+  if (video) video.srcObject = null;
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:960} }
+  }).then(function(s) {
+    _scanStream = s;
+    if (!_scanActive) { s.getTracks().forEach(function(t){t.stop();}); return; }
+    video.srcObject = s;
+    video.play();
+    document.getElementById('scan-photo-ctrl').style.display = 'block';
+    // Auto-retry if black screen
+    setTimeout(function() {
+      if (_scanStream && video.videoWidth === 0) {
+        _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null;
+        video.srcObject = null;
+        _scanStartPhoto();
+      }
+    }, 2500);
+  }).catch(function(e) {
+    showToast('Нет доступа к камере: ' + e.message, 'var(--accent2)');
+    scanStop();
+  });
+}
+
+function scanCapture() {
+  var video = document.getElementById('scan-video');
+  if (!video || !_scanStream) { showToast('Камера не запущена', 'var(--accent2)'); return; }
   var canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth||640; canvas.height = video.videoHeight||480;
-  canvas.getContext('2d').drawImage(video,0,0);
-  var imageB64 = canvas.toDataURL('image/jpeg',0.8).split(',')[1];
-  var cb = document.getElementById('capture-btn');
-  if(cb){cb.disabled=true; cb.textContent='⏳ Анализирую...';}
-  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){try{var _up=new URLSearchParams(window.location.search);userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id');}catch(e){}}
-  var apiBase = window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy';
-  fetch(apiBase+'/api/photo',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({user_id:userId||0, image:imageB64, meal_type:'другое', save:false})
-  }).then(function(r){return r.json();})
-    .then(function(d){
-      if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
-      var cbo2=document.getElementById('capture-btn-overlay'); if(cbo2){cbo2.disabled=false; cbo2.textContent='📸 Сфотографировать';}
-      if(d.error){showToast('❌ '+d.error,'var(--accent2)');return;}
-      photoResultData = d;
-      var pname = (d.name||'').charAt(0).toUpperCase()+(d.name||'').slice(1);
-      photoResultData.name = pname;
-      document.getElementById('photo-result-name').textContent = pname+' — '+d.weight+'г';
-      document.getElementById('pr-cal').textContent  = d.calories;
-      document.getElementById('pr-prot').textContent = d.protein;
-      document.getElementById('pr-fat').textContent  = d.fat;
-      document.getElementById('pr-carb').textContent = d.carbs;
-      document.getElementById('photo-result').style.display='block';
-      // Stop current stream + Quagga before switching
-  try { if(typeof Quagga!=='undefined') Quagga.stop(); } catch(e){}
-  if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
-  var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
-  // Set photo-mode class for CSS
-  var vc=document.getElementById('video-container');
-  if(vc) { vc.classList.toggle('photo-mode', mode==='photo'); }
-  // Hide overlay capture button
-  var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  var b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+  var captureBtn = document.getElementById('scan-photo-ctrl');
+  _scanSetStatus('⏳ Анализирую...');
+  if (captureBtn) captureBtn.style.display = 'none';
+
+  var userId = typeof getUserId === 'function' ? getUserId() : null;
+  if (!userId) { try { userId = new URLSearchParams(window.location.search).get('user_id') || localStorage.getItem('nutrio_user_id'); } catch(e){} }
+
+  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/photo', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({user_id: userId||0, image: b64, meal_type:'другое', save: false})
+  }).then(function(r){ return r.json(); })
+    .then(function(d) {
+      _scanSetStatus('');
+      if (d.error) { showToast('❌ ' + d.error, 'var(--accent2)'); if(captureBtn) captureBtn.style.display='block'; return; }
+      // Stop camera after capture
+      if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
+      video.srcObject = null;
+      document.getElementById('scan-camera-wrap').style.display = 'none';
+      document.getElementById('scan-stop-btn').style.display    = 'none';
+      document.getElementById('scan-start-btn').style.display   = 'block';
+      // Show result
+      var name = (d.name||'').charAt(0).toUpperCase() + (d.name||'').slice(1);
+      photoResultData = {name:name, weight:d.weight, calories:d.calories, protein:d.protein, fat:d.fat, carbs:d.carbs};
+      document.getElementById('scan-pr-name').textContent = name + ' — ' + d.weight + 'г';
+      document.getElementById('scan-pr-cal').textContent  = d.calories;
+      document.getElementById('scan-pr-prot').textContent = d.protein;
+      document.getElementById('scan-pr-fat').textContent  = d.fat;
+      document.getElementById('scan-pr-carb').textContent = d.carbs;
+      document.getElementById('scan-photo-result').style.display = 'block';
     })
-    .catch(function(){
-      if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
-      var cbo2=document.getElementById('capture-btn-overlay'); if(cbo2){cbo2.disabled=false; cbo2.textContent='📸 Сфотографировать';}
-      showToast('❌ Ошибка подключения','var(--accent2)');
+    .catch(function(e) {
+      _scanSetStatus('');
+      showToast('❌ Ошибка: ' + e.message, 'var(--accent2)');
+      if (captureBtn) captureBtn.style.display = 'block';
     });
 }
 
-function savePhotoResult() {
-  if(!photoResultData) return;
-  var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
-  if(!userId){try{var _up=new URLSearchParams(window.location.search);userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id');}catch(e){}}
-  if(!userId){showToast('❌ Открой из Telegram','var(--accent2)');return;}
-  var mealSel = document.getElementById('photo-result-meal-type');
-  var mealType = (mealSel&&mealSel.value)||'другое';
-  var apiBase = window.NUTRIO_API_BASE||'https://nutrio-miniapp.vercel.app/api/proxy';
-  fetch(apiBase+'/api/manual',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({user_id:userId, food_name:photoResultData.name, meal_type:mealType, weight:photoResultData.weight, calories:photoResultData.calories, protein:photoResultData.protein, fat:photoResultData.fat, carbs:photoResultData.carbs})
-  }).then(function(r){return r.json();})
-    .then(function(d){
-      if(d.ok){showToast('✅ Записано в дневник!'); resetPhotoResult();}
-      else{showToast('❌ '+(d.error||'Ошибка'),'var(--accent2)');}
-    })
-    .catch(function(){showToast('❌ Ошибка подключения','var(--accent2)');});
+function scanPhotoSave() {
+  if (!photoResultData) return;
+  var userId = typeof getUserId === 'function' ? getUserId() : null;
+  if (!userId) { showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
+  var meal = document.getElementById('scan-pr-meal');
+  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/manual', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({user_id:userId, food_name:photoResultData.name,
+      meal_type:(meal&&meal.value)||'другое', weight:photoResultData.weight,
+      calories:photoResultData.calories, protein:photoResultData.protein,
+      fat:photoResultData.fat, carbs:photoResultData.carbs})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.ok){showToast('✅ Записано!','var(--green)'); scanReset();} else showToast('❌'+(d.error||'Ошибка'),'var(--accent2)'); })
+    .catch(function(){ showToast('❌ Ошибка подключения','var(--accent2)'); });
 }
 
+function scanBrSave() {
+  if (!_scanData) return;
+  var userId = typeof getUserId === 'function' ? getUserId() : null;
+  if (!userId) { showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
+  var w    = parseFloat(document.getElementById('scan-br-weight').value) || 100;
+  var meal = document.getElementById('scan-br-meal');
+  var factor = w / 100;
+  var apiBase = window.NUTRIO_API_BASE || 'https://nutrio-miniapp.vercel.app/api/proxy';
+  fetch(apiBase + '/api/manual', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({user_id:userId, food_name:_scanData.name,
+      meal_type:(meal&&meal.value)||'другое', weight:w,
+      calories:Math.round(_scanData.calories*factor), protein:Math.round(_scanData.protein*factor*10)/10,
+      fat:Math.round(_scanData.fat*factor*10)/10, carbs:Math.round(_scanData.carbs*factor*10)/10})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.ok){showToast('✅ Записано!','var(--green)'); scanReset();} else showToast('❌'+(d.error||'Ошибка'),'var(--accent2)'); })
+    .catch(function(){ showToast('❌ Ошибка','var(--accent2)'); });
+}
+
+function scanAdjWeight(delta) {
+  var inp = document.getElementById('scan-br-weight');
+  if (!inp) return;
+  var v = Math.max(1, (parseInt(inp.value)||100) + delta);
+  inp.value = v;
+}
+
+// Called from lookupBarcode (existing function)
+function _onBarcodeFound(data) {
+  _scanData = data;
+  scanStop();
+  var name = (data.name||'').charAt(0).toUpperCase()+(data.name||'').slice(1);
+  _scanData.name = name;
+  document.getElementById('scan-br-name').textContent  = name;
+  document.getElementById('scan-br-cal').textContent   = data.calories || '—';
+  document.getElementById('scan-br-prot').textContent  = data.protein  || '—';
+  document.getElementById('scan-br-fat').textContent   = data.fat      || '—';
+  document.getElementById('scan-br-carb').textContent  = data.carbs    || '—';
+  document.getElementById('scan-barcode-result').style.display = 'block';
+  _scanSetStatus('');
+}
+
+// photoRename uses photoResultData — update to use new name field
 function photoRename() {
   if (!photoResultData) return;
   var existing = document.getElementById('photo-rename-modal');
@@ -7225,21 +7252,23 @@ function photoRenameConfirm() {
   var newName = inp.value.trim().charAt(0).toUpperCase() + inp.value.trim().slice(1);
   var overlay = document.getElementById('photo-rename-modal');
   if (overlay) document.body.removeChild(overlay);
-  photoResultData.name = newName;
-  document.getElementById('photo-result-name').textContent = newName + ' — ' + photoResultData.weight + 'г';
+  if (photoResultData) photoResultData.name = newName;
+  document.getElementById('scan-pr-name').textContent = newName + ' — ' + (photoResultData?photoResultData.weight:'') + 'г';
   showToast('✅ Переименовано', 'var(--green)');
 }
-window.photoRename = photoRename;
-window.photoRenameConfirm = photoRenameConfirm;
-window.photoRenameCancel = function(){ var m=document.getElementById("photo-rename-modal"); if(m) document.body.removeChild(m); };
 
-function resetPhotoResult() {
-  photoResultData = null;
-  var pr = document.getElementById('photo-result');
-  if(pr) pr.style.display='none';
-  var cb = document.getElementById('capture-btn');
-  if(cb) cb.style.display='block';
-}
+window.photoRenameCancel = function(){ var m=document.getElementById('photo-rename-modal'); if(m) document.body.removeChild(m); };
+window.scanSetMode    = scanSetMode;
+window.scanStart      = scanStart;
+window.scanStop       = scanStop;
+window.scanReset      = scanReset;
+window.scanCapture    = scanCapture;
+window.scanPhotoSave  = scanPhotoSave;
+window.scanBrSave     = scanBrSave;
+window.scanAdjWeight  = scanAdjWeight;
+window.photoRename    = photoRename;
+window.photoRenameConfirm = photoRenameConfirm;
+
 
 function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
