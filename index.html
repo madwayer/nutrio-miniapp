@@ -5,7 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
-<script src="https://telegram.org/js/telegram-web-app.js">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
 // ── Diary date picker ─────────────────────────────────────────────
 function openDatePicker() {
   var existing = document.getElementById('datepicker-modal');
@@ -35,7 +36,7 @@ function openDatePicker() {
     var dayName = isToday ? 'Сегодня' : dayNames[d.getDay()];
     var bg  = isSel ? 'var(--accent)' : 'var(--bg2)';
     var col = isSel ? '#fff' : 'var(--text)';
-    return '<button onclick="dpPick('' + ds + '')" '
+    return '<button onclick="dpPick(\'' + ds + '\')" '
       + 'style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;'
       + 'background:' + bg + ';color:' + col + ';border:none;border-radius:10px;'
       + 'margin-bottom:6px;cursor:pointer;touch-action:manipulation;font-size:14px">'
@@ -105,7 +106,7 @@ function editDiaryEntry(id) {
     + '<div style="display:flex;gap:8px;margin-top:4px">'
     + '<button onclick="deditSave(' + id + ')" style="flex:2;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">💾 Сохранить</button>'
     + '<button onclick="deditDelete(' + id + ')" style="flex:1;padding:12px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">🗑 Удалить</button>'
-    + '<button onclick="document.body.removeChild(document.getElementById('diary-edit-modal'))" style="flex:1;padding:12px;background:var(--bg2);color:var(--muted);border:none;border-radius:10px;cursor:pointer;touch-action:manipulation">Отмена</button>'
+    + '<button onclick="document.body.removeChild(document.getElementById(\'diary-edit-modal\'))" style="flex:1;padding:12px;background:var(--bg2);color:var(--muted);border:none;border-radius:10px;cursor:pointer;touch-action:manipulation">Отмена</button>'
     + '</div></div>';
   document.body.appendChild(modal);
 }
