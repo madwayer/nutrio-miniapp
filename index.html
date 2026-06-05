@@ -5,7 +5,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js">
+// ── Calc helper functions ─────────────────────────────────────────
+function calcSetWeight(w) {
+  var inp = document.getElementById('calc-weight-input');
+  if (inp) { inp.value = w; calcUpdateWeight(); }
+  // Highlight selected button
+  document.querySelectorAll('#calc-weight-section button').forEach(function(b) {
+    b.style.background = (parseInt(b.textContent) === w) ? 'var(--accent)' : 'var(--surface)';
+    b.style.color = (parseInt(b.textContent) === w) ? '#fff' : 'var(--text)';
+  });
+}
+
+function calcUpdateWeight() {
+  if (!calcCurrentResult) return;
+  var w = parseFloat(document.getElementById('calc-weight-input').value) || 100;
+  var base = calcCurrentResult._base_cal || (calcCurrentResult.calories / (calcCurrentResult.weight||100) * 100);
+  var factor = w / 100;
+  var kcal = Math.round(base * factor);
+  var wk = document.getElementById('calc-weight-kcal');
+  if (wk) wk.textContent = kcal + ' ккал';
+  // Update result
+  document.getElementById('calc-r-kcal').textContent = kcal;
+  document.getElementById('calc-r-prot').textContent = Math.round((calcCurrentResult._base_prot||calcCurrentResult.protein)*factor*10)/10;
+  document.getElementById('calc-r-fat').textContent  = Math.round((calcCurrentResult._base_fat ||calcCurrentResult.fat)    *factor*10)/10;
+  document.getElementById('calc-r-carb').textContent = Math.round((calcCurrentResult._base_carb||calcCurrentResult.carbs)  *factor*10)/10;
+  var he = Math.round((calcCurrentResult._base_carb||calcCurrentResult.carbs)*factor/12*10)/10;
+  document.getElementById('calc-r-he').textContent = he > 0 ? he + ' ХЕ' : '';
+  // Update current result
+  calcCurrentResult.weight    = w;
+  calcCurrentResult.calories  = kcal;
+  calcCurrentResult.protein   = parseFloat(document.getElementById('calc-r-prot').textContent);
+  calcCurrentResult.fat       = parseFloat(document.getElementById('calc-r-fat').textContent);
+  calcCurrentResult.carbs     = parseFloat(document.getElementById('calc-r-carb').textContent);
+  calcCurrentResult.he        = he;
+}
+
+var _calcSelectedMeal = 'обед';
+function calcSelectMeal(meal, btn) {
+  _calcSelectedMeal = meal;
+  var inp = document.getElementById('calc-meal-select');
+  if (inp) inp.value = meal;
+  document.querySelectorAll('#calc-meal-btns button').forEach(function(b) {
+    b.style.borderColor = 'transparent';
+    b.style.background  = 'var(--surface)';
+    b.style.color       = 'var(--text)';
+    b.style.fontWeight  = '400';
+  });
+  if (btn) {
+    btn.style.borderColor = 'var(--green)';
+    btn.style.background  = 'rgba(67,233,123,.15)';
+    btn.style.fontWeight  = '700';
+  }
+}
+
+</script>
 <script>
 // ── Diary date picker ─────────────────────────────────────────────
 // ── Full calendar picker ─────────────────────────────────────────
@@ -518,15 +572,15 @@ function initCalcPage() {
 
 function setCalcMode(mode) {
   calcMode = mode;
-  var kbzuBtn = document.getElementById('calc-mode-kbzu');
-  var heBtn   = document.getElementById('calc-mode-he');
-  if (kbzuBtn) { kbzuBtn.style.background = mode==='kbzu' ? 'var(--accent)' : 'var(--surface)'; kbzuBtn.style.color = mode==='kbzu' ? '#fff' : 'var(--text2)'; }
-  if (heBtn)   { heBtn.style.background   = mode==='he'   ? 'var(--accent)' : 'var(--surface)'; heBtn.style.color   = mode==='he'   ? '#fff' : 'var(--text2)'; }
-  var kbzuSec = document.getElementById('calc-kbzu-section');
-  var heSec   = document.getElementById('calc-he-section');
-  if (kbzuSec) kbzuSec.style.display = mode === 'kbzu' ? 'block' : 'none';
-  if (heSec)   heSec.style.display   = mode === 'he'   ? 'block' : 'none';
-  if (mode === 'he') loadHeDailyData();
+  var kb = document.getElementById('calc-mode-kbzu');
+  var he = document.getElementById('calc-mode-he');
+  if (kb) { kb.style.background = mode==='kbzu'?'var(--accent)':'transparent'; kb.style.color = mode==='kbzu'?'#fff':'var(--text2)'; }
+  if (he) { he.style.background = mode==='he'  ?'var(--accent)':'transparent'; he.style.color = mode==='he'  ?'#fff':'var(--text2)'; }
+  var ks = document.getElementById('calc-kbzu-section');
+  var hs = document.getElementById('calc-he-section');
+  if (ks) ks.style.display = mode==='kbzu'?'block':'none';
+  if (hs) hs.style.display = mode==='he'  ?'block':'none';
+  if (mode==='he') loadHeDailyData();
 }
 
 // ---- КБЖУ калькулятор ----
@@ -550,6 +604,8 @@ async function calcSearch() {
     document.getElementById('calc-r-carb').textContent = data.carbs;
     document.getElementById('calc-r-he').textContent   = data.he;
     document.getElementById('calc-result-preview').style.display = 'block';
+    document.getElementById('calc-weight-section').style.display = 'block';
+    calcSetWeight(100);
     // Update weight-based kcal preview on weight change
     var wi = document.getElementById('calc-weight-input');
     var wk = document.getElementById('calc-weight-kcal');
@@ -629,14 +685,11 @@ async function calcSave() {
   if (!calcItems.length) return;
   var userId = getUserId();
   if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
-  var meal = document.getElementById('calc-meal-select').value;
+  var meal = _calcSelectedMeal || (document.getElementById('calc-meal-select') ? document.getElementById('calc-meal-select').value : 'другое');
   var btn = document.querySelector('.calc-save-btn');
   if (btn) { btn.textContent = '⏳ Сохраняю...'; btn.disabled = true; }
   try {
-    var res = await apiPost('/api/calculator/save', {meal_type: meal, items: calcItems});
-    var data = res;
-    // hack to keep compatible
-    var data = await res.json();
+    var data = await apiPost('/api/calculator/save', {meal_type: meal, items: calcItems});
     if (data.ok) {
       showToast('✅ Сохранено в дневник!', 'var(--green)');
       calcClear();
@@ -644,7 +697,7 @@ async function calcSave() {
       showToast('Ошибка: ' + (data.error || '?'), 'var(--accent2)');
     }
   } catch(e) {
-    showToast('Ошибка сохранения', 'var(--accent2)');
+    showToast('Ошибка: ' + e.message, 'var(--accent2)');
   } finally {
     if (btn) { btn.textContent = '💾 Сохранить в дневник'; btn.disabled = false; }
   }
@@ -1870,7 +1923,7 @@ document.addEventListener('click', function(e) {
 // ── Global scope exports ─────────────────────────────────────────
 window.openDatePicker=openDatePicker; window.dpPick=dpPick; window.dpClose=dpClose; window.dpRender=dpRender; window.dpPrevMonth=dpPrevMonth; window.dpNextMonth=dpNextMonth; window.dpClose2=dpClose2;
 window.editDiaryEntry = editDiaryEntry; window.deditSave = deditSave; window.deditDelete = deditDelete;
-window.statAddWeight = statAddWeight; window.calcSearch = calcSearch; window.calcAddItem = calcAddItem;
+window.statAddWeight = statAddWeight; window.calcSearch=calcSearch; window.calcSetWeight=calcSetWeight; window.calcUpdateWeight=calcUpdateWeight; window.calcSelectMeal=calcSelectMeal; window.calcAddItem = calcAddItem;
 window.calcSave = calcSave; window.calcClear = calcClear; window.calcQuickAdd = calcQuickAdd;
 window.sugarLogAdd = sugarLogAdd; window.mfShowForm = mfShowForm; window.mfHideForm = mfHideForm;
 window.mfSave = mfSave; window.mfDelete = mfDelete; window.mfUse = mfUse;
@@ -3218,140 +3271,184 @@ window.heSearch = heSearch; window.loadLb = loadLb;
 
 
 <div class="page" id="page-calc">
-    <!-- Mode tabs -->
-    <div style="display:flex;gap:8px;margin-bottom:14px">
+
+    <!-- Mode toggle -->
+    <div style="display:flex;background:var(--surface);border-radius:14px;padding:4px;margin-bottom:16px">
       <button id="calc-mode-kbzu" onclick="setCalcMode('kbzu')"
-        style="flex:1;padding:10px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;background:var(--accent);color:#fff">🧮 КБЖУ</button>
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:var(--accent);color:#fff;transition:all .2s">
+        🧮 Калории
+      </button>
       <button id="calc-mode-he" onclick="setCalcMode('he')"
-        style="flex:1;padding:10px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;background:var(--surface);color:var(--text2)">💉 ХЕ и сахар</button>
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:transparent;color:var(--text2);transition:all .2s">
+        💉 ХЕ / Сахар
+      </button>
     </div>
-    <!-- КБЖУ section -->
+
+    <!-- ══ КБЖУ режим ══ -->
     <div id="calc-kbzu-section">
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="text" id="calc-food-input" placeholder="Название продукта..."
-          onkeydown="if(event.key==='Enter')calcSearch()"
-          style="flex:1;padding:11px 14px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px">
-        <button onclick="calcSearch()" id="calc-search-btn"
-          style="padding:11px 16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;touch-action:manipulation">🔍</button>
+
+      <!-- Step 1: Search -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:8px">ШАГ 1 — ВВЕДИ ПРОДУКТ</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="calc-food-input" placeholder="Например: Гречка, Творог, Яблоко..."
+            onkeydown="if(event.key==='Enter')calcSearch()"
+            style="flex:1;padding:14px 16px;background:var(--surface);border:2px solid transparent;border-radius:14px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+          <button onclick="calcSearch()" id="calc-search-btn"
+            style="padding:14px 20px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:20px;cursor:pointer;touch-action:manipulation;font-weight:700">
+            🔍
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-        <input type="number" id="calc-weight-input" value="100" min="1"
-          style="width:80px;padding:10px;background:var(--surface);border:none;border-radius:10px;color:var(--text);font-size:15px;text-align:center">
-        <span style="color:var(--text2);font-size:13px">г</span>
-        <span id="calc-weight-kcal" style="font-size:12px;color:var(--accent);margin-left:4px"></span>
+
+      <!-- Recent history -->
+      <div id="calc-history" style="margin-bottom:12px"></div>
+
+      <!-- Step 2: Weight (shown after search) -->
+      <div id="calc-weight-section" style="display:none;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:8px">ШАГ 2 — УКАЖИ ВЕС ПОРЦИИ</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button onclick="calcSetWeight(50)"  style="flex:1;padding:12px;background:var(--surface);color:var(--text);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">50г</button>
+          <button onclick="calcSetWeight(100)" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">100г</button>
+          <button onclick="calcSetWeight(150)" style="flex:1;padding:12px;background:var(--surface);color:var(--text);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">150г</button>
+          <button onclick="calcSetWeight(200)" style="flex:1;padding:12px;background:var(--surface);color:var(--text);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">200г</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" id="calc-weight-input" value="100" min="1"
+            oninput="calcUpdateWeight()"
+            style="width:90px;padding:12px;background:var(--surface);border:2px solid var(--accent);border-radius:12px;color:var(--text);font-size:18px;text-align:center;font-weight:700">
+          <span style="color:var(--text2);font-size:14px">грамм</span>
+          <span id="calc-weight-kcal" style="font-size:14px;color:var(--accent);font-weight:700;margin-left:auto"></span>
+        </div>
       </div>
-      <div id="calc-history" style="margin-bottom:8px"></div>
-      <div id="calc-result-preview" style="display:none;background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px">
-        <div id="calc-result-name" style="font-weight:700;font-size:15px;margin-bottom:10px">—</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px">
-          <div style="text-align:center;background:var(--bg2);border-radius:8px;padding:8px">
-            <div id="calc-r-kcal" style="font-weight:800;font-size:13px;color:var(--accent)">0</div>
-            <div style="font-size:9px;color:var(--text2)">ккал</div>
+
+      <!-- Result preview -->
+      <div id="calc-result-preview" style="display:none;background:var(--surface);border-radius:16px;padding:16px;margin-bottom:14px">
+        <div id="calc-result-name" style="font-weight:800;font-size:16px;margin-bottom:12px">—</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:rgba(108,99,255,.15);border-radius:12px;padding:12px;text-align:center">
+            <div id="calc-r-kcal" style="font-size:22px;font-weight:900;color:var(--accent)">0</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">ккал</div>
           </div>
-          <div style="text-align:center;background:var(--bg2);border-radius:8px;padding:8px">
-            <div id="calc-r-prot" style="font-weight:800;font-size:13px;color:#81c784">0</div>
-            <div style="font-size:9px;color:var(--text2)">белки</div>
+          <div style="background:rgba(129,199,132,.15);border-radius:12px;padding:12px;text-align:center">
+            <div id="calc-r-prot" style="font-size:22px;font-weight:900;color:#81c784">0</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">белки</div>
           </div>
-          <div style="text-align:center;background:var(--bg2);border-radius:8px;padding:8px">
-            <div id="calc-r-fat" style="font-weight:800;font-size:13px;color:#ffb74d">0</div>
-            <div style="font-size:9px;color:var(--text2)">жиры</div>
+          <div style="background:rgba(255,183,77,.15);border-radius:12px;padding:12px;text-align:center">
+            <div id="calc-r-fat" style="font-size:22px;font-weight:900;color:#ffb74d">0</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">жиры</div>
           </div>
-          <div style="text-align:center;background:var(--bg2);border-radius:8px;padding:8px">
-            <div id="calc-r-carb" style="font-weight:800;font-size:13px;color:#64b5f6">0</div>
-            <div style="font-size:9px;color:var(--text2)">угл</div>
-          </div>
-          <div style="text-align:center;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:8px;padding:8px">
-            <div id="calc-r-he" style="font-weight:800;font-size:13px;color:#fff">0</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.8)">ХЕ</div>
+          <div style="background:rgba(100,181,246,.15);border-radius:12px;padding:12px;text-align:center">
+            <div id="calc-r-carb" style="font-size:22px;font-weight:900;color:#64b5f6">0</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">углев</div>
           </div>
         </div>
+        <div id="calc-r-he" style="font-size:12px;color:var(--text2);margin-bottom:12px;text-align:right"></div>
         <button onclick="calcAddItem()"
-          style="width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation">➕ Добавить в список</button>
+          style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer;touch-action:manipulation">
+          ➕ Добавить в список
+        </button>
       </div>
-      <div id="calc-items-list"></div>
-      <div id="calc-total-card" style="display:none;background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;letter-spacing:1px">📊 ИТОГО</div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
-          <span id="calc-total-kcal" style="font-size:28px;font-weight:900;color:var(--accent)">0 ккал</span>
-          <span id="calc-total-he" style="font-size:15px;font-weight:700;color:#a855f7">ХЕ: 0</span>
+
+      <!-- Items list -->
+      <div id="calc-items-list" style="margin-bottom:12px"></div>
+
+      <!-- Total + Save -->
+      <div id="calc-total-card" style="display:none;background:var(--surface);border-radius:16px;padding:16px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:10px">ИТОГО В СПИСКЕ</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+          <span id="calc-total-kcal" style="font-size:32px;font-weight:900;color:var(--accent)">0 ккал</span>
+          <span id="calc-total-he" style="font-size:14px;color:#a855f7;font-weight:700"></span>
         </div>
         <div style="display:flex;gap:8px">
-          <div style="flex:1;background:var(--bg2);border-radius:10px;padding:10px;text-align:center">
+          <div style="flex:1;text-align:center;background:rgba(129,199,132,.1);border-radius:10px;padding:10px">
             <div id="calc-total-prot" style="font-size:18px;font-weight:800;color:#81c784">0</div>
             <div style="font-size:10px;color:var(--text2)">Белки</div>
           </div>
-          <div style="flex:1;background:var(--bg2);border-radius:10px;padding:10px;text-align:center">
+          <div style="flex:1;text-align:center;background:rgba(255,183,77,.1);border-radius:10px;padding:10px">
             <div id="calc-total-fat" style="font-size:18px;font-weight:800;color:#ffb74d">0</div>
             <div style="font-size:10px;color:var(--text2)">Жиры</div>
           </div>
-          <div style="flex:1;background:var(--bg2);border-radius:10px;padding:10px;text-align:center">
+          <div style="flex:1;text-align:center;background:rgba(100,181,246,.1);border-radius:10px;padding:10px">
             <div id="calc-total-carb" style="font-size:18px;font-weight:800;color:#64b5f6">0</div>
             <div style="font-size:10px;color:var(--text2)">Углеводы</div>
           </div>
         </div>
       </div>
+
       <div id="calc-save-section" style="display:none">
-        <select id="calc-meal-select"
-          style="width:100%;padding:11px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px;margin-bottom:8px">
-          <option value="завтрак">🌅 Завтрак</option>
-          <option value="обед" selected>☀️ Обед</option>
-          <option value="ужин">🌙 Ужин</option>
-          <option value="перекус">🍎 Перекус</option>
-          <option value="другое">🍽 Другое</option>
-        </select>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:10px">ПРИЁМ ПИЩИ</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px" id="calc-meal-btns">
+          <button onclick="calcSelectMeal('завтрак',this)" style="padding:12px;background:var(--surface);color:var(--text);border:2px solid transparent;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">🌅 Завтрак</button>
+          <button onclick="calcSelectMeal('обед',this)" style="padding:12px;background:var(--surface);color:var(--text);border:2px solid transparent;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">☀️ Обед</button>
+          <button onclick="calcSelectMeal('ужин',this)" style="padding:12px;background:var(--surface);color:var(--text);border:2px solid transparent;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">🌙 Ужин</button>
+          <button onclick="calcSelectMeal('перекус',this)" style="padding:12px;background:var(--surface);color:var(--text);border:2px solid transparent;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">🍎 Перекус</button>
+        </div>
+        <input type="hidden" id="calc-meal-select" value="обед">
         <button onclick="calcSave()" id="calc-save-btn"
-          style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">💾 Сохранить в дневник</button>
+          style="width:100%;padding:16px;background:var(--green);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:17px;cursor:pointer;touch-action:manipulation;margin-bottom:10px">
+          💾 Сохранить в дневник
+        </button>
         <button onclick="calcClear()"
-          style="width:100%;padding:11px;background:var(--surface);color:var(--text2);border:none;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">🗑 Очистить</button>
+          style="width:100%;padding:12px;background:var(--surface);color:var(--text2);border:none;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">
+          🗑 Очистить список
+        </button>
       </div>
     </div>
-    <!-- ХЕ + Sugar section -->
+
+    <!-- ══ ХЕ / Сахар режим ══ -->
     <div id="calc-he-section" style="display:none">
-      <div style="background:var(--surface);border-radius:14px;padding:14px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-weight:700">💉 ХЕ сегодня</div>
+      <div style="background:var(--surface);border-radius:16px;padding:16px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-weight:700;font-size:15px">💉 Хлебные единицы сегодня</div>
           <div style="font-size:11px;color:var(--text2)">норма 17–25 ХЕ</div>
         </div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-          <span id="he-today-val" style="font-size:32px;font-weight:900;color:var(--accent)">—</span>
-          <span style="color:var(--text2);font-size:12px">хлебных единиц</span>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+          <span id="he-today-val" style="font-size:40px;font-weight:900;color:var(--accent)">—</span>
+          <span style="color:var(--text2);font-size:13px">ХЕ из 25</span>
         </div>
-        <div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
-          <div id="he-today-prog" style="height:100%;background:var(--accent);border-radius:3px;transition:width .4s;width:0%"></div>
+        <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden">
+          <div id="he-today-prog" style="height:100%;background:var(--accent);border-radius:4px;transition:width .4s;width:0%"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">1 ХЕ = 12г углеводов</div>
+      </div>
+
+      <div style="background:var(--surface);border-radius:16px;padding:16px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:10px">РАССЧИТАТЬ ХЕ</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="he-food-input" placeholder="Продукт..."
+            onkeydown="if(event.key==='Enter')heSearch()"
+            style="flex:1;padding:13px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:15px">
+          <input type="number" id="he-weight-input" value="100"
+            style="width:80px;padding:13px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:15px;text-align:center">
+          <button onclick="heSearch()"
+            style="padding:13px 16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;touch-action:manipulation">ХЕ</button>
+        </div>
+        <div id="he-result-card" style="display:none;text-align:center;padding:16px;background:var(--bg2);border-radius:12px">
+          <div id="he-result-name" style="font-size:13px;color:var(--text2);margin-bottom:8px">—</div>
+          <div id="he-result-val" style="font-size:56px;font-weight:900;line-height:1;color:var(--accent)">0</div>
+          <div style="font-size:15px;color:var(--text2);margin-top:4px">хлебных единиц</div>
+          <div id="he-result-carbs" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="text" id="he-food-input" placeholder="Продукт..."
-          onkeydown="if(event.key==='Enter')heSearch()"
-          style="flex:1;padding:11px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px">
-        <input type="number" id="he-weight-input" value="100"
-          style="width:72px;padding:10px;background:var(--surface);border:none;border-radius:10px;color:var(--text);font-size:14px;text-align:center">
-        <button onclick="heSearch()"
-          style="padding:10px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">ХЕ</button>
-      </div>
-      <div id="he-result-card" style="display:none;background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center">
-        <div id="he-result-name" style="font-size:13px;color:var(--text2);margin-bottom:6px">—</div>
-        <div id="he-result-val" style="font-size:52px;font-weight:900;line-height:1">0</div>
-        <div id="he-result-label" style="font-size:14px;color:var(--text2);margin-top:4px">ХЕ</div>
-        <div id="he-result-carbs" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
-      </div>
-      <!-- Sugar log -->
-      <div style="background:var(--surface);border-radius:14px;padding:14px">
-        <div style="font-weight:700;font-size:14px;margin-bottom:10px">🩸 Журнал сахара крови</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px">
+
+      <div style="background:var(--surface);border-radius:16px;padding:16px">
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px">🩸 Журнал сахара крови</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
           <input type="number" id="sugar-value-input" placeholder="ммоль/л" step="0.1" min="1" max="30"
-            style="flex:1;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:15px">
+            style="flex:1;padding:13px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:16px">
           <select id="sugar-time-select"
-            style="flex:1;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:12px">
+            style="flex:1;padding:13px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:13px">
             <option value="натощак">Натощак</option>
             <option value="после еды">После еды</option>
             <option value="перед сном">Перед сном</option>
           </select>
           <button onclick="sugarLogAdd()"
-            style="padding:10px 14px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">+</button>
+            style="padding:13px 16px;background:var(--accent2);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:18px;cursor:pointer;touch-action:manipulation">+</button>
         </div>
         <div id="sugar-log-list">
-          <div style="font-size:12px;color:var(--text2);text-align:center;padding:8px">Нет записей сегодня</div>
+          <div style="font-size:13px;color:var(--text2);text-align:center;padding:10px">Нет записей сегодня</div>
         </div>
       </div>
     </div>
