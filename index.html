@@ -1033,6 +1033,7 @@ async function initStatPage() {
 }
 
 function renderStats(data) {
+  var wVal = document.getElementById('stat-weight-val');
   // Стрик
   var el = document.getElementById('stat-streak');
   if (el) el.textContent = data.streak || 0;
