@@ -1118,22 +1118,19 @@ function renderStats(data) {
       var maxW  = Math.max.apply(null, wh.map(function(w){ return w.weight; }));
       var minW  = Math.min.apply(null, wh.map(function(w){ return w.weight; }));
       var range = maxW - minW || 1;
-      var chart = document.getElementById('stat-wh-chart');
-      var lbl   = document.getElementById('stat-wh-labels');
-      if (chart) chart.innerHTML = wh.map(function(w) {
-        var pct = Math.round((w.weight-minW)/range*75+15);
-        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">'
-          +'<div style="font-size:9px;color:var(--text2)">'+w.weight+'</div>'
-          +'<div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:4px;transition:height .4s"></div>'
-          +'</div>';
-      }).join('');
-      if (lbl) {
-        lbl.innerHTML = '<div style="display:flex;gap:3px">'
-          + wh.map(function(w, idx){
-              var show = idx === 0 || idx === wh.length-1 || (wh.length <= 5);
-              return '<div style="flex:1;text-align:center;font-size:9px;color:var(--text2)">' + (show ? w.date : '') + '</div>';
-            }).join('')
-          + '</div>';
+            var chart = document.getElementById('stat-wh-chart');
+      if (chart) {
+        chart.innerHTML = wh.slice().reverse().map(function(w, idx) {
+          var pct   = Math.round((w.weight-minW)/range*70+15);
+          var isNew = idx === 0;
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+            + '<div style="font-size:11px;color:var(--text2);min-width:32px">'+w.date+'</div>'
+            + '<div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden">'
+            +   '<div style="height:100%;width:'+pct+'%;background:'+(isNew?'var(--accent)':'var(--text2)')+';border-radius:4px"></div>'
+            + '</div>'
+            + '<div style="font-size:12px;font-weight:700;color:'+(isNew?'var(--accent)':'var(--text)')+';min-width:40px;text-align:right">'+w.weight+' кг</div>'
+            + '</div>';
+        }).join('');
       }
     }
   }
@@ -2229,17 +2226,37 @@ window.showConfirm      = showConfirm;
   #video-container {
     position: relative;
     border-radius: var(--radius);
-    overflow: visible;
-    margin-bottom: 16px;
+    overflow: hidden;
+    margin-bottom: 12px;
     background: #000;
     display: none;
-    min-height: 300px;
     width: 100%;
+    max-height: 42vh;
   }
-  /* html5-qrcode вставляет свои элементы — убираем лишние стили */
   #video-container video {
     width: 100% !important;
+    max-height: 42vh;
+    object-fit: cover;
     border-radius: var(--radius);
+  }
+  #capture-btn-overlay {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 12px 28px;
+    background: rgba(108,99,255,.9);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+    display: none;
   }
   #video-container canvas {
     display: none !important;
@@ -3186,6 +3203,7 @@ window.showConfirm      = showConfirm;
     <div id="status-area"></div>
     <div id="video-container">
       <video id="scanner-video" autoplay playsinline muted></video>
+      <button id="capture-btn-overlay" onclick="capturePhoto()">📸 Сфотографировать</button>
       <div class="scan-overlay" id="scan-overlay">
         <div class="scan-frame">
           <div class="scan-line"></div>
@@ -3759,8 +3777,7 @@ window.showConfirm      = showConfirm;
         <span id="stat-weight-change" style="font-size:13px;margin-left:4px"></span>
       </div>
       <div id="stat-weight-chart-wrap" style="display:none">
-        <div id="stat-wh-chart" style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-bottom:6px"></div>
-        <div id="stat-wh-labels" style="font-size:10px;color:var(--text2);text-align:center"></div>
+        <div id="stat-wh-chart" style="margin-top:8px"></div>
       </div>
       <div id="stat-weight-empty" style="font-size:12px;color:var(--text2)">Добавь свой вес чтобы отслеживать прогресс</div>
     </div>
@@ -6875,6 +6892,7 @@ function stopScanner() {
   var vc = document.getElementById('video-container');
   if (vc) { var vids = vc.querySelectorAll('video'); vids.forEach(function(v) { if(v.id !== 'scanner-video') v.remove(); }); }
   document.getElementById('video-container').style.display = 'none';
+  var cbo = document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
   document.getElementById('scan-btn').style.display = 'flex';
   document.getElementById('stop-btn').style.display = 'none';
   var cb = document.getElementById('capture-btn'); if(cb) cb.style.display = 'none';
@@ -7053,6 +7071,9 @@ function setCameraMode(mode) {
     if(bb) bb.className='btn btn-secondary';
     if(pb) pb.className='btn btn-primary';
   }
+  // Stop current stream completely before switching
+  if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
+  var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
   if(typeof stopScanner==='function') stopScanner();
   var sb=document.getElementById('scan-btn');
   if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📸 Сфотографировать';}
@@ -7071,17 +7092,30 @@ function startScanner() {
     // Stop existing stream first to avoid repeated permission requests
     if (stream) { stream.getTracks().forEach(function(t){t.stop();}); stream = null; }
     if (video) video.srcObject = null;
-    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
-      .then(function(s){
-        stream = s;
-        video.srcObject = s;
-        if(container) container.style.display='block';
-        if(hero) hero.style.display='none';
-        var sb=document.getElementById('scan-btn'); if(sb) sb.style.display='none';
-        var st=document.getElementById('stop-btn'); if(st) st.style.display='block';
-        var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='block';
-      })
-      .catch(function(){ showToast('Нет доступа к камере','var(--accent2)'); });
+    function doStartCamera() {
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
+        .then(function(s){
+          stream = s;
+          video.srcObject = s;
+          video.play();
+          if(container) container.style.display='block';
+          if(hero) hero.style.display='none';
+          var sb=document.getElementById('scan-btn'); if(sb) sb.style.display='none';
+          var st=document.getElementById('stop-btn'); if(st) st.style.display='block';
+          var cb=document.getElementById('capture-btn'); if(cb) cb.style.display='none';
+          var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='block';
+          // Retry if black screen after 2s
+          setTimeout(function(){
+            if(video.videoWidth === 0 && stream) {
+              stream.getTracks().forEach(function(t){t.stop();}); stream=null;
+              video.srcObject=null;
+              doStartCamera();
+            }
+          }, 2000);
+        })
+        .catch(function(e){ showToast('Нет доступа к камере: '+e.message,'var(--accent2)'); });
+    }
+    doStartCamera();
     return;
   }
   _startBarcodeScanner();
@@ -7113,7 +7147,10 @@ function capturePhoto() {
       document.getElementById('pr-fat').textContent  = d.fat;
       document.getElementById('pr-carb').textContent = d.carbs;
       document.getElementById('photo-result').style.display='block';
-      if(typeof stopScanner==='function') stopScanner();
+      // Stop current stream completely before switching
+  if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
+  var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
+  if(typeof stopScanner==='function') stopScanner();
     })
     .catch(function(){
       if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
