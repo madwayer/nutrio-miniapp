@@ -239,12 +239,14 @@ async function deditSave(id) {
 
 async function deditDelete(id) {
   var userId = getUserId();
-  if (!userId || !confirm('Удалить запись?')) return;
-  var modal = document.getElementById('diary-edit-modal');
-  if (modal) document.body.removeChild(modal);
-  var data = await apiPost('/api/diary/delete', {entry_id: id});
-  if (data.ok) { showToast('Удалено', 'var(--green)'); loadDiary(); }
-  else showToast('Ошибка', 'var(--accent2)');
+  if (!userId) return;
+  showConfirm('Удалить запись?', async function() {
+    var modal = document.getElementById('diary-edit-modal');
+    if (modal) document.body.removeChild(modal);
+    var data = await apiPost('/api/diary/delete', {entry_id: id});
+    if (data.ok) { showToast('Удалено', 'var(--green)'); loadDiary(); }
+    else showToast('Ошибка', 'var(--accent2)');
+  });
 }
 
 
@@ -345,6 +347,26 @@ function statAddWeight() {
   });
 }
 
+
+// ── Custom confirm dialog (replaces browser confirm) ─────────────
+function showConfirm(msg, onYes, onNo) {
+  var existing = document.getElementById('nutrio-confirm');
+  if (existing) document.body.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'nutrio-confirm';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:300px;text-align:center">'
+    + '<div style="font-size:32px;margin-bottom:12px">⚠️</div>'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:20px">' + msg + '</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button id="nc-no"  style="flex:1;padding:12px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:14px;cursor:pointer;touch-action:manipulation">Отмена</button>'
+    + '<button id="nc-yes" style="flex:1;padding:12px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">Удалить</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('nc-yes').onclick = function(){ document.body.removeChild(overlay); if(onYes) onYes(); };
+  document.getElementById('nc-no').onclick  = function(){ document.body.removeChild(overlay); if(onNo)  onNo();  };
+}
+window.showConfirm = showConfirm;
 </script>
 <script>
 // ===== ДНЕВНИК =====
@@ -551,7 +573,7 @@ function toggleMeal(header) {
 async function deleteDiaryEntry(entryId, btn) {
   var userId = getUserId();
   if (!userId) return;
-  if (!confirm('Удалить запись?')) return;
+  showConfirm('Удалить из списка?', function() { calcItems.splice(idx, 1); calcRenderItems(); }); return;
 
   var row = btn.closest('.diary-entry');
   if (row) row.style.opacity = '0.4';
@@ -908,12 +930,14 @@ async function mfSave() {
 
 async function mfDelete(id) {
   var userId = getUserId();
-  if (!userId || !confirm('Удалить продукт?')) return;
-  try {
-    var data = await apiDelete('/api/myfoods', {food_id: id});
-    if (data.ok) { showToast('Удалено', 'var(--green)'); await loadMyFoods(); }
-    else showToast(data.error || 'Ошибка', 'var(--accent2)');
-  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  if (!userId) return;
+  showConfirm('Удалить продукт?', async function() {
+    try {
+      var data = await apiDelete('/api/myfoods', {food_id: id});
+      if (data.ok) { showToast('Удалено', 'var(--green)'); await loadMyFoods(); }
+      else showToast(data.error || 'Ошибка', 'var(--accent2)');
+    } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  });
 }
 
 function mfUse(id) {
@@ -1922,25 +1946,27 @@ async function admLoadPayments() {
 }
 
 async function admConfirmPay(payId) {
-  if (!confirm('Подтвердить оплату #'+payId+'?')) return;
-  try {
-    var data = await _admFetch('confirm_payment', {payment_id:payId});
-    if (data.ok) {
-      showToast('✅ Оплата подтверждена, Premium выдан до '+data.until, 'var(--green)');
-      document.getElementById('adm-pay-'+payId).remove();
-    }
-  } catch(e) {}
+  showConfirm('Подтвердить оплату #'+payId+'?', async function() {
+    try {
+      var data = await _admFetch('confirm_payment', {payment_id:payId});
+      if (data.ok) {
+        showToast('✅ Оплата подтверждена, Premium выдан до '+data.until, 'var(--green)');
+        document.getElementById('adm-pay-'+payId).remove();
+      }
+    } catch(e) {}
+  });
 }
 
 async function admRejectPay(payId) {
-  if (!confirm('Отклонить оплату #'+payId+'?')) return;
-  try {
-    var data = await _admFetch('reject_payment', {payment_id:payId});
-    if (data.ok) {
-      showToast('❌ Отклонено', 'var(--accent2)');
-      document.getElementById('adm-pay-'+payId).remove();
-    }
-  } catch(e) {}
+  showConfirm('Отклонить оплату #'+payId+'?', async function() {
+    try {
+      var data = await _admFetch('reject_payment', {payment_id:payId});
+      if (data.ok) {
+        showToast('❌ Отклонено', 'var(--accent2)');
+        document.getElementById('adm-pay-'+payId).remove();
+      }
+    } catch(e) {}
+  });
 }
 
 
@@ -3022,7 +3048,7 @@ window.heSearch = heSearch; window.loadLb = loadLb;
   <button class="tab" onclick="switchTab('manual')" id="tab-manual"><span class="tab-icon">✍️</span><span class="tab-lbl">Еда</span></button>
   <button class="tab" onclick="switchTab('diary')" id="tab-diary"><span class="tab-icon">📔</span><span class="tab-lbl">Дневник</span></button>
   <button class="tab" onclick="switchTab('calc')" id="tab-calc"><span class="tab-icon">🧮</span><span class="tab-lbl">Кальк.</span></button>
-  <button class="tab" onclick="switchTab('myfoods')" id="tab-myfoods"><span class="tab-icon">⭐</span><span class="tab-lbl">Продукты</span></button>
+  <button class="tab" onclick="switchTab('myfoods')" id="tab-myfoods"><span class="tab-icon">🥗</span><span class="tab-lbl">Продукты</span></button>
   <button class="tab" onclick="switchTab('statpage')" id="tab-statpage"><span class="tab-icon">📊</span><span class="tab-lbl">Стат.</span></button>
   <button class="tab" onclick="switchTab('aipage')" id="tab-aipage"><span class="tab-icon">🤖</span><span class="tab-lbl">AI</span></button>
   <button class="tab" onclick="switchTab('micropage')" id="tab-micropage"><span class="tab-icon">🔬</span><span class="tab-lbl">Микро</span></button>
@@ -3491,75 +3517,99 @@ window.heSearch = heSearch; window.loadLb = loadLb;
 
   <div class="page" id="page-myfoods">
     <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-weight:800;font-size:17px">⭐ Мои продукты</div>
-      <button onclick="mfShowForm(null)" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">+ Добавить</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-weight:800;font-size:18px">🥗 Мои продукты</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">Часто используемые продукты</div>
+      </div>
+      <button onclick="mfShowForm(null)"
+        style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation">
+        + Добавить
+      </button>
     </div>
+
     <!-- Search -->
-    <input type="text" id="mf-search" placeholder="🔍 Поиск продукта..." 
-      style="width:100%;box-sizing:border-box;padding:11px 14px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px;margin-bottom:12px">
+    <input type="text" id="mf-search" placeholder="🔍 Поиск..."
+      oninput="mfRender(this.value)"
+      style="width:100%;box-sizing:border-box;padding:12px 16px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px;margin-bottom:12px">
+
     <!-- List -->
     <div id="mf-list">
-      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов.<br><small>Добавь часто используемые продукты для быстрого доступа</small></div></div>
-    </div>
-    <!-- Add/Edit Form Modal -->
-    <div id="mf-form-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center;">
-      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div id="mf-form-title" style="font-weight:800;font-size:16px">Новый продукт</div>
-          <button onclick="mfHideForm()" style="background:var(--bg2);border:none;color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;touch-action:manipulation">×</button>
-        </div>
-        <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:5px">НАЗВАНИЕ</div>
-          <input type="text" id="mf-f-name" placeholder="Например: Творог 5%" 
-            style="width:100%;box-sizing:border-box;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">КБЖУ НА 100Г</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-          <div>
-            <div style="font-size:10px;color:var(--accent);margin-bottom:4px">🔥 Калории</div>
-            <input type="number" id="mf-f-cal" placeholder="0" min="0"
-              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
-          </div>
-          <div>
-            <div style="font-size:10px;color:#81c784;margin-bottom:4px">💪 Белки, г</div>
-            <input type="number" id="mf-f-prot" placeholder="0" min="0" step="0.1"
-              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
-          </div>
-          <div>
-            <div style="font-size:10px;color:#ffb74d;margin-bottom:4px">🧈 Жиры, г</div>
-            <input type="number" id="mf-f-fat" placeholder="0" min="0" step="0.1"
-              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
-          </div>
-          <div>
-            <div style="font-size:10px;color:#64b5f6;margin-bottom:4px">🍞 Углеводы, г</div>
-            <input type="number" id="mf-f-carb" placeholder="0" min="0" step="0.1"
-              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
-          </div>
-        </div>
-        <button onclick="mfSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation">💾 Сохранить</button>
-        <div id="mf-form-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px"></div>
+      <div class="diary-empty">
+        <div class="diary-empty-icon">🥗</div>
+        <div>Нет продуктов.<br><small style="color:var(--text2)">Добавь свои часто используемые продукты</small></div>
       </div>
     </div>
-    <!-- Use popup (add to diary) -->
-    <div id="mf-use-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center;">
-      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
-        <div id="mf-use-name" style="font-weight:800;font-size:15px;margin-bottom:14px">—</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="font-size:13px;color:var(--muted)">Порция:</div>
-          <input type="number" id="mf-use-weight" value="100" min="1"
-            style="width:80px;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:16px;text-align:center">
-          <div style="font-size:13px;color:var(--muted)">г</div>
-          <div id="mf-use-kcal-preview" style="font-size:13px;color:var(--accent);margin-left:auto"></div>
+
+    <!-- Add/Edit modal -->
+    <div id="mf-form-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center">
+      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div id="mf-form-title" style="font-weight:800;font-size:17px">Новый продукт</div>
+          <button onclick="mfHideForm()" style="background:var(--surface2);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;touch-action:manipulation">×</button>
         </div>
-        <select id="mf-use-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:700">НАЗВАНИЕ</div>
+          <input type="text" id="mf-f-name" placeholder="Например: Творог 5%, Гречка..."
+            style="width:100%;box-sizing:border-box;padding:12px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:15px">
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:700">КБЖУ НА 100Г</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div style="background:rgba(108,99,255,.1);border-radius:12px;padding:12px">
+            <div style="font-size:10px;color:var(--accent);margin-bottom:5px;font-weight:700">🔥 КАЛОРИИ</div>
+            <input type="number" id="mf-f-cal" placeholder="0" min="0"
+              style="width:100%;box-sizing:border-box;padding:8px;background:transparent;border:none;border-bottom:2px solid var(--accent);color:var(--text);font-size:18px;font-weight:700;text-align:center">
+          </div>
+          <div style="background:rgba(129,199,132,.1);border-radius:12px;padding:12px">
+            <div style="font-size:10px;color:#81c784;margin-bottom:5px;font-weight:700">💪 БЕЛКИ, г</div>
+            <input type="number" id="mf-f-prot" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:8px;background:transparent;border:none;border-bottom:2px solid #81c784;color:var(--text);font-size:18px;font-weight:700;text-align:center">
+          </div>
+          <div style="background:rgba(255,183,77,.1);border-radius:12px;padding:12px">
+            <div style="font-size:10px;color:#ffb74d;margin-bottom:5px;font-weight:700">🧈 ЖИРЫ, г</div>
+            <input type="number" id="mf-f-fat" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:8px;background:transparent;border:none;border-bottom:2px solid #ffb74d;color:var(--text);font-size:18px;font-weight:700;text-align:center">
+          </div>
+          <div style="background:rgba(100,181,246,.1);border-radius:12px;padding:12px">
+            <div style="font-size:10px;color:#64b5f6;margin-bottom:5px;font-weight:700">🍞 УГЛЕВ, г</div>
+            <input type="number" id="mf-f-carb" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:8px;background:transparent;border:none;border-bottom:2px solid #64b5f6;color:var(--text);font-size:18px;font-weight:700;text-align:center">
+          </div>
+        </div>
+        <button onclick="mfSave()"
+          style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer;touch-action:manipulation">
+          💾 Сохранить
+        </button>
+        <div id="mf-form-hint" style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px">КБЖУ указывается на 100г продукта</div>
+      </div>
+    </div>
+
+    <!-- Use popup -->
+    <div id="mf-use-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center">
+      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box">
+        <div id="mf-use-name" style="font-weight:800;font-size:16px;margin-bottom:16px">—</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="font-size:14px;color:var(--text2)">Порция:</div>
+          <input type="number" id="mf-use-weight" value="100" min="1" oninput="mfUpdateKcalPreview()"
+            style="width:80px;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:18px;text-align:center;font-weight:700">
+          <div style="font-size:14px;color:var(--text2)">г</div>
+          <div id="mf-use-kcal-preview" style="font-size:16px;color:var(--accent);font-weight:800;margin-left:auto"></div>
+        </div>
+        <select id="mf-use-meal"
+          style="width:100%;padding:12px;background:var(--bg2);border:none;border-radius:12px;color:var(--text);font-size:15px;margin-bottom:12px">
           <option value="завтрак">🌅 Завтрак</option>
           <option value="обед" selected>☀️ Обед</option>
           <option value="ужин">🌙 Ужин</option>
           <option value="перекус">🍎 Перекус</option>
         </select>
-        <button onclick="mfUseConfirm()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">➕ Добавить в дневник</button>
-        <button onclick="mfHideUse()" style="width:100%;padding:11px;background:var(--bg2);color:var(--muted);border:none;border-radius:12px;cursor:pointer;touch-action:manipulation">Отмена</button>
+        <button onclick="mfUseConfirm()"
+          style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">
+          ➕ Добавить в дневник
+        </button>
+        <button onclick="mfHideUse()"
+          style="width:100%;padding:12px;background:var(--bg2);color:var(--text2);border:none;border-radius:12px;font-size:14px;cursor:pointer;touch-action:manipulation">
+          Отмена
+        </button>
       </div>
     </div>
   </div>
