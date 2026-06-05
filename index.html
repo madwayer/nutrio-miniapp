@@ -862,7 +862,29 @@ function renderStats(data) {
           + '<span class="stat-top-name">' + (i+1) + '. ' + escHtml((f.name||'').charAt(0).toUpperCase()+(f.name||'').slice(1)) + '</span>'
           + '<span class="stat-top-count">' + f.count + ' раз</span>'
           + '</div>';
+      
+  // Weight history chart
+  if (data.weight_history && data.weight_history.length > 1) {
+    var wCard = document.getElementById('weight-history-card');
+    if (wCard) {
+      wCard.style.display = 'block';
+      var wh = data.weight_history;
+      var maxW = Math.max.apply(null, wh.map(function(w){ return w.weight; }));
+      var minW = Math.min.apply(null, wh.map(function(w){ return w.weight; }));
+      var range = maxW - minW || 1;
+      var chart  = document.getElementById('weight-history-chart');
+      var lbl    = document.getElementById('weight-history-labels');
+      if (chart) chart.innerHTML = wh.map(function(w) {
+        var pct = Math.round((w.weight-minW)/range*80+10);
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">'
+          +'<div style="font-size:9px;color:var(--text2)">'+w.weight+'</div>'
+          +'<div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:4px"></div>'
+          +'</div>';
       }).join('');
+      if (lbl) lbl.textContent = wh.map(function(w){ return w.date; }).join(' · ');
+    }
+  }
+}).join('');
     }
   }
 }
@@ -872,7 +894,7 @@ function renderStats(data) {
 var aiMode = 'nutri';
 var planDays = 3;
 var recipeFilter = 'random';
-var recipeHistory = [];
+var recipeHistory = []
 
 function initAiPage() { setAiMode(aiMode); }
 
@@ -980,8 +1002,6 @@ async function runRecipe() {
   res.innerHTML = '<div class="ai-loading">👨‍🍳 Генерирую рецепт...</div>';
   try {
     var data = await apiPost('/api/recipe', {lang: lang, filter: recipeFilter, history: recipeHistory});
-    var r = {status: data._limit ? 402 : 200};
-    var data = await r.json();
     if (data._limit || data.error === 'limit') {
       res.innerHTML = _aiLimitMsg(data);
       nextBtn.style.display = 'none';
@@ -3672,28 +3692,67 @@ document.addEventListener('click', function(e) {
   </div>
 
   <div class="page" id="page-helppage">
-    <div style="font-weight:700;font-size:15px;margin-bottom:12px">❓ Помощь</div>
-    <div class="stat-card">
-      <div style="font-size:13px;line-height:1.6">
-        🤖 <strong>NutriO</strong> — умный дневник питания.<br>
-        Добавляй еду фото, голосом или вручную.<br>
-        Следи за КБЖУ, водой и прогрессом.
+    <!-- Header -->
+    <div style="text-align:center;padding:16px 0 20px">
+      <div style="font-size:48px;margin-bottom:8px">🤖</div>
+      <div style="font-weight:800;font-size:20px">NutriO</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px">Умный дневник питания с AI</div>
+    </div>
+    <!-- Quick actions -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button onclick="helpOpenSupport()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">💬 Поддержка</button>
+      <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot')" style="flex:1;padding:12px;background:var(--surface);color:var(--text);border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">🤖 Открыть бота</button>
+    </div>
+    <!-- Feature cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--surface);border-radius:12px;padding:12px">
+        <div style="font-size:22px;margin-bottom:6px">📷</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">Сканер</div>
+        <div style="font-size:11px;color:var(--text2)">Штрихкод или фото блюда</div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:12px">
+        <div style="font-size:22px;margin-bottom:6px">🤖</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">AI-нутрициолог</div>
+        <div style="font-size:11px;color:var(--text2)">Анализ и рекомендации</div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:12px">
+        <div style="font-size:22px;margin-bottom:6px">💉</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">Учёт ХЕ</div>
+        <div style="font-size:11px;color:var(--text2)">Для диабетиков, журнал сахара</div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:12px">
+        <div style="font-size:22px;margin-bottom:6px">📊</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">Статистика</div>
+        <div style="font-size:11px;color:var(--text2)">Графики, ИМТ, прогресс</div>
       </div>
     </div>
-    <div style="font-weight:700;font-size:13px;color:var(--muted);margin:12px 0 8px">ЧАСТЫЕ ВОПРОСЫ</div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как добавить еду? <span>▼</span></div>
-      <div class="help-faq-a">Используй вкладку 📷 (сканер или фото) или ✍️ (вручную). В боте также доступен голосовой ввод и анализ фото блюда.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает ХЕ? <span>▼</span></div>
-      <div class="help-faq-a">Хлебная единица (ХЕ) = 12г углеводов. Используется для учёта углеводов при диабете. Норма 17–25 ХЕ/день. Смотри вкладку 🧮 → ХЕ.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Что такое Premium? <span>▼</span></div>
-      <div class="help-faq-a">Premium даёт безлимитный AI-нутрициолог, планировщик питания, рецепты и PDF за 90 дней. Без Premium — 3 AI запроса, 1 план и 5 рецептов в месяц.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как работает реферальная программа? <span>▼</span></div>
-      <div class="help-faq-a">Пригласи друга по своей ссылке. Когда он зарегистрируется и добавит первую еду — ты получишь +7 дней Premium. Лимит 10 рефералов в месяц.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this)">Как импортировать данные? <span>▼</span></div>
-      <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные из приложения и загрузи файл.</div></div>
-    <div style="margin-top:16px">
-      <button class="help-support-btn" style="background:var(--green);color:#fff" onclick="helpOpenSupport()">💬 Написать в поддержку</button>
-      <button class="help-support-btn" style="background:var(--bg2);color:var(--text)" onclick="helpOpenBot()">🤖 Открыть бота</button>
+    <!-- FAQ -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:8px">ЧАСТЫЕ ВОПРОСЫ</div>
+    <div style="background:var(--surface);border-radius:14px;overflow:hidden;margin-bottom:16px">
+      <div class="help-faq-item" style="border-bottom:1px solid var(--bg2)">
+        <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Как добавить еду? <span>▼</span></div>
+        <div class="help-faq-a">Вкладка 📷 — сфотографируй блюдо или отсканируй штрихкод. Вкладка ✍️ — введи вручную. В боте также работает голосовой ввод и распознавание фото.</div>
+      </div>
+      <div class="help-faq-item" style="border-bottom:1px solid var(--bg2)">
+        <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Как работает ХЕ? <span>▼</span></div>
+        <div class="help-faq-a">Хлебная единица (ХЕ) = 12г углеводов. Используется при диабете для подсчёта углеводов. Норма 17–25 ХЕ/день. Вкладка 🧮 → ХЕ и сахар.</div>
+      </div>
+      <div class="help-faq-item" style="border-bottom:1px solid var(--bg2)">
+        <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Что даёт Premium? <span>▼</span></div>
+        <div class="help-faq-a">Безлимитный AI-нутрициолог, планировщик питания, рецепты и PDF-отчёт за 90 дней. Бесплатно: 3 AI запроса, 1 план, 5 рецептов в месяц.</div>
+      </div>
+      <div class="help-faq-item" style="border-bottom:1px solid var(--bg2)">
+        <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Пригласи друга — получи Premium <span>▼</span></div>
+        <div class="help-faq-a">За каждого друга который зарегистрируется по твоей ссылке и добавит первую еду — ты получишь +7 дней Premium. Ссылка в разделе ⭐ Premium.</div>
+      </div>
+      <div class="help-faq-item">
+        <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Как импортировать данные? <span>▼</span></div>
+        <div class="help-faq-a">Вкладка 📥 поддерживает CSV из MyFitnessPal и FatSecret. Экспортируй данные там, загрузи файл здесь.</div>
+      </div>
+    </div>
+    <!-- Version -->
+    <div style="text-align:center;font-size:11px;color:var(--text2);padding-bottom:8px">
+      NutriO v1.0 · @CaloriePilotAI_Bot
     </div>
   </div>
 
