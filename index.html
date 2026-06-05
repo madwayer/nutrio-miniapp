@@ -679,14 +679,32 @@ function calcRenderItems() {
   document.getElementById('calc-total-carb').textContent = Math.round(totCarb * 10) / 10;
   total.style.display = 'block';
   saveSection.style.display = 'block';
+  // Auto-highlight meal by time
+  var h = new Date().getHours();
+  var autoMeal = h<10 ? 'завтрак' : h<14 ? 'обед' : h<18 ? 'обед' : h<21 ? 'ужин' : 'перекус';
+  var mealBtn = document.querySelector('[onclick*="calcSelectMeal(\''+autoMeal+'\'"]');
+  if (!_calcSelectedMeal || _calcSelectedMeal === 'обед') {
+    _calcSelectedMeal = autoMeal;
+    document.querySelectorAll('#calc-meal-btns button').forEach(function(b) {
+      var isSel = b.textContent.trim().toLowerCase().indexOf(autoMeal) !== -1 || b.getAttribute('onclick').indexOf(autoMeal) !== -1;
+      b.style.borderColor = isSel ? 'var(--green)' : 'transparent';
+      b.style.background  = isSel ? 'rgba(67,233,123,.15)' : 'var(--surface)';
+      b.style.fontWeight  = isSel ? '700' : '400';
+    });
+  }
 }
 
 async function calcSave() {
   if (!calcItems.length) return;
   var userId = getUserId();
   if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
-  var meal = _calcSelectedMeal || (document.getElementById('calc-meal-select') ? document.getElementById('calc-meal-select').value : 'другое');
-  var btn = document.querySelector('.calc-save-btn');
+  // Auto-select meal by time if not manually chosen
+  if (!_calcSelectedMeal || _calcSelectedMeal === 'обед') {
+    var h = new Date().getHours();
+    _calcSelectedMeal = h<10 ? 'завтрак' : h<14 ? 'обед' : h<18 ? 'обед' : h<21 ? 'ужин' : 'перекус';
+  }
+  var meal = _calcSelectedMeal;
+  var btn = document.getElementById('calc-save-btn') || document.querySelector('.calc-save-btn');
   if (btn) { btn.textContent = '⏳ Сохраняю...'; btn.disabled = true; }
   try {
     var data = await apiPost('/api/calculator/save', {meal_type: meal, items: calcItems});
