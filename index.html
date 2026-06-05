@@ -534,33 +534,42 @@ async function loadMyFoods() {
 
 function mfRender(filter) {
   var list = document.getElementById('mf-list');
+  if (!list) return;
   var items = filter ? mfData.filter(function(f) {
     return f.name.toLowerCase().includes(filter.toLowerCase());
   }) : mfData;
   if (!items.length) {
     list.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">⭐</div>'
-      + '<div>' + (filter ? 'Не найдено' : 'Нет своих продуктов') + '</div></div>';
+      + '<div>' + (filter ? 'Ничего не найдено' : 'Нет продуктов') + '</div></div>';
     return;
   }
   list.innerHTML = items.map(function(f) {
-    return '<div class="mf-item">'
-      + '<div class="mf-item-info">'
-      + '<div class="mf-item-name">' + escHtml(f.name) + '</div>'
-      + '<div class="mf-item-macros">🔥 ' + f.calories + ' · Б' + f.protein
-      + ' · Ж' + f.fat + ' · У' + f.carbs + ' (на 100г)</div>'
+    var fname = (f.name||'').charAt(0).toUpperCase()+(f.name||'').slice(1);
+    return '<div style="background:var(--surface);border-radius:14px;padding:14px;margin-bottom:8px">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-weight:700;font-size:14px;margin-bottom:5px">' + escHtml(fname) + '</div>'
+      + '<div style="display:flex;gap:10px;font-size:12px">'
+      + '<span style="color:var(--accent)">🔥 ' + f.calories + '</span>'
+      + '<span style="color:#81c784">Б ' + f.protein + '</span>'
+      + '<span style="color:#ffb74d">Ж ' + f.fat + '</span>'
+      + '<span style="color:#64b5f6">У ' + f.carbs + '</span>'
+      + '<span style="color:var(--text2);font-size:10px">/100г</span>'
+      + '</div></div>'
+      + '<button onclick="mfUse(' + f.id + ')" style="padding:8px 12px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex-shrink:0">+ Добавить</button>'
       + '</div>'
-      + '<div class="mf-item-btns">'
-      + '<button class="mf-btn mf-btn-use" onclick="mfUse(' + f.id + ')" title="В дневник">+</button>'
-      + '<button class="mf-btn mf-btn-edit" onclick="mfShowForm(' + f.id + ')" title="Изменить">✏</button>'
-      + '<button class="mf-btn mf-btn-del" onclick="mfDelete(' + f.id + ')" title="Удалить">✕</button>'
+      + '<div style="display:flex;gap:6px;margin-top:8px">'
+      + '<button onclick="mfShowForm(' + f.id + ')" style="flex:1;padding:7px;background:var(--bg2);color:var(--text2);border:none;border-radius:8px;font-size:12px;cursor:pointer;touch-action:manipulation">✏️ Изменить</button>'
+      + '<button onclick="mfDelete(' + f.id + ')" style="flex:1;padding:7px;background:rgba(255,80,80,.1);color:var(--accent2);border:none;border-radius:8px;font-size:12px;cursor:pointer;touch-action:manipulation">🗑 Удалить</button>'
       + '</div></div>';
   }).join('');
 }
 
 function mfShowForm(id) {
   mfEditId = id;
-  var form  = document.getElementById('mf-form');
-  var title = document.getElementById('mf-form-title');
+  var overlay = document.getElementById('mf-form-overlay');
+  var title   = document.getElementById('mf-form-title');
+  var hint    = document.getElementById('mf-form-hint');
   if (id) {
     var f = mfData.find(function(x) { return x.id === id; });
     if (!f) return;
@@ -569,21 +578,22 @@ function mfShowForm(id) {
     document.getElementById('mf-f-prot').value = f.protein;
     document.getElementById('mf-f-fat').value  = f.fat;
     document.getElementById('mf-f-carb').value = f.carbs;
-    title.textContent = 'Редактировать продукт';
+    if (title) title.textContent = 'Редактировать продукт';
+    if (hint)  hint.textContent  = '';
   } else {
-    document.getElementById('mf-f-name').value = '';
-    document.getElementById('mf-f-cal').value  = '';
-    document.getElementById('mf-f-prot').value = '';
-    document.getElementById('mf-f-fat').value  = '';
-    document.getElementById('mf-f-carb').value = '';
-    title.textContent = 'Новый продукт';
+    ['mf-f-name','mf-f-cal','mf-f-prot','mf-f-fat','mf-f-carb'].forEach(function(id) {
+      var el = document.getElementById(id); if(el) el.value='';
+    });
+    if (title) title.textContent = 'Новый продукт';
+    if (hint)  hint.textContent  = 'КБЖУ вводится на 100г продукта';
   }
-  form.style.display = 'block';
-  document.getElementById('mf-f-name').focus();
+  if (overlay) { overlay.style.display = 'flex'; }
+  setTimeout(function(){ var n=document.getElementById('mf-f-name'); if(n)n.focus(); }, 100);
 }
 
 function mfHideForm() {
-  document.getElementById('mf-form').style.display = 'none';
+  var overlay = document.getElementById('mf-form-overlay');
+  if (overlay) overlay.style.display = 'none';
   mfEditId = null;
 }
 
@@ -627,13 +637,23 @@ async function mfDelete(id) {
 function mfUse(id) {
   mfUseItem = mfData.find(function(x) { return x.id === id; });
   if (!mfUseItem) return;
-  document.getElementById('mf-use-name').textContent = mfUseItem.name + ' (на 100г: ' + mfUseItem.calories + ' ккал)';
+  document.getElementById('mf-use-name').textContent = mfUseItem.name;
   document.getElementById('mf-use-weight').value = '100';
-  document.getElementById('mf-use-popup').style.display = 'block';
+  document.getElementById('mf-use-popup').style.display = 'flex';
+  mfUpdateKcalPreview();
+  document.getElementById('mf-use-weight').oninput = mfUpdateKcalPreview;
+}
+function mfUpdateKcalPreview() {
+  if (!mfUseItem) return;
+  var w = parseFloat(document.getElementById('mf-use-weight').value) || 100;
+  var kcal = Math.round(mfUseItem.calories * w / 100);
+  var preview = document.getElementById('mf-use-kcal-preview');
+  if (preview) preview.textContent = kcal + ' ккал';
 }
 
 function mfHideUse() {
-  document.getElementById('mf-use-popup').style.display = 'none';
+  var p = document.getElementById('mf-use-popup');
+  if (p) p.style.display = 'none';
   mfUseItem = null;
 }
 
@@ -915,8 +935,7 @@ async function initMicroPage() {
     var hasAnyData = data.nutrients.some(function(n) { return n.has_data; });
     if (!hasAnyData) {
       container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">📊</div>'
-        + '<div>Микронутриенты недоступны для добавленных продуктов.<br>'
-        + 'Доступны для продуктов из базы USDA.</div></div>';
+        + '<div>Данные о микронутриентах доступны только для продуктов USDA.<br><small>Добавляй продукты через поиск в Калькуляторе</small></div></div>';
       return;
     }
 
@@ -1350,6 +1369,17 @@ async function initPremPage() {
       title.textContent = 'Premium активен';
       sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';
       buySect.style.display = 'none';
+    }
+    // Load referral data too
+    var rc = document.getElementById('ref-count');
+    var re = document.getElementById('ref-earned');
+    if (rc) rc.textContent = data.referral_count || 0;
+    if (re) re.textContent = (data.referral_count||0) * 7 + ' дн.';
+    // Load ref link
+    var rb = document.getElementById('ref-link-box');
+    if (rb && data.telegram_id) {
+      refLink = 'https://t.me/CaloriePilotAI_Bot?start=ref_' + data.telegram_id;
+      rb.textContent = refLink;
     }
   } catch(e) {}
 }
@@ -2679,7 +2709,6 @@ document.addEventListener('click', function(e) {
   <button class="tab" onclick="switchTab('pdfpage')" id="tab-pdfpage"><span class="tab-icon">📄</span><span class="tab-lbl">PDF</span></button>
   <button class="tab" onclick="switchTab('importpage')" id="tab-importpage"><span class="tab-icon">📥</span><span class="tab-lbl">Импорт</span></button>
   <button class="tab" onclick="switchTab('settingspage')" id="tab-settingspage"><span class="tab-icon">⚙️</span><span class="tab-lbl">Настр.</span></button>
-  <button class="tab" onclick="switchTab('refpage')" id="tab-refpage"><span class="tab-icon">👥</span><span class="tab-lbl">Рефер.</span></button>
   <button class="tab" onclick="switchTab('prempage')" id="tab-prempage"><span class="tab-icon">⭐</span><span class="tab-lbl">Premium</span></button>
   <button class="tab" onclick="switchTab('helppage')" id="tab-helppage"><span class="tab-icon">❓</span><span class="tab-lbl">Помощь</span></button>
   <button class="tab" onclick="switchTab('adminpage')" id="tab-adminpage" style="display:none">🔧</button>
@@ -2928,9 +2957,15 @@ document.addEventListener('click', function(e) {
       </div>
     </div>
 
+    <!-- Вес история -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;" id="weight-history-card" style="display:none">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">⚖️ История веса</div>
+      <div id="weight-history-chart" style="display:flex;align-items:flex-end;gap:3px;height:50px;margin-bottom:6px"></div>
+      <div style="font-size:11px;color:var(--text2);text-align:center" id="weight-history-labels"></div>
+    </div>
     <!-- Кнопка синхронизации -->
-    <button class="btn btn-secondary" onclick="requestProgressData()" id="sync-btn" style="width:100%;"></button>
-    <div id="progress-note" style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px;"></div>
+    <button class="btn btn-secondary" onclick="requestProgressData()" id="sync-btn" style="width:100%;margin-bottom:8px;"></button>
+    <div id="progress-note" style="font-size:11px;color:var(--text2);text-align:center;margin-top:4px;"></div>
   </div>
 
   <!-- GAME PAGE -->
@@ -3043,45 +3078,77 @@ document.addEventListener('click', function(e) {
   </div>
 
 <div class="page" id="page-myfoods">
-    <div class="mf-search-row">
-      <input type="text" id="mf-search" placeholder="Поиск в моих продуктах...">
-      <button class="mf-add-btn" onclick="mfShowForm(null)">+ Новый</button>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-weight:800;font-size:17px">⭐ Мои продукты</div>
+      <button onclick="mfShowForm(null)" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">+ Добавить</button>
     </div>
-    <!-- Форма добавления/редактирования -->
-    <div class="mf-form" id="mf-form" style="display:none">
-      <div class="mf-form-title" id="mf-form-title">Новый продукт</div>
-      <input type="text" id="mf-f-name" placeholder="Название продукта">
-      <div class="mf-form-hint">КБЖУ на 100г:</div>
-      <div class="mf-form-row">
-        <input type="number" id="mf-f-cal"  placeholder="Калории" min="0">
-        <input type="number" id="mf-f-prot" placeholder="Белки" min="0" step="0.1">
-      </div>
-      <div class="mf-form-row">
-        <input type="number" id="mf-f-fat"  placeholder="Жиры" min="0" step="0.1">
-        <input type="number" id="mf-f-carb" placeholder="Углеводы" min="0" step="0.1">
-      </div>
-      <button class="mf-save-btn" onclick="mfSave()">💾 Сохранить</button>
-      <button class="mf-cancel-btn" onclick="mfHideForm()">Отмена</button>
+    <!-- Search -->
+    <input type="text" id="mf-search" placeholder="🔍 Поиск продукта..." 
+      style="width:100%;box-sizing:border-box;padding:11px 14px;background:var(--surface);border:none;border-radius:12px;color:var(--text);font-size:14px;margin-bottom:12px">
+    <!-- List -->
+    <div id="mf-list">
+      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов.<br><small>Добавь часто используемые продукты для быстрого доступа</small></div></div>
     </div>
-    <!-- Попап использования -->
-    <div class="mf-use-popup" id="mf-use-popup">
-      <div style="font-weight:700;margin-bottom:8px" id="mf-use-name">—</div>
-      <div class="calc-weight-row">
-        <input type="number" id="mf-use-weight" value="100" min="1">
-        <span class="calc-weight-lbl">г</span>
+    <!-- Add/Edit Form Modal -->
+    <div id="mf-form-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center;">
+      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div id="mf-form-title" style="font-weight:800;font-size:16px">Новый продукт</div>
+          <button onclick="mfHideForm()" style="background:var(--bg2);border:none;color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;touch-action:manipulation">×</button>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:5px">НАЗВАНИЕ</div>
+          <input type="text" id="mf-f-name" placeholder="Например: Творог 5%" 
+            style="width:100%;box-sizing:border-box;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">КБЖУ НА 100Г</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:10px;color:var(--accent);margin-bottom:4px">🔥 Калории</div>
+            <input type="number" id="mf-f-cal" placeholder="0" min="0"
+              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
+          </div>
+          <div>
+            <div style="font-size:10px;color:#81c784;margin-bottom:4px">💪 Белки, г</div>
+            <input type="number" id="mf-f-prot" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
+          </div>
+          <div>
+            <div style="font-size:10px;color:#ffb74d;margin-bottom:4px">🧈 Жиры, г</div>
+            <input type="number" id="mf-f-fat" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
+          </div>
+          <div>
+            <div style="font-size:10px;color:#64b5f6;margin-bottom:4px">🍞 Углеводы, г</div>
+            <input type="number" id="mf-f-carb" placeholder="0" min="0" step="0.1"
+              style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px">
+          </div>
+        </div>
+        <button onclick="mfSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation">💾 Сохранить</button>
+        <div id="mf-form-hint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px"></div>
       </div>
-      <select class="calc-meal-select" id="mf-use-meal">
-        <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед" selected>☀️ Обед</option>
-        <option value="ужин">🌙 Ужин</option>
-        <option value="перекус">🍎 Перекус</option>
-      </select>
-      <button class="mf-save-btn" onclick="mfUseConfirm()">➕ Добавить в дневник</button>
-      <button class="mf-cancel-btn" onclick="mfHideUse()">Отмена</button>
     </div>
-    <!-- Список -->
-    <div class="mf-list" id="mf-list">
-      <div class="diary-empty"><div class="diary-empty-icon">⭐</div><div>Нет своих продуктов</div></div>
+    <!-- Use popup (add to diary) -->
+    <div id="mf-use-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:flex-end;justify-content:center;">
+      <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
+        <div id="mf-use-name" style="font-weight:800;font-size:15px;margin-bottom:14px">—</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--muted)">Порция:</div>
+          <input type="number" id="mf-use-weight" value="100" min="1"
+            style="width:80px;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:16px;text-align:center">
+          <div style="font-size:13px;color:var(--muted)">г</div>
+          <div id="mf-use-kcal-preview" style="font-size:13px;color:var(--accent);margin-left:auto"></div>
+        </div>
+        <select id="mf-use-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
+          <option value="завтрак">🌅 Завтрак</option>
+          <option value="обед" selected>☀️ Обед</option>
+          <option value="ужин">🌙 Ужин</option>
+          <option value="перекус">🍎 Перекус</option>
+        </select>
+        <button onclick="mfUseConfirm()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">➕ Добавить в дневник</button>
+        <button onclick="mfHideUse()" style="width:100%;padding:11px;background:var(--bg2);color:var(--muted);border:none;border-radius:12px;cursor:pointer;touch-action:manipulation">Отмена</button>
+      </div>
     </div>
   </div>
 
@@ -3430,6 +3497,26 @@ document.addEventListener('click', function(e) {
       <button class="prem-buy-btn" onclick="premBuyStars()">⭐ Купить через Telegram Stars</button>
       <button class="prem-card-btn" onclick="premBuyCard()">💳 Оплата картой (РФ)</button>
     </div>
+    <!-- Referral section -->
+    <div class="prem-features" style="margin-top:12px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">👥 Пригласи друга — получи Premium</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">За каждого друга который зарегистрируется по твоей ссылке и добавит первую еду — ты получаешь <strong style="color:var(--green)">+7 дней Premium</strong>!</div>
+      <div id="ref-link-box" onclick="refCopyLink()" style="background:var(--bg2);border-radius:10px;padding:11px 14px;font-size:12px;word-break:break-all;cursor:pointer;margin-bottom:8px;font-family:monospace">Загрузка ссылки...</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="refCopyLink()" style="flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">📋 Скопировать</button>
+        <button onclick="refShare()" style="flex:1;padding:10px;background:var(--bg2);color:var(--text);border:none;border-radius:10px;font-size:13px;cursor:pointer;touch-action:manipulation">📤 Поделиться</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="flex:1;background:var(--bg2);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:800" id="ref-count">—</div>
+          <div style="font-size:11px;color:var(--muted)">Приглашено</div>
+        </div>
+        <div style="flex:1;background:var(--bg2);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:800" id="ref-earned">—</div>
+          <div style="font-size:11px;color:var(--muted)">Дней заработано</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="page" id="page-helppage">
@@ -3460,8 +3547,8 @@ document.addEventListener('click', function(e) {
 
   <div class="page" id="page-adminpage">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-weight:700;font-size:15px">🔧 Админ-панель</div>
-      <div style="font-size:11px;color:var(--accent2)" id="adm-admin-label">—</div>
+      <div style="font-weight:800;font-size:17px">🔧 Панель управления</div>
+      <div style="font-size:11px;background:var(--accent2);color:#fff;padding:3px 8px;border-radius:6px" id="adm-admin-label">Admin</div>
     </div>
     <div class="adm-nav">
       <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
@@ -6048,7 +6135,6 @@ function switchTab(tab) {
   if (tab === 'pdfpage')   initPdfPage();
   if (tab === 'importpage') initImportPage();
   if (tab === 'settingspage') initSettingsPage();
-  if (tab === 'refpage')      initRefPage();
   if (tab === 'prempage')     initPremPage();
   if (tab === 'helppage')     initHelpPage();
   if (tab === 'adminpage')   initAdminPage();
