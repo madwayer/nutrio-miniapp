@@ -354,19 +354,24 @@ function statAddWeight() {
 }
 
 async function statSaveWeight() {
-  var inp = document.getElementById('weight-modal-input');
-  if (!inp) return;
-  var w = parseFloat(inp.value);
-  if (!w || w < 20 || w > 500) { showToast('Некорректный вес', 'var(--accent2)'); return; }
-  var overlay = document.getElementById('weight-input-modal');
-  if (overlay) document.body.removeChild(overlay);
-  var data = await apiPost('/api/settings', {weight: w});
-  if (data.ok) {
-    showToast('✅ Вес ' + w + ' кг сохранён', 'var(--green)');
-    initStatPage();
-  } else {
-    showToast('Ошибка: ' + (data.error||'?'), 'var(--accent2)');
-  }
+    var w = parseFloat(document.getElementById('weight-input').value);
+    if (isNaN(w)) return;
+    
+    // ПРЯМО ТУТ добавим лог, чтобы увидеть, что мы отправляем
+    console.log("Sending weight update:", {weight: w});
+    
+    var data = await apiPost('/api/settings', {weight: w});
+    
+    // А ТУТ увидим, что ответил сервер
+    console.log("Server response:", data); 
+
+    if (data.ok) {
+        // ... (твой код успеха)
+    } else {
+        // Если ошибка — выведем её текст в консоль и в Toast
+        console.error("Save weight failed:", data);
+        showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'var(--accent2)');
+    }
 }
 window.statAddWeight = statAddWeight;
 window.statSaveWeight = statSaveWeight;
