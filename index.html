@@ -7020,6 +7020,8 @@ function scanStop() {
   var v = document.getElementById('scan-video'); if(v) v.srcObject = null;
   // Stop Quagga safely
   try { if(typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
+  if (typeof _barcodeAnimFrame!=='undefined' && _barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame=null; }
+  if (_barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame=null; }
   // UI
   var wrap = document.getElementById('scan-camera-wrap');   if(wrap) wrap.style.display='none';
   var qrt2 = document.getElementById('scan-qr-target'); if(qrt2) qrt2.style.display='none';
@@ -7044,62 +7046,112 @@ function _scanSetStatus(msg) {
 }
 
 // ── BARCODE ──────────────────────────────────────────────────────
+// ── BARCODE ──────────────────────────────────────────────────────
+var _barcodeAnimFrame = null;
+
 function _scanStartBarcode() {
-  if (typeof Quagga === 'undefined') {
-    showToast('Библиотека сканера не загружена', 'var(--accent2)');
-    return;
-  }
   _scanActive = true;
   var wrap = document.getElementById('scan-camera-wrap');
   if (wrap) wrap.style.display = 'block';
   document.getElementById('scan-start-btn').style.display = 'none';
   document.getElementById('scan-stop-btn').style.display  = 'block';
   document.getElementById('scan-barcode-result').style.display = 'none';
-  var sh=document.getElementById('scan-hero'); if(sh) sh.style.display='none';
   document.getElementById('scan-photo-ctrl').style.display     = 'none';
-  _scanSetStatus('🔍 Ищу штрихкод...');
+  var sh = document.getElementById('scan-hero'); if(sh) sh.style.display='none';
+  _scanSetStatus('📷 Наведи камеру на штрихкод...');
 
   var video = document.getElementById('scan-video');
-  if (video) video.style.display = 'none';
+  if (video) video.style.display = 'block';
   var qrTarget = document.getElementById('scan-qr-target');
-  if (qrTarget) qrTarget.style.display = 'block';
+  if (qrTarget) qrTarget.style.display = 'none';
 
-  // Stop any previous Quagga
+  if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
+  if (video) video.srcObject = null;
   try { Quagga.stop(); } catch(e) {}
+  if (_barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame=null; }
 
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: {ideal:'environment'}, aspectRatio: {ideal: 4/3} }
+  }).then(function(s) {
+    _scanStream = s;
+    if (!_scanActive) { s.getTracks().forEach(function(t){t.stop()}); return; }
+    video.srcObject = s;
+    video.play();
+    var overlay = document.getElementById('scan-barcode-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    video.addEventListener('loadedmetadata', function onMeta() {
+      video.removeEventListener('loadedmetadata', onMeta);
+      if ('BarcodeDetector' in window) {
+        try {
+          var detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+          _scanWithDetector(detector, video);
+        } catch(e) { _scanWithQuagga(video); }
+      } else {
+        _scanWithQuagga(video);
+      }
+    }, {once: true});
+    // If already loaded
+    if (video.readyState >= 2) {
+      if ('BarcodeDetector' in window) {
+        try {
+          var det2 = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+          _scanWithDetector(det2, video);
+        } catch(e) { _scanWithQuagga(video); }
+      } else { _scanWithQuagga(video); }
+    }
+  }).catch(function(e) {
+    showToast('Нет доступа к камере: ' + e.message, 'var(--accent2)');
+    scanStop();
+  });
+}
+
+function _scanWithDetector(detector, video) {
+  if (!_scanActive) return;
+  detector.detect(video).then(function(codes) {
+    if (!_scanActive) return;
+    if (codes && codes.length > 0) {
+      var code = codes[0].rawValue;
+      if (code && code.length >= 6) {
+        _scanActive = false;
+        if (_barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame=null; }
+        _scanSetStatus('🔍 ' + code);
+        lookupBarcode(code);
+        return;
+      }
+    }
+    _barcodeAnimFrame = requestAnimationFrame(function(){ _scanWithDetector(detector, video); });
+  }).catch(function() {
+    _barcodeAnimFrame = requestAnimationFrame(function(){ _scanWithDetector(detector, video); });
+  });
+}
+
+function _scanWithQuagga(video) {
+  if (typeof Quagga === 'undefined') {
+    showToast('Сканер не поддерживается в этом браузере', 'var(--accent2)');
+    return;
+  }
+  try { Quagga.stop(); } catch(e) {}
   setTimeout(function() {
     Quagga.init({
-      inputStream: {
-        name: 'Live',
-        type: 'LiveStream',
-        target: document.getElementById('scan-qr-target'),
-        constraints: { facingMode: 'environment' }
-      },
-      decoder: {
-        readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'],
-        multiple: false
-      },
-      locate: false, numOfWorkers: 0, frequency: 15
+      inputStream: { name:'Live', type:'LiveStream', target: video.parentElement,
+        constraints: { facingMode:'environment' } },
+      decoder: { readers:['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'], multiple:false },
+      locate: true, numOfWorkers: 0, frequency: 15
     }, function(err) {
-      if (err) {
-        showToast('Нет доступа к камере', 'var(--accent2)');
-        scanStop(); return;
-      }
+      if (err) { showToast('Ошибка сканера', 'var(--accent2)'); return; }
       Quagga.start();
-      var overlay = document.getElementById('scan-barcode-overlay');
-      if (overlay) overlay.style.display = 'flex';
     });
-
     Quagga.onDetected(function(result) {
       if (!_scanActive) return;
       var code = result.codeResult.code;
       if (!code || code.length < 6) return;
       _scanActive = false;
       try { Quagga.stop(); } catch(e) {}
-      _scanSetStatus('🔍 Ищу продукт: ' + code);
+      _scanSetStatus('🔍 ' + code);
       lookupBarcode(code);
     });
-  }, 200);
+  }, 300);
 }
 
 // ── PHOTO ────────────────────────────────────────────────────────
@@ -7122,14 +7174,22 @@ function _scanStartPhoto() {
   if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
   if (video) video.srcObject = null;
 
-  // No explicit size = browser picks main rear camera, not ultrawide
-  var camConstraints = { facingMode: {ideal: 'environment'} };
-  // Try to enable autofocus
-  try {
-    camConstraints.focusMode = {ideal: 'continuous'};
-    camConstraints.zoom      = {ideal: 1.0};
-  } catch(e) {}
+  var camConstraints = {
+    facingMode: {ideal: 'environment'},
+    aspectRatio: {ideal: 4/3},
+    width: {min: 640, ideal: 1920},
+    height: {min: 480, ideal: 1440}
+  };
   navigator.mediaDevices.getUserMedia({ video: camConstraints }).then(function(s) {
+    // Check if ultrawide was selected and try to avoid it
+    var track = s.getVideoTracks()[0];
+    if (track) {
+      var settings = track.getSettings();
+      // If aspect ratio is too wide (16:9 or wider), try to apply 4:3 constraint
+      if (settings.width && settings.height && settings.width/settings.height > 1.5) {
+        try { track.applyConstraints({ aspectRatio: {ideal: 4/3} }); } catch(e) {}
+      }
+    }
     _scanStream = s;
     if (!_scanActive) { s.getTracks().forEach(function(t){t.stop();}); return; }
     video.srcObject = s;
