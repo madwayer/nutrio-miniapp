@@ -2231,13 +2231,17 @@ window.showConfirm      = showConfirm;
     background: #000;
     display: none;
     width: 100%;
-    max-height: 42vh;
   }
   #video-container video {
     width: 100% !important;
-    max-height: 42vh;
-    object-fit: cover;
     border-radius: var(--radius);
+  }
+  #video-container.photo-mode {
+    max-height: 52vh;
+  }
+  #video-container.photo-mode video {
+    max-height: 52vh;
+    object-fit: cover;
   }
   #capture-btn-overlay {
     position: absolute;
@@ -3254,9 +3258,6 @@ window.showConfirm      = showConfirm;
     </button>
     <button class="btn btn-secondary" id="stop-btn" onclick="stopScanner()" style="display:none">
       ⏹ Остановить
-    </button>
-    <button class="btn btn-primary" id="capture-btn" onclick="capturePhoto()" style="display:none;margin-top:8px;">
-      📸 Сфотографировать
     </button>
     <div id="photo-result" style="display:none;margin-top:12px;background:var(--surface);border-radius:14px;padding:16px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -6828,6 +6829,10 @@ async function _startBarcodeScanner() {
 
   try {
     var videoContainer = document.getElementById('video-container');
+    videoContainer.classList.remove('photo-mode');
+
+    // Small delay to ensure previous stream is fully released
+    await new Promise(function(r){ setTimeout(r, 300); });
 
     Quagga.init({
       inputStream: {
@@ -7074,10 +7079,15 @@ function setCameraMode(mode) {
     if(bb) bb.className='btn btn-secondary';
     if(pb) pb.className='btn btn-primary';
   }
-  // Stop current stream completely before switching
+  // Stop current stream + Quagga before switching
+  try { if(typeof Quagga!=='undefined') Quagga.stop(); } catch(e){}
   if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
   var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
-  if(typeof stopScanner==='function') stopScanner();
+  // Set photo-mode class for CSS
+  var vc=document.getElementById('video-container');
+  if(vc) { vc.classList.toggle('photo-mode', mode==='photo'); }
+  // Hide overlay capture button
+  var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
   var sb=document.getElementById('scan-btn');
   if(sb){sb.style.display='block'; sb.textContent = mode === 'barcode' ? '📷 Открыть сканер' : '📸 Сфотографировать';}
   var st=document.getElementById('stop-btn'); if(st) st.style.display='none';
@@ -7142,6 +7152,7 @@ function capturePhoto() {
   }).then(function(r){return r.json();})
     .then(function(d){
       if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
+      var cbo2=document.getElementById('capture-btn-overlay'); if(cbo2){cbo2.disabled=false; cbo2.textContent='📸 Сфотографировать';}
       if(d.error){showToast('❌ '+d.error,'var(--accent2)');return;}
       photoResultData = d;
       var pname = (d.name||'').charAt(0).toUpperCase()+(d.name||'').slice(1);
@@ -7152,13 +7163,19 @@ function capturePhoto() {
       document.getElementById('pr-fat').textContent  = d.fat;
       document.getElementById('pr-carb').textContent = d.carbs;
       document.getElementById('photo-result').style.display='block';
-      // Stop current stream completely before switching
+      // Stop current stream + Quagga before switching
+  try { if(typeof Quagga!=='undefined') Quagga.stop(); } catch(e){}
   if(stream) { stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
   var v=document.getElementById('scanner-video'); if(v) { v.srcObject=null; }
-  if(typeof stopScanner==='function') stopScanner();
+  // Set photo-mode class for CSS
+  var vc=document.getElementById('video-container');
+  if(vc) { vc.classList.toggle('photo-mode', mode==='photo'); }
+  // Hide overlay capture button
+  var cbo=document.getElementById('capture-btn-overlay'); if(cbo) cbo.style.display='none';
     })
     .catch(function(){
       if(cb){cb.disabled=false; cb.textContent='📸 Сфотографировать';}
+      var cbo2=document.getElementById('capture-btn-overlay'); if(cbo2){cbo2.disabled=false; cbo2.textContent='📸 Сфотографировать';}
       showToast('❌ Ошибка подключения','var(--accent2)');
     });
 }
