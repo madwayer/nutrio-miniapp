@@ -7072,7 +7072,7 @@ function _scanStartBarcode() {
         name: 'Live',
         type: 'LiveStream',
         target: document.getElementById('scan-qr-target'),
-        constraints: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+        constraints: { facingMode: 'environment' }
       },
       decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'], multiple: false },
       locate: true, numOfWorkers: 0, frequency: 10
@@ -7118,9 +7118,14 @@ function _scanStartPhoto() {
   if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
   if (video) video.srcObject = null;
 
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
-  }).then(function(s) {
+  // No explicit size = browser picks main rear camera, not ultrawide
+  var camConstraints = { facingMode: {ideal: 'environment'} };
+  // Try to enable autofocus
+  try {
+    camConstraints.focusMode = {ideal: 'continuous'};
+    camConstraints.zoom      = {ideal: 1.0};
+  } catch(e) {}
+  navigator.mediaDevices.getUserMedia({ video: camConstraints }).then(function(s) {
     _scanStream = s;
     if (!_scanActive) { s.getTracks().forEach(function(t){t.stop();}); return; }
     video.srcObject = s;
@@ -7143,11 +7148,13 @@ function _scanStartPhoto() {
 function scanCapture() {
   var video = document.getElementById('scan-video');
   if (!video || !_scanStream) { showToast('Камера не запущена', 'var(--accent2)'); return; }
+  // Pause video to get sharp frozen frame
+  try { video.pause(); } catch(e) {}
   var canvas = document.createElement('canvas');
-  canvas.width  = video.videoWidth  || 640;
-  canvas.height = video.videoHeight || 480;
+  canvas.width  = video.videoWidth  || 1280;
+  canvas.height = video.videoHeight || 960;
   canvas.getContext('2d').drawImage(video, 0, 0);
-  var b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  var b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
 
   var captureBtn = document.getElementById('scan-photo-ctrl');
   _scanSetStatus('⏳ Анализирую...');
