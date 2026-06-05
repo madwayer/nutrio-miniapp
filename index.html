@@ -3319,7 +3319,7 @@ window.showConfirm      = showConfirm;
       </select>
       
       <button onclick="scanPhotoSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">✅ Записать в дневник</button>
-      <button onclick="scanReset()" style="width:100%;padding:11px;background:var(--surface);color:var(--text2);border:none;border-radius:10px;font-size:13px;cursor:pointer;touch-action:manipulation">📸 Сфотографировать снова</button>
+      <button onclick="scanPhotoAgain()" style="width:100%;padding:11px;background:var(--surface);color:var(--text);border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">📸 Сфотографировать снова</button>
     </div>
 
   </div>
@@ -7074,8 +7074,12 @@ function _scanStartBarcode() {
         target: document.getElementById('scan-qr-target'),
         constraints: { facingMode: 'environment' }
       },
-      decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'], multiple: false },
-      locate: true, numOfWorkers: 0, frequency: 10
+      decoder: {
+        readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader'],
+        multiple: false,
+        debug: { drawBoundingBox: false, showFrequency: false, drawScanline: true, showPattern: false }
+      },
+      locate: true, numOfWorkers: 0, frequency: 5
     }, function(err) {
       if (err) {
         showToast('Нет доступа к камере', 'var(--accent2)');
@@ -7292,6 +7296,14 @@ function photoRenameConfirm() {
 }
 
 window.photoRenameCancel = function(){ var m=document.getElementById('photo-rename-modal'); if(m) document.body.removeChild(m); };
+
+function scanPhotoAgain() {
+  photoResultData = null;
+  document.getElementById('scan-photo-result').style.display = 'none';
+  // restart photo camera directly
+  _scanStartPhoto();
+}
+window.scanPhotoAgain = scanPhotoAgain;
 window.scanSetMode    = scanSetMode;
 window.scanStart      = scanStart;
 window.scanStop       = scanStop;
