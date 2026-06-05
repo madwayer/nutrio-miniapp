@@ -10,38 +10,79 @@
 function openDatePicker() {
   var existing = document.getElementById('datepicker-modal');
   if (existing) { document.body.removeChild(existing); return; }
+
   var modal = document.createElement('div');
   modal.id = 'datepicker-modal';
   modal.className = 'datepicker-modal';
-  var today = new Date().toISOString().split('T')[0];
-  var cur   = diaryDateStr(diaryDate);
-  modal.innerHTML = '<div class="datepicker-box">'
-    + '<div style="font-weight:700;margin-bottom:12px">📅 Выбери дату</div>'
-    + '<input type="date" id="datepicker-input" max="' + today + '" value="' + cur + '">'
-    + '<button class="datepicker-confirm" onclick="confirmDatePick()">Перейти</button>'
-    + '</div>';
-  modal.addEventListener('click', function(e){ if(e.target===modal) document.body.removeChild(modal); });
+
+  // Build last 14 days list
+  var days = [];
+  var today = new Date(); today.setHours(0,0,0,0);
+  for (var i = 0; i < 14; i++) {
+    var d = new Date(today); d.setDate(today.getDate() - i);
+    days.push(d);
+  }
+
+  var dayNames = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  var monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+  var curStr = diaryDateStr(diaryDate);
+  var btns = days.map(function(d) {
+    var ds  = diaryDateStr(d);
+    var isToday = ds === diaryDateStr(new Date());
+    var isSel   = ds === curStr;
+    var dayNum  = d.getDate();
+    var dayName = isToday ? 'Сегодня' : dayNames[d.getDay()];
+    var bg  = isSel ? 'var(--accent)' : 'var(--bg2)';
+    var col = isSel ? '#fff' : 'var(--text)';
+    return '<button onclick="dpPick('' + ds + '')" '
+      + 'style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;'
+      + 'background:' + bg + ';color:' + col + ';border:none;border-radius:10px;'
+      + 'margin-bottom:6px;cursor:pointer;touch-action:manipulation;font-size:14px">'
+      + '<span style="font-weight:700;min-width:28px">' + dayNum + '</span>'
+      + '<span style="color:' + (isSel?'rgba(255,255,255,.8)':'var(--text2)') + ';font-size:12px">'
+      + monthNames[d.getMonth()] + ' · ' + dayName + '</span>'
+      + (isSel ? '<span style="margin-left:auto">✓</span>' : '')
+      + '</button>';
+  }).join('');
+
+  modal.innerHTML = '<div class="datepicker-box" style="max-height:80vh;overflow-y:auto">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    + '<div style="font-weight:700;font-size:15px">📅 Выбери дату</div>'
+    + '<button onclick="dpClose()" style="background:var(--bg2);border:none;color:var(--muted);'
+    + 'width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px">×</button>'
+    + '</div>' + btns + '</div>';
+
+  modal.addEventListener('click', function(e){ if(e.target===modal) dpClose(); });
   document.body.appendChild(modal);
 }
-function confirmDatePick() {
-  var val = document.getElementById('datepicker-input').value;
+
+function dpPick(dateStr) {
+  dpClose();
+  diaryDate = new Date(dateStr + 'T12:00:00');
+  loadDiary();
+}
+
+function dpClose() {
   var modal = document.getElementById('datepicker-modal');
   if (modal) document.body.removeChild(modal);
-  if (!val) return;
-  diaryDate = new Date(val + 'T12:00:00');
-  loadDiary();
 }
 
 // ── Diary edit entry ──────────────────────────────────────────────
 function editDiaryEntry(id) {
+  id = parseInt(id);
   // Find entry in cached diary data
   var entry = null;
   if (diaryData && diaryData.meals) {
     Object.values(diaryData.meals).forEach(function(meals) {
-      meals.forEach(function(e) { if (e.id === id) entry = e; });
+      if (!Array.isArray(meals)) return;
+      meals.forEach(function(e) { if (parseInt(e.id) === id) entry = e; });
     });
   }
-  if (!entry) { showToast('Запись не найдена', 'var(--accent2)'); return; }
+  if (!entry) {
+    // Fallback: create minimal entry for editing
+    entry = {id: id, name: '', calories: 0, protein: 0, fat: 0, carbs: 0};
+  }
 
   var existing = document.getElementById('diary-edit-modal');
   if (existing) document.body.removeChild(existing);
