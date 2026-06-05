@@ -8574,3 +8574,63 @@ try {
 
 </body>
 </html>
+// Expose all functions to global scope explicitly
+window.openDatePicker  = openDatePicker;
+window.dpPick          = dpPick;
+window.dpClose         = dpClose;
+window.confirmDatePick = function(v){ dpPick(v); };
+window.editDiaryEntry  = editDiaryEntry;
+window.deditSave       = deditSave;
+window.deditDelete     = deditDelete;
+window.statAddWeight   = statAddWeight;
+window.calcSearch      = calcSearch;
+window.calcAddItem     = calcAddItem;
+window.calcSave        = calcSave;
+window.calcClear       = calcClear;
+window.calcSaveHistory = calcSaveHistory;
+window.calcQuickAdd    = calcQuickAdd;
+window.sugarLogAdd     = sugarLogAdd;
+window.mfShowForm      = mfShowForm;
+window.mfHideForm      = mfHideForm;
+window.mfSave          = mfSave;
+window.mfDelete        = mfDelete;
+window.mfUse           = mfUse;
+window.mfHideUse       = mfHideUse;
+window.mfUseConfirm    = mfUseConfirm;
+window.loadDiary       = loadDiary;
+window.diaryPrevDay    = diaryPrevDay;
+window.diaryNextDay    = diaryNextDay;
+window.selectPdfDays   = selectPdfDays;
+window.downloadPdf     = downloadPdf;
+window.initRefPage     = initRefPage;
+window.refCopyLink     = refCopyLink;
+window.refShare        = refShare;
+window.initPremPage    = initPremPage;
+window.selectPlan      = selectPlan;
+window.premBuyStars    = premBuyStars;
+window.premBuyCard     = premBuyCard;
+window.toggleFaq       = toggleFaq;
+window.helpOpenBot     = helpOpenBot;
+window.helpOpenSupport = helpOpenSupport;
+window.openTgLink      = openTgLink;
+window.admSection      = admSection;
+window.admLoadDash     = admLoadDash;
+window.admLoadUsers    = admLoadUsers;
+window.admSearchUsers  = admSearchUsers;
+window.admUsersPage    = admUsersPage;
+window.admSetPremium   = admSetPremium;
+window.admUserDetail   = admUserDetail;
+window.admLoadPayments = admLoadPayments;
+window.admConfirmPay   = admConfirmPay;
+window.admRejectPay    = admRejectPay;
+window.initAdminPage   = initAdminPage;
+window.heSearch        = heSearch;
+window.setCalcMode     = setCalcMode;
+window.setAiMode       = setAiMode;
+window.runNutritionist = runNutritionist;
+window.runMealPlan     = runMealPlan;
+window.runRecipe       = runRecipe;
+window.loadLb          = loadLb;
+window.initStatPage    = initStatPage;
+window.loadMyFoods     = loadMyFoods;
+
