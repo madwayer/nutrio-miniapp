@@ -354,28 +354,28 @@ function statAddWeight() {
 }
 
 async function statSaveWeight() {
-    var input = document.getElementById('weight-input');
-    if (!input) return;
-    var w = parseFloat(input.value);
+    var w = parseFloat(document.getElementById('weight-input').value);
     if (isNaN(w)) return;
-
-    // Сохраняем
+    
+    // ПРЯМО ТУТ добавим лог, чтобы увидеть, что мы отправляем
+    console.log("Sending weight update:", {weight: w});
+    
     var data = await apiPost('/api/settings', {weight: w});
+    
+    // А ТУТ увидим, что ответил сервер
+    console.log("Server response:", data); 
 
     if (data.ok) {
-        // УСПЕХ: не пытаемся рисовать из 'data', а запрашиваем свежую статистику заново
-        // Предполагаю, что у тебя есть функция типа loadStats или fetchStats
-        if (typeof loadStats === 'function') {
-            await loadStats(); 
-        } else {
-            // Если такой функции нет, перезагружаем страницу или вызываем инициализатор
+        showToast('Вес сохранен', 'var(--accent)');
+        
+        // ВАЖНО: Принудительно вызываем функцию обновления статистики.
+        // Она сделает GET-запрос к серверу, получит свежую историю и перерисует график.
+        if (typeof initStatPage === 'function') {
             initStatPage(); 
         }
-        showToast('Вес сохранен', 'var(--accent)');
     } else {
         showToast('Ошибка сохранения', 'var(--accent2)');
     }
-}
 window.statAddWeight = statAddWeight;
 window.statSaveWeight = statSaveWeight;
 window.wModalClose = function(){ var m=document.getElementById("weight-input-modal"); if(m) document.body.removeChild(m); };
@@ -1036,23 +1036,7 @@ async function initStatPage() {
 }
 
 function renderStats(data) {
-    if (!data) return;
-
-    var wVal = document.getElementById('stat-weight-val');
-    var streakEl = document.getElementById('stat-streak');
-
-    // Безопасное обновление веса
-    if (wVal) {
-        wVal.textContent = (data.current_weight !== undefined && data.current_weight !== null) 
-            ? data.current_weight 
-            : '—';
-    }
-
-    // Безопасное обновление стрик
-    if (streakEl) {
-        streakEl.textContent = data.streak || 0;
-    }
-    
+  var wVal = document.getElementById('stat-weight-val');
   // Стрик
   var el = document.getElementById('stat-streak');
   if (el) el.textContent = data.streak || 0;
