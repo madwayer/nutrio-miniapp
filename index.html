@@ -2243,7 +2243,9 @@ window.showConfirm      = showConfirm;
     max-height: 52vh;
     object-fit: cover;
   }
-  #scan-camera-wrap video { max-height:52vh !important; width:100% !important; object-fit:cover; }
+  #scan-camera-wrap { max-height:62vh; }
+  #scan-camera-wrap video { max-height:62vh !important; width:100% !important; object-fit:cover; }
+  #scan-qr-target video { max-height:62vh !important; width:100% !important; object-fit:cover; }
   #capture-btn-overlay {
     position: absolute;
     bottom: 12px;
@@ -3208,7 +3210,8 @@ window.showConfirm      = showConfirm;
     </div>
 
     <!-- Camera area -->
-    <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px;max-height:42vh">
+    <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px">
+      <div id="scan-qr-target" style="display:none;width:100%"></div>
       <video id="scan-video" autoplay playsinline muted
         style="width:100%;display:block;max-height:52vh;object-fit:cover"></video>
       <!-- Barcode overlay -->
@@ -3314,12 +3317,7 @@ window.showConfirm      = showConfirm;
         <option value="ужин">🌙 Ужин</option>
         <option value="перекус">🍎 Перекус</option>
       </select>
-      <select id="scan-pr-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:10px">
-        <option value="завтрак">🌅 Завтрак</option>
-        <option value="обед">☀️ Обед</option>
-        <option value="ужин">🌙 Ужин</option>
-        <option value="перекус">🍎 Перекус</option>
-      </select>
+      
       <button onclick="scanPhotoSave()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px">✅ Записать в дневник</button>
       <button onclick="scanReset()" style="width:100%;padding:11px;background:var(--surface);color:var(--text2);border:none;border-radius:10px;font-size:13px;cursor:pointer;touch-action:manipulation">📸 Сфотографировать снова</button>
     </div>
@@ -7023,6 +7021,7 @@ function scanStop() {
   try { if(typeof Quagga !== 'undefined') Quagga.stop(); } catch(e) {}
   // UI
   var wrap = document.getElementById('scan-camera-wrap');   if(wrap) wrap.style.display='none';
+  var qrt2 = document.getElementById('scan-qr-target'); if(qrt2) qrt2.style.display='none';
   var startBtn = document.getElementById('scan-start-btn'); if(startBtn) startBtn.style.display='block';
   var sh3=document.getElementById('scan-hero'); if(sh3) sh3.style.display='block';
   var stopBtn  = document.getElementById('scan-stop-btn');  if(stopBtn)  stopBtn.style.display='none';
@@ -7060,7 +7059,9 @@ function _scanStartBarcode() {
   _scanSetStatus('🔍 Ищу штрихкод...');
 
   var video = document.getElementById('scan-video');
-  if (video) video.style.display = 'none'; // Quagga creates its own
+  if (video) video.style.display = 'none';
+  var qrTarget = document.getElementById('scan-qr-target');
+  if (qrTarget) qrTarget.style.display = 'block';
 
   // Stop any previous Quagga
   try { Quagga.stop(); } catch(e) {}
@@ -7070,7 +7071,7 @@ function _scanStartBarcode() {
       inputStream: {
         name: 'Live',
         type: 'LiveStream',
-        target: document.getElementById('scan-camera-wrap'),
+        target: document.getElementById('scan-qr-target'),
         constraints: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
       },
       decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'], multiple: false },
@@ -7111,6 +7112,8 @@ function _scanStartPhoto() {
 
   var video = document.getElementById('scan-video');
   if (video) video.style.display = 'block';
+  var qrt = document.getElementById('scan-qr-target');
+  if (qrt) qrt.style.display = 'none';
 
   if (_scanStream) { _scanStream.getTracks().forEach(function(t){t.stop();}); _scanStream=null; }
   if (video) video.srcObject = null;
