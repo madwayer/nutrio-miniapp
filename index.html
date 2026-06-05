@@ -354,28 +354,31 @@ function statAddWeight() {
 }
 
 async function statSaveWeight() {
-    var w = parseFloat(document.getElementById('weight-input').value);
-    if (isNaN(w)) return;
+    var input = document.getElementById('weight-input');
+    if (!input) {
+        console.error("Нет поля ввода");
+        return;
+    }
     
-    // ПРЯМО ТУТ добавим лог, чтобы увидеть, что мы отправляем
-    console.log("Sending weight update:", {weight: w});
-    
+    var w = parseFloat(input.value);
+    if (isNaN(w)) {
+        showToast('Введите корректный вес', 'var(--accent2)');
+        return;
+    }
+
     var data = await apiPost('/api/settings', {weight: w});
-    
-    // А ТУТ увидим, что ответил сервер
-    console.log("Server response:", data); 
 
     if (data.ok) {
         showToast('Вес сохранен', 'var(--accent)');
-        
-        // ВАЖНО: Принудительно вызываем функцию обновления статистики.
-        // Она сделает GET-запрос к серверу, получит свежую историю и перерисует график.
+        // Сразу вызываем обновление статистики
         if (typeof initStatPage === 'function') {
-            initStatPage(); 
+            initStatPage();
         }
     } else {
-        showToast('Ошибка сохранения', 'var(--accent2)');
+        showToast('Ошибка сохранения: ' + (data.error || 'server error'), 'var(--accent2)');
     }
+}
+
 window.statAddWeight = statAddWeight;
 window.statSaveWeight = statSaveWeight;
 window.wModalClose = function(){ var m=document.getElementById("weight-input-modal"); if(m) document.body.removeChild(m); };
@@ -1036,10 +1039,46 @@ async function initStatPage() {
 }
 
 function renderStats(data) {
-  var wVal = document.getElementById('stat-weight-val');
-  // Стрик
-  var el = document.getElementById('stat-streak');
-  if (el) el.textContent = data.streak || 0;
+    if (!data) return;
+
+    var wVal = document.getElementById('stat-weight-val');
+    var streakEl = document.getElementById('stat-streak');
+    var wChange = document.getElementById('stat-weight-change');
+    var emptyEl = document.getElementById('stat-weight-empty');
+    var wrapEl = document.getElementById('stat-weight-chart-wrap');
+    var chart = document.getElementById('weight-history-chart');
+    var lbl = document.getElementById('weight-history-labels');
+
+    if (wVal) wVal.textContent = data.current_weight ? data.current_weight + '' : '—';
+    if (streakEl) streakEl.textContent = data.streak || 0;
+
+    if (data.weight_history && data.weight_history.length > 0) {
+        var wh = data.weight_history;
+        
+        if (wChange && wh.length > 1) {
+            var diff = Math.round((wh[wh.length-1].weight - wh[0].weight) * 10) / 10;
+            wChange.textContent = diff > 0 ? '▲ +'+diff+' кг' : diff < 0 ? '▼ '+diff+' кг' : '→ без изм.';
+            wChange.style.color = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--accent2)' : 'var(--text2)';
+        }
+        
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (wrapEl && wh.length > 1) {
+            wrapEl.style.display = 'block';
+            var maxW = Math.max.apply(null, wh.map(function(w){ return w.weight; }));
+            var minW = Math.min.apply(null, wh.map(function(w){ return w.weight; }));
+            var range = maxW - minW || 1;
+            
+            if (chart) chart.innerHTML = wh.map(function(w) {
+                var pct = Math.round((w.weight-minW)/range*75+15);
+                return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">'
+                  +'<div style="font-size:9px;color:var(--text2)">'+w.weight+'</div>'
+                  +'<div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:4px;transition:height .4s"></div>'
+                  +'</div>';
+            }).join('');
+            if (lbl) lbl.textContent = wh.map(function(w){ return w.date; }).join('  ');
+        }
+    }
+}
 
   // KPI
   var goal    = data.daily_goal || 2000;
