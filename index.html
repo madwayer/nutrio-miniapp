@@ -2243,7 +2243,7 @@ window.showConfirm      = showConfirm;
     max-height: 52vh;
     object-fit: cover;
   }
-  #scan-camera-wrap video { max-height:42vh !important; width:100% !important; object-fit:cover; }
+  #scan-camera-wrap video { max-height:52vh !important; width:100% !important; object-fit:cover; }
   #capture-btn-overlay {
     position: absolute;
     bottom: 12px;
@@ -3210,7 +3210,7 @@ window.showConfirm      = showConfirm;
     <!-- Camera area -->
     <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px;max-height:42vh">
       <video id="scan-video" autoplay playsinline muted
-        style="width:100%;display:block;max-height:40vh;object-fit:cover"></video>
+        style="width:100%;display:block;max-height:52vh;object-fit:cover"></video>
       <!-- Barcode overlay -->
       <div id="scan-barcode-overlay" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none">
         <div style="width:70%;max-width:260px;height:100px;border:2px solid var(--accent);border-radius:12px;position:relative">
@@ -3230,10 +3230,10 @@ window.showConfirm      = showConfirm;
     <div id="scan-status" style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px"></div>
 
     <!-- Hero text (shown when camera is off) -->
-    <div id="scan-hero" style="text-align:center;padding:20px 0 10px">
-      <div style="font-size:48px;margin-bottom:8px">📷</div>
-      <div style="font-weight:800;font-size:17px;margin-bottom:6px">Сканер</div>
-      <div style="font-size:13px;color:var(--text2)">Штрихкод или фото блюда — КБЖУ автоматически</div>
+    <div id="scan-hero" class="scanner-hero">
+      <span class="scanner-icon">📷</span>
+      <h2 id="scan-hero-title">Сканер штрихкодов и еды</h2>
+      <p id="scan-hero-sub">Наведи камеру на штрихкод упаковки или еду — бот найдёт КБЖУ автоматически</p>
     </div>
 
     <!-- Start button -->
@@ -3311,6 +3311,12 @@ window.showConfirm      = showConfirm;
       <select id="scan-pr-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:10px">
         <option value="завтрак">🌅 Завтрак</option>
         <option value="обед" selected>☀️ Обед</option>
+        <option value="ужин">🌙 Ужин</option>
+        <option value="перекус">🍎 Перекус</option>
+      </select>
+      <select id="scan-pr-meal" style="width:100%;padding:11px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:10px">
+        <option value="завтрак">🌅 Завтрак</option>
+        <option value="обед">☀️ Обед</option>
         <option value="ужин">🌙 Ужин</option>
         <option value="перекус">🍎 Перекус</option>
       </select>
@@ -7110,7 +7116,7 @@ function _scanStartPhoto() {
   if (video) video.srcObject = null;
 
   navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:960} }
+    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
   }).then(function(s) {
     _scanStream = s;
     if (!_scanActive) { s.getTracks().forEach(function(t){t.stop();}); return; }
@@ -7170,6 +7176,10 @@ function scanCapture() {
       document.getElementById('scan-pr-fat').textContent  = d.fat;
       document.getElementById('scan-pr-carb').textContent = d.carbs;
       document.getElementById('scan-photo-result').style.display = 'block';
+      // Auto-select meal by time
+      var _h = new Date().getHours();
+      var _am = _h<10?'завтрак':_h<14?'обед':_h<18?'обед':_h<21?'ужин':'перекус';
+      var _ms = document.getElementById('scan-pr-meal'); if(_ms) _ms.value = _am;
     })
     .catch(function(e) {
       _scanSetStatus('');
@@ -7233,6 +7243,9 @@ function _onBarcodeFound(data) {
   document.getElementById('scan-br-fat').textContent   = data.fat      || '—';
   document.getElementById('scan-br-carb').textContent  = data.carbs    || '—';
   document.getElementById('scan-barcode-result').style.display = 'block';
+  var _hh = new Date().getHours();
+  var _bm = _hh<10?'завтрак':_hh<14?'обед':_hh<18?'обед':_hh<21?'ужин':'перекус';
+  var _bms = document.getElementById('scan-br-meal'); if(_bms) _bms.value = _bm;
   _scanSetStatus('');
 }
 
