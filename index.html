@@ -2243,6 +2243,7 @@ window.showConfirm      = showConfirm;
     max-height: 52vh;
     object-fit: cover;
   }
+  #scan-camera-wrap video { max-height:42vh !important; width:100% !important; object-fit:cover; }
   #capture-btn-overlay {
     position: absolute;
     bottom: 12px;
@@ -3207,9 +3208,9 @@ window.showConfirm      = showConfirm;
     </div>
 
     <!-- Camera area -->
-    <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px">
+    <div id="scan-camera-wrap" style="display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px;max-height:42vh">
       <video id="scan-video" autoplay playsinline muted
-        style="width:100%;display:block;max-height:55vh;object-fit:cover"></video>
+        style="width:100%;display:block;max-height:40vh;object-fit:cover"></video>
       <!-- Barcode overlay -->
       <div id="scan-barcode-overlay" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none">
         <div style="width:70%;max-width:260px;height:100px;border:2px solid var(--accent);border-radius:12px;position:relative">
@@ -3227,6 +3228,13 @@ window.showConfirm      = showConfirm;
 
     <!-- Status -->
     <div id="scan-status" style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px"></div>
+
+    <!-- Hero text (shown when camera is off) -->
+    <div id="scan-hero" style="text-align:center;padding:20px 0 10px">
+      <div style="font-size:48px;margin-bottom:8px">📷</div>
+      <div style="font-weight:800;font-size:17px;margin-bottom:6px">Сканер</div>
+      <div style="font-size:13px;color:var(--text2)">Штрихкод или фото блюда — КБЖУ автоматически</div>
+    </div>
 
     <!-- Start button -->
     <button id="scan-start-btn" onclick="scanStart()"
@@ -7010,6 +7018,7 @@ function scanStop() {
   // UI
   var wrap = document.getElementById('scan-camera-wrap');   if(wrap) wrap.style.display='none';
   var startBtn = document.getElementById('scan-start-btn'); if(startBtn) startBtn.style.display='block';
+  var sh3=document.getElementById('scan-hero'); if(sh3) sh3.style.display='block';
   var stopBtn  = document.getElementById('scan-stop-btn');  if(stopBtn)  stopBtn.style.display='none';
   var overlay  = document.getElementById('scan-barcode-overlay'); if(overlay) overlay.style.display='none';
   var photoCtrl = document.getElementById('scan-photo-ctrl'); if(photoCtrl) photoCtrl.style.display='none';
@@ -7040,6 +7049,7 @@ function _scanStartBarcode() {
   document.getElementById('scan-start-btn').style.display = 'none';
   document.getElementById('scan-stop-btn').style.display  = 'block';
   document.getElementById('scan-barcode-result').style.display = 'none';
+  var sh=document.getElementById('scan-hero'); if(sh) sh.style.display='none';
   document.getElementById('scan-photo-ctrl').style.display     = 'none';
   _scanSetStatus('🔍 Ищу штрихкод...');
 
@@ -7089,6 +7099,7 @@ function _scanStartPhoto() {
   document.getElementById('scan-start-btn').style.display  = 'none';
   document.getElementById('scan-stop-btn').style.display   = 'block';
   document.getElementById('scan-photo-result').style.display = 'none';
+  var sh2=document.getElementById('scan-hero'); if(sh2) sh2.style.display='none';
   document.getElementById('scan-barcode-overlay').style.display = 'none';
   _scanSetStatus('');
 
