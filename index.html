@@ -1118,8 +1118,8 @@ function renderStats(data) {
       var maxW  = Math.max.apply(null, wh.map(function(w){ return w.weight; }));
       var minW  = Math.min.apply(null, wh.map(function(w){ return w.weight; }));
       var range = maxW - minW || 1;
-      var chart = document.getElementById('weight-history-chart');
-      var lbl   = document.getElementById('weight-history-labels');
+      var chart = document.getElementById('stat-wh-chart');
+      var lbl   = document.getElementById('stat-wh-labels');
       if (chart) chart.innerHTML = wh.map(function(w) {
         var pct = Math.round((w.weight-minW)/range*75+15);
         return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">'
@@ -3752,8 +3752,8 @@ window.showConfirm      = showConfirm;
         <span id="stat-weight-change" style="font-size:13px;margin-left:4px"></span>
       </div>
       <div id="stat-weight-chart-wrap" style="display:none">
-        <div id="weight-history-chart" style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-bottom:6px"></div>
-        <div id="weight-history-labels" style="font-size:10px;color:var(--text2);text-align:center"></div>
+        <div id="stat-wh-chart" style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-bottom:6px"></div>
+        <div id="stat-wh-labels" style="font-size:10px;color:var(--text2);text-align:center"></div>
       </div>
       <div id="stat-weight-empty" style="font-size:12px;color:var(--text2)">Добавь свой вес чтобы отслеживать прогресс</div>
     </div>
