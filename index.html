@@ -180,6 +180,25 @@ function renderSugarLog() {
   }).join('');
 }
 
+
+// ── Add weight from stats page ────────────────────────────────────
+function statAddWeight() {
+  var cur = document.getElementById('stat-weight-val');
+  var curVal = cur ? cur.textContent.replace(' кг','') : '';
+  var val = prompt('Введи текущий вес (кг):', curVal);
+  if (!val || isNaN(parseFloat(val))) return;
+  var w = parseFloat(val);
+  if (w < 20 || w > 500) { showToast('Некорректный вес', 'var(--accent2)'); return; }
+  apiPost('/api/settings', {weight: w}).then(function(data) {
+    if (data.ok) {
+      showToast('✅ Вес ' + w + ' кг сохранён', 'var(--green)');
+      initStatPage(); // reload stats
+    } else {
+      showToast('Ошибка: ' + (data.error||'?'), 'var(--accent2)');
+    }
+  });
+}
+
 </script>
 <script>
 // ===== ДНЕВНИК =====
@@ -3321,6 +3340,10 @@ document.addEventListener('click', function(e) {
   </div>
 
   <div class="page" id="page-statpage">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:800;font-size:17px">📊 Статистика</div>
+      <button onclick="statAddWeight()" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation">⚖️ + Вес</button>
+    </div>
     <!-- Стрик -->
     <div class="stat-card" style="text-align:center">
       <div class="stat-streak-val" id="stat-streak">0</div>
