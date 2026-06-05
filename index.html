@@ -1093,9 +1093,10 @@ function renderStats(data) {
           + '<span class="stat-top-name">' + (i+1) + '. ' + escHtml((f.name||'').charAt(0).toUpperCase()+(f.name||'').slice(1)) + '</span>'
           + '<span class="stat-top-count">' + f.count + ' раз</span>'
           + '</div>';
-      
-  // Weight card
-  var wVal = document.getElementById('stat-weight-val');
+      }).join('');
+    }
+  }
+
   if (wVal) wVal.textContent = data.current_weight ? data.current_weight + '' : '—';
   
   if (data.weight_history && data.weight_history.length > 0) {
@@ -1126,9 +1127,6 @@ function renderStats(data) {
           +'</div>';
       }).join('');
       if (lbl) lbl.textContent = wh.map(function(w){ return w.date; }).join('  ');
-    }
-  }
-}).join('');
     }
   }
 }
