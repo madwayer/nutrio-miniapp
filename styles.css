@@ -1940,14 +1940,13 @@ body {
 }
 .diary-progress-card > * { position: relative; z-index: 1; }
 
-/* Calories — gradient text */
+/* Calories — bold green (gradient-text trick dropped: not reliable across WebViews) */
 .diary-kcal-eaten {
-  background: var(--gradient-green) !important;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent !important;
+  color: #43e97b !important;
   font-size: 32px !important;
+  font-weight: 800 !important;
   letter-spacing: -.5px;
+  text-shadow: 0 0 18px rgba(67,233,123,.35);
 }
 
 /* Progress bar */
@@ -1960,6 +1959,7 @@ body {
   position: relative;
 }
 .diary-prog-fill {
+  width: 0%;
   background: var(--gradient-green) !important;
   box-shadow: 0 0 12px rgba(67,233,123,0.55);
   position: relative;
