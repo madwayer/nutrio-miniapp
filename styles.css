@@ -1875,3 +1875,461 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   .bnav-lbl { font-size: 9px; }
   .sheet-card-ic { font-size: 24px; }
 }
+
+
+/* ═════════════════ Phase 2B: visual polish ═════════════════ */
+
+:root {
+  --glass-bg:        rgba(26, 26, 34, 0.65);
+  --glass-bg-2:      rgba(34, 34, 46, 0.7);
+  --glass-border:    rgba(255, 255, 255, 0.08);
+  --glass-border-strong: rgba(255, 255, 255, 0.14);
+  --glass-blur:      16px;
+  --shadow-sm:       0 2px 8px rgba(0,0,0,.20);
+  --shadow-md:       0 4px 16px rgba(0,0,0,.32);
+  --shadow-lg:       0 12px 32px rgba(0,0,0,.42);
+  --shadow-glow:     0 0 24px rgba(108,99,255,.28);
+  --gradient-accent: linear-gradient(135deg, #6c63ff 0%, #8b7eff 100%);
+  --gradient-pink:   linear-gradient(135deg, #ff6584 0%, #ff8fa3 100%);
+  --gradient-green:  linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-orange: linear-gradient(135deg, #ff9f43 0%, #ffc26f 100%);
+  --gradient-blue:   linear-gradient(135deg, #54a0ff 0%, #74b9ff 100%);
+  --ease-out:        cubic-bezier(.16, 1, .3, 1);
+  --ease-spring:     cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ── Ambient background glow ── */
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(108,99,255,0.14), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 25%, rgba(255,101,132,0.08), transparent 60%),
+    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(67,233,123,0.05), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* ── Page transition ── */
+.page { opacity: 0; transform: translateY(8px); }
+.page.active {
+  animation: pageIn .32s var(--ease-out) forwards;
+}
+@keyframes pageIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Diary progress card — hero ── */
+.diary-progress-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border-radius: 18px !important;
+  padding: 18px 16px !important;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+.diary-progress-card::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -25%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(108,99,255,0.16), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.diary-progress-card > * { position: relative; z-index: 1; }
+
+/* Calories — gradient text */
+.diary-kcal-eaten {
+  background: var(--gradient-green) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent !important;
+  font-size: 32px !important;
+  letter-spacing: -.5px;
+}
+
+/* Progress bar */
+.diary-prog-bar {
+  height: 10px !important;
+  background: rgba(255,255,255,0.05) !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.2);
+  border-radius: 6px !important;
+  overflow: hidden;
+  position: relative;
+}
+.diary-prog-fill {
+  background: var(--gradient-green) !important;
+  box-shadow: 0 0 12px rgba(67,233,123,0.55);
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px !important;
+  transition: width .6s var(--ease-out) !important;
+}
+.diary-prog-fill::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2.6s linear infinite;
+}
+.diary-prog-fill.over {
+  background: var(--gradient-pink) !important;
+  box-shadow: 0 0 12px rgba(255,101,132,0.55);
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Macro tiles ── */
+.diary-macro-box {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px !important;
+  padding: 12px 6px !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s var(--ease-out);
+}
+.diary-macro-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--gradient-green);
+  opacity: .8;
+}
+.diary-macro-box:nth-child(1)::before { background: var(--gradient-green);  }
+.diary-macro-box:nth-child(2)::before { background: var(--gradient-pink);   }
+.diary-macro-box:nth-child(3)::before { background: var(--gradient-blue);   }
+.diary-macro-val { font-size: 16px !important; }
+
+/* ── Macro grid (in product card) ── */
+.macro-item {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px !important;
+  padding: 12px 6px !important;
+  position: relative;
+  overflow: hidden;
+}
+.macro-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.macro-item.cal::before  { background: var(--gradient-orange); }
+.macro-item.prot::before { background: var(--gradient-green);  }
+.macro-item.fat::before  { background: var(--gradient-pink);   }
+.macro-item.carb::before { background: var(--gradient-blue);   }
+
+/* ── Diary meal blocks ── */
+.diary-meal-block {
+  border-radius: 16px !important;
+  overflow: hidden;
+  margin-bottom: 10px !important;
+  box-shadow: var(--shadow-sm);
+}
+.diary-meal-header {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  border-bottom: none !important;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 16px 16px 0 0 !important;
+  padding: 14px 16px !important;
+  transition: background .15s ease;
+}
+.diary-meal-header.collapsed {
+  border-radius: 16px !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+.diary-meal-header:active { background: var(--glass-bg-2) !important; }
+.diary-meal-body {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  border-top: none !important;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+.diary-entry {
+  border-top: 1px solid var(--glass-border) !important;
+  transition: background .15s ease;
+}
+.diary-entry:active { background: rgba(108,99,255,0.06); }
+
+/* ── Date nav ── */
+.diary-date-nav {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-sm);
+}
+.diary-date-nav button {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: background .15s ease, transform .15s ease;
+}
+.diary-date-nav button:active {
+  background: rgba(108,99,255,0.22) !important;
+  transform: scale(.92);
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  background: var(--gradient-accent) !important;
+  box-shadow:
+    0 8px 20px rgba(108,99,255,.32),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+  transition: transform .15s ease, box-shadow .2s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  /* subtle sheen */
+  content: '';
+  position: absolute;
+  top: 0; left: -50%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  pointer-events: none;
+  transition: left .6s var(--ease-out);
+}
+.btn-primary:active {
+  transform: scale(.97) translateY(1px) !important;
+  box-shadow:
+    0 4px 12px rgba(108,99,255,.4),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+.btn-primary:active::after { left: 150%; }
+
+.btn-secondary {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: transform .15s ease, background .2s ease;
+}
+.btn-secondary:active {
+  transform: scale(.97);
+  background: var(--glass-bg-2) !important;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, rgba(255,101,132,0.18), rgba(255,101,132,0.12)) !important;
+  border: 1px solid rgba(255,101,132,0.3) !important;
+  transition: transform .15s ease;
+}
+.btn-danger:active { transform: scale(.97); }
+
+/* Diary "Добавить еду" — vivid green */
+.diary-add-btn {
+  background: var(--gradient-green) !important;
+  color: #0a0a0d !important;
+  font-weight: 800 !important;
+  box-shadow:
+    0 8px 20px rgba(67,233,123,.35),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 14px !important;
+  transition: transform .15s ease, box-shadow .2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.diary-add-btn:active {
+  transform: scale(.97) translateY(1px);
+  box-shadow:
+    0 4px 12px rgba(67,233,123,.45),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+/* ── Inputs — focus glow ── */
+.text-input, .weight-input, .meal-select {
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
+}
+.text-input:focus, .weight-input:focus, .meal-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(108,99,255,.18) !important;
+  background: rgba(34,34,46,0.95) !important;
+}
+
+/* ── Toast — frosted iOS-style ── */
+.toast {
+  padding: 14px 22px !important;
+  border-radius: 18px !important;
+  background: rgba(34,34,46,0.88) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border-strong);
+  color: var(--text) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: .1px;
+}
+
+/* ── Section titles — accent bar ── */
+.section-title {
+  position: relative;
+  padding-left: 14px !important;
+  display: flex;
+  align-items: center;
+}
+.section-title::before {
+  content: '';
+  width: 4px; height: 14px;
+  background: var(--gradient-accent);
+  border-radius: 2px;
+  margin-right: 10px;
+  margin-left: -14px;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(108,99,255,.5);
+}
+
+/* ── Status badges ── */
+.status-badge {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+}
+.status-found { animation: statusPop .4s var(--ease-spring); }
+@keyframes statusPop {
+  from { transform: scale(.85); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Scanner hero & camera ── */
+.scanner-hero {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  box-shadow: var(--shadow-md);
+  border-radius: 20px !important;
+}
+
+/* ── Bottom nav active dot animation ── */
+.bnav-item.active::before { animation: navDotIn .35s var(--ease-spring); }
+@keyframes navDotIn {
+  from { width: 0;  opacity: 0; }
+  to   { width: 28px; opacity: 1; }
+}
+
+/* FAB — gentle idle pulse */
+.bnav-fab { animation: fabIdle 3.2s ease-in-out infinite; }
+@keyframes fabIdle {
+  0%, 100% {
+    box-shadow:
+      0 8px 20px rgba(108,99,255,.45),
+      0 2px 6px rgba(0,0,0,.25),
+      inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  50% {
+    box-shadow:
+      0 8px 32px rgba(108,99,255,.7),
+      0 2px 6px rgba(0,0,0,.25),
+      inset 0 1px 0 rgba(255,255,255,.18);
+  }
+}
+
+/* ── Sheet polish — staggered card entry ── */
+.sheet-backdrop.show .sheet-card,
+.sheet-backdrop.show .sheet-row {
+  animation: sheetItemIn .34s var(--ease-out) backwards;
+}
+.sheet-backdrop.show .sheet-card:nth-child(1),
+.sheet-backdrop.show .sheet-row:nth-child(1)  { animation-delay: .05s; }
+.sheet-backdrop.show .sheet-card:nth-child(2),
+.sheet-backdrop.show .sheet-row:nth-child(2)  { animation-delay: .08s; }
+.sheet-backdrop.show .sheet-card:nth-child(3),
+.sheet-backdrop.show .sheet-row:nth-child(3)  { animation-delay: .11s; }
+.sheet-backdrop.show .sheet-card:nth-child(4),
+.sheet-backdrop.show .sheet-row:nth-child(4)  { animation-delay: .14s; }
+.sheet-backdrop.show .sheet-card:nth-child(5),
+.sheet-backdrop.show .sheet-row:nth-child(5)  { animation-delay: .17s; }
+.sheet-backdrop.show .sheet-card:nth-child(6),
+.sheet-backdrop.show .sheet-row:nth-child(6)  { animation-delay: .20s; }
+.sheet-backdrop.show .sheet-row:nth-child(n+7) { animation-delay: .22s; }
+@keyframes sheetItemIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Skeleton loaders ── */
+.skeleton-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+.skeleton-line,
+.skeleton-card {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.035) 0%,
+    rgba(255,255,255,0.10)  50%,
+    rgba(255,255,255,0.035) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShine 1.4s linear infinite;
+  border-radius: 8px;
+}
+.skeleton-card {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0.025) 0%,
+      rgba(255,255,255,0.07)  50%,
+      rgba(255,255,255,0.025) 100%
+    ),
+    var(--glass-bg);
+  background-size: 200% 100%, 100% 100%;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 10px;
+  min-height: 60px;
+  animation: skeletonShine 1.4s linear infinite;
+}
+.skeleton-line.h-14 { height: 14px; }
+.skeleton-line.h-18 { height: 18px; }
+.skeleton-line.h-24 { height: 24px; }
+.skeleton-line.h-32 { height: 32px; }
+.skeleton-line.h-40 { height: 40px; }
+.skeleton-line.w-30 { width: 30%; }
+.skeleton-line.w-40 { width: 40%; }
+.skeleton-line.w-50 { width: 50%; }
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-70 { width: 70%; }
+.skeleton-line.w-80 { width: 80%; }
+.skeleton-line.w-90 { width: 90%; }
+@keyframes skeletonShine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Hover (non-touch devices) ── */
+@media (hover: hover) {
+  .btn-primary:hover    { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(108,99,255,.4), inset 0 1px 0 rgba(255,255,255,.18) !important; }
+  .diary-add-btn:hover  { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(67,233,123,.45), inset 0 1px 0 rgba(255,255,255,.25) !important; }
+  .sheet-card:hover     { border-color: rgba(108,99,255,.4); background: var(--glass-bg-2); }
+  .sheet-row:hover      { background: var(--surface2); }
+  .bnav-item:hover      { color: var(--text); }
+  .diary-entry:hover    { background: rgba(108,99,255,0.05); }
+}
+
+/* ── Reduce motion for users who prefer it ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
