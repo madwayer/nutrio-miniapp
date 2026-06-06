@@ -1,11 +1,67 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta name="nutrio-version" content="v7jun2026-phase2b">
+  <meta name="nutrio-version" content="v7jun2026-phase3a">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+// Phase 3A — theme manager (runs ASAP to avoid FOUC)
+(function(){
+  var KEY = 'nutrio_theme';
+  function systemDark() {
+    try {
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.colorScheme === 'light') return false;
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.colorScheme === 'dark')  return true;
+    } catch(e){}
+    return !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function apply(theme) {
+    var actual = theme;
+    if (theme === 'auto') actual = systemDark() ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', actual);
+    document.documentElement.setAttribute('data-theme-pref', theme);
+    try {
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.setHeaderColor) {
+        Telegram.WebApp.setHeaderColor(actual === 'light' ? '#f6f7fb' : '#0f0f13');
+      }
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.setBackgroundColor) {
+        Telegram.WebApp.setBackgroundColor(actual === 'light' ? '#f6f7fb' : '#0f0f13');
+      }
+    } catch(e){}
+  }
+  var saved = 'dark';
+  try { saved = localStorage.getItem(KEY) || 'dark'; } catch(e){}
+  apply(saved);
+  window.NutrioTheme = {
+    get: function(){ try { return localStorage.getItem(KEY) || 'dark'; } catch(e){ return 'dark'; } },
+    set: function(t){ try { localStorage.setItem(KEY, t); } catch(e){} apply(t); _syncPickerUI(t); }
+  };
+  function _syncPickerUI(t){
+    document.querySelectorAll('.theme-picker-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-theme-value') === t);
+    });
+  }
+  window._syncThemePicker = _syncPickerUI;
+  // React to system changes when in 'auto' mode
+  try {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', function(){
+      if ((localStorage.getItem(KEY) || 'dark') === 'auto') apply('auto');
+    });
+  } catch(e){}
+  // React to Telegram theme changes
+  try {
+    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.onEvent) {
+      Telegram.WebApp.onEvent('themeChanged', function(){
+        if ((localStorage.getItem(KEY) || 'dark') === 'auto') apply('auto');
+      });
+    }
+  } catch(e){}
+})();
+</script>
+
 <script>
 // ── Calc helper functions ─────────────────────────────────────────
 function calcSetWeight(w) {
@@ -2100,7 +2156,7 @@ window.calcQuickAdd     = calcQuickAdd;
 window.sugarLogAdd      = sugarLogAdd;
 window.showConfirm      = showConfirm;
 </script>
-<link rel="stylesheet" href="/styles.css?v=2b1">
+<link rel="stylesheet" href="/styles.css?v=3a">
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 </head>
 <body>
@@ -2320,6 +2376,72 @@ window.showConfirm      = showConfirm;
         </div>
       </div>
     </div>
+
+    <div class="gring-card" id="gring-card">
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <linearGradient id="gring-grad-cal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#ff9f43"/><stop offset="100%" stop-color="#ffc26f"/>
+          </linearGradient>
+          <linearGradient id="gring-grad-prot" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#43e97b"/><stop offset="100%" stop-color="#38f9d7"/>
+          </linearGradient>
+          <linearGradient id="gring-grad-fat" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#ff6584"/><stop offset="100%" stop-color="#ff8fa3"/>
+          </linearGradient>
+          <linearGradient id="gring-grad-carb" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#54a0ff"/><stop offset="100%" stop-color="#74b9ff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="gring-grid">
+        <div class="gring-cell cal">
+          <div class="gring-wrap">
+            <svg class="gring-svg" viewBox="0 0 64 64">
+              <circle class="gring-track" cx="32" cy="32" r="28"></circle>
+              <circle class="gring-fill"  cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="175.93"></circle>
+            </svg>
+            <div class="gring-pct">0%</div>
+          </div>
+          <div class="gring-label">Калории</div>
+          <div class="gring-value">0 / 0 ккал</div>
+        </div>
+        <div class="gring-cell prot">
+          <div class="gring-wrap">
+            <svg class="gring-svg" viewBox="0 0 64 64">
+              <circle class="gring-track" cx="32" cy="32" r="28"></circle>
+              <circle class="gring-fill"  cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="175.93"></circle>
+            </svg>
+            <div class="gring-pct">0%</div>
+          </div>
+          <div class="gring-label">Белки</div>
+          <div class="gring-value">0 / 0 г</div>
+        </div>
+        <div class="gring-cell fat">
+          <div class="gring-wrap">
+            <svg class="gring-svg" viewBox="0 0 64 64">
+              <circle class="gring-track" cx="32" cy="32" r="28"></circle>
+              <circle class="gring-fill"  cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="175.93"></circle>
+            </svg>
+            <div class="gring-pct">0%</div>
+          </div>
+          <div class="gring-label">Жиры</div>
+          <div class="gring-value">0 / 0 г</div>
+        </div>
+        <div class="gring-cell carb">
+          <div class="gring-wrap">
+            <svg class="gring-svg" viewBox="0 0 64 64">
+              <circle class="gring-track" cx="32" cy="32" r="28"></circle>
+              <circle class="gring-fill"  cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="175.93"></circle>
+            </svg>
+            <div class="gring-pct">0%</div>
+          </div>
+          <div class="gring-label">Углев.</div>
+          <div class="gring-value">0 / 0 г</div>
+        </div>
+      </div>
+    </div>
+
     <div id="diary-meals-container">
       <div class="diary-empty">
         <div class="diary-empty-icon">🍽</div>
@@ -2361,6 +2483,29 @@ window.showConfirm      = showConfirm;
   <!-- PROGRESS PAGE -->
   <div class="page" id="page-progress">
     <div class="section-title" id="progress-page-title">📈 <span id="lbl-progress-title"></span></div>
+
+    <div class="hm-card">
+      <div class="hm-head">
+        <div class="hm-title">Соблюдение нормы · 35 дней</div>
+        <button class="hm-load-btn" id="hm-load-btn">Загрузить</button>
+      </div>
+      <div class="hm-grid" id="hm-grid"></div>
+      <div class="hm-progress"><div class="hm-progress-fill" id="hm-progress-fill"></div></div>
+      <div class="hm-legend">
+        <span id="hm-status"></span>
+        <span style="flex:1"></span>
+        <span>меньше</span>
+        <div class="hm-legend-cells">
+          <div class="hm-legend-cell" data-level="0" style="background:rgba(255,255,255,0.04)"></div>
+          <div class="hm-legend-cell" data-level="1" style="background:rgba(67,233,123,0.18)"></div>
+          <div class="hm-legend-cell" data-level="2" style="background:rgba(67,233,123,0.40)"></div>
+          <div class="hm-legend-cell" data-level="3" style="background:rgba(67,233,123,0.65)"></div>
+          <div class="hm-legend-cell" data-level="4" style="background:rgba(67,233,123,0.90)"></div>
+        </div>
+        <span>больше</span>
+      </div>
+    </div>
+
 
     <!-- Стрик -->
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;">
@@ -2926,6 +3071,22 @@ window.showConfirm      = showConfirm;
 
   <div class="page" id="page-settingspage">
     <div style="font-weight:700;font-size:15px;margin-bottom:12px">⚙️ Настройки</div>
+
+    <div class="sett-section">
+      <div class="sett-title">🎨 Тема оформления</div>
+      <div class="theme-picker">
+        <button class="theme-picker-btn" data-theme-value="dark"  onclick="NutrioTheme.set('dark')">
+          <span class="tp-ic">🌙</span><span class="tp-lbl">Тёмная</span>
+        </button>
+        <button class="theme-picker-btn" data-theme-value="light" onclick="NutrioTheme.set('light')">
+          <span class="tp-ic">☀️</span><span class="tp-lbl">Светлая</span>
+        </button>
+        <button class="theme-picker-btn" data-theme-value="auto"  onclick="NutrioTheme.set('auto')">
+          <span class="tp-ic">🔄</span><span class="tp-lbl">Авто</span>
+        </button>
+      </div>
+    </div>
+
 
     <!-- Профиль -->
     <div class="sett-section">
@@ -7775,6 +7936,236 @@ try {
     else html = skelGeneric();
     el.innerHTML = html;
   };
+})();
+</script>
+
+
+<script>
+// Phase 3A — sync theme picker UI on DOMContentLoaded
+(function(){
+  function init(){
+    var cur = (typeof NutrioTheme !== 'undefined' && NutrioTheme.get) ? NutrioTheme.get() : 'dark';
+    if (window._syncThemePicker) window._syncThemePicker(cur);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+// Phase 3A — Goal Rings on Diary page
+(function(){
+  // Defaults if backend doesn't supply per-macro goals
+  function deriveMacroGoals(kcalGoal) {
+    return {
+      protein: Math.round(kcalGoal * 0.30 / 4),
+      fat:     Math.round(kcalGoal * 0.30 / 9),
+      carbs:   Math.round(kcalGoal * 0.40 / 4)
+    };
+  }
+  function setRing(cellEl, pct) {
+    pct = Math.max(0, Math.min(150, pct || 0));
+    var fill = cellEl.querySelector('.gring-fill');
+    if (!fill) return;
+    var r = parseFloat(fill.getAttribute('r')) || 28;
+    var circ = 2 * Math.PI * r;
+    fill.setAttribute('stroke-dasharray', circ.toFixed(2));
+    var displayPct = Math.min(100, pct);
+    fill.setAttribute('stroke-dashoffset', (circ * (1 - displayPct/100)).toFixed(2));
+  }
+  function readNum(id) {
+    var el = document.getElementById(id);
+    if (!el) return 0;
+    var n = parseFloat((el.textContent || '0').replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+  }
+  function readGoalKcal() {
+    var el = document.getElementById('diary-kcal-goal');
+    if (!el) return 2000;
+    var m = (el.textContent || '').match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 2000;
+  }
+  function syncRings() {
+    var card = document.getElementById('gring-card');
+    if (!card) return;
+    var kcal = readNum('diary-kcal-eaten');
+    var prot = readNum('diary-prot');
+    var fat  = readNum('diary-fat');
+    var carb = readNum('diary-carb');
+    var kcalGoal = readGoalKcal();
+    var goals = deriveMacroGoals(kcalGoal);
+
+    var cells = card.querySelectorAll('.gring-cell');
+    var data = [
+      { val: kcal, goal: kcalGoal,    unit: 'ккал' },
+      { val: prot, goal: goals.protein, unit: 'г' },
+      { val: fat,  goal: goals.fat,    unit: 'г' },
+      { val: carb, goal: goals.carbs,  unit: 'г' }
+    ];
+    cells.forEach(function(cell, i) {
+      var d = data[i]; if (!d) return;
+      var pct = d.goal > 0 ? (d.val / d.goal) * 100 : 0;
+      setRing(cell, pct);
+      var pctEl = cell.querySelector('.gring-pct');
+      var valEl = cell.querySelector('.gring-value');
+      if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+      if (valEl) valEl.textContent = Math.round(d.val) + ' / ' + Math.round(d.goal) + ' ' + d.unit;
+    });
+  }
+  window.syncGoalRings = syncRings;
+
+  // Watch the existing macro/calorie values; sync rings on any change
+  function startObserver() {
+    var targets = ['diary-kcal-eaten','diary-kcal-goal','diary-prot','diary-fat','diary-carb']
+      .map(function(id){ return document.getElementById(id); })
+      .filter(Boolean);
+    if (!targets.length) return;
+    var obs = new MutationObserver(function(){ syncRings(); });
+    targets.forEach(function(t){ obs.observe(t, { childList: true, characterData: true, subtree: true }); });
+    syncRings();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startObserver);
+  else startObserver();
+})();
+
+// Phase 3A — Compliance Heatmap on Progress page
+(function(){
+  var DAYS    = 35;            // ~5 weeks
+  var BATCH   = 5;             // parallel fetches
+  var cache   = {};            // date -> {cals, goal}
+  var loaded  = false;
+  var loading = false;
+
+  function ymd(d){
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+  function shortLabel(d){
+    var mm = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return d.getDate() + ' ' + mm[d.getMonth()];
+  }
+  function dayLevel(cals, goal){
+    if (!cals || !goal) return '0';
+    var p = cals / goal;
+    if (p > 1.15) return 'over';
+    if (p >= 0.90) return '4';
+    if (p >= 0.65) return '3';
+    if (p >= 0.35) return '2';
+    if (p > 0)     return '1';
+    return '0';
+  }
+
+  function buildEmpty(){
+    var grid = document.getElementById('hm-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    var today = new Date(); today.setHours(0,0,0,0);
+    var cells = [];
+    for (var i = DAYS - 1; i >= 0; i--) {
+      var d = new Date(today);
+      d.setDate(today.getDate() - i);
+      var key = ymd(d);
+      var lvl = '0';
+      if (cache[key]) lvl = dayLevel(cache[key].cals, cache[key].goal);
+      var cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      cell.setAttribute('data-level', lvl);
+      cell.setAttribute('data-date', key);
+      if (key === ymd(today)) cell.classList.add('today');
+      cell.innerHTML = '<span class="hm-day-num">' + d.getDate() + '</span>';
+      cell.addEventListener('click', onCellTap);
+      cells.push(cell);
+      grid.appendChild(cell);
+    }
+  }
+
+  function onCellTap(e){
+    var t = e.currentTarget;
+    var key = t.getAttribute('data-date');
+    var c = cache[key];
+    var tip = document.getElementById('hm-tip') || (function(){
+      var el = document.createElement('div'); el.id = 'hm-tip'; el.className = 'hm-tip';
+      document.body.appendChild(el); return el;
+    })();
+    var parts = key.split('-');
+    var dd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var line = shortLabel(dd) + ' · ';
+    if (c) line += Math.round(c.cals) + ' / ' + Math.round(c.goal) + ' ккал';
+    else   line += 'нет данных';
+    tip.textContent = line;
+    var rect = t.getBoundingClientRect();
+    tip.style.left = (rect.left + rect.width/2) + 'px';
+    tip.style.top  = rect.top + 'px';
+    tip.classList.add('show');
+    clearTimeout(window._hmTipT);
+    window._hmTipT = setTimeout(function(){ tip.classList.remove('show'); }, 1800);
+  }
+
+  function setProgress(done, total){
+    var p = document.getElementById('hm-progress-fill');
+    if (!p) return;
+    p.style.width = total ? Math.round(done/total*100) + '%' : '0%';
+  }
+  function setStatus(msg){
+    var s = document.getElementById('hm-status');
+    if (s) s.textContent = msg || '';
+  }
+
+  function fetchDay(dateStr){
+    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+    if (!uid) return Promise.resolve(null);
+    var base = (window.API_BASE || '/api/proxy');
+    return fetch(base + '/api/diary?user_id=' + uid + '&date=' + dateStr)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || d.error) return null;
+        return { cals: (d.total && d.total.calories) || 0, goal: d.daily_goal || 2000 };
+      })
+      .catch(function(){ return null; });
+  }
+
+  async function loadAll(){
+    if (loading) return;
+    loading = true;
+    setStatus('Загружаю данные...');
+    var today = new Date(); today.setHours(0,0,0,0);
+    var dates = [];
+    for (var i = 0; i < DAYS; i++) {
+      var d = new Date(today); d.setDate(today.getDate() - i);
+      dates.push(ymd(d));
+    }
+    var done = 0;
+    for (var i = 0; i < dates.length; i += BATCH) {
+      var batch = dates.slice(i, i + BATCH);
+      var results = await Promise.all(batch.map(fetchDay));
+      results.forEach(function(r, idx){
+        if (r) cache[batch[idx]] = r;
+        done++; setProgress(done, dates.length);
+      });
+      buildEmpty();
+    }
+    setStatus('');
+    var btn = document.getElementById('hm-load-btn');
+    if (btn) { btn.textContent = '🔄 Обновить'; btn.disabled = false; }
+    loaded = true;
+    loading = false;
+  }
+
+  window.NutrioHeatmap = {
+    init: function(){
+      if (!document.getElementById('hm-grid')) return;
+      buildEmpty();
+      var btn = document.getElementById('hm-load-btn');
+      if (btn) btn.addEventListener('click', loadAll);
+    },
+    load: loadAll
+  };
+
+  // Auto-build empty grid + bind button when Progress page initializes
+  function tryInit(){
+    if (document.getElementById('hm-grid')) window.NutrioHeatmap.init();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryInit);
+  else tryInit();
 })();
 </script>
 
