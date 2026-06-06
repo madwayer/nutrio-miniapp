@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta name="nutrio-version" content="v7jun2026-phase1">
+  <meta name="nutrio-version" content="v7jun2026-phase2a">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
@@ -2113,7 +2113,7 @@ window.showConfirm      = showConfirm;
   <span style="font-size:28px">🥗</span>
 </div>
 
-<div class="tabs">
+<div class="tabs" style="display:none" aria-hidden="true">
   <button class="tab active" onclick="switchTab('scanner')" id="tab-scanner"><span class="tab-icon">📷</span><span class="tab-lbl">Сканер</span></button>
   <button class="tab" onclick="switchTab('manual')" id="tab-manual"><span class="tab-icon">✍️</span><span class="tab-lbl">Еда</span></button>
   <button class="tab" onclick="switchTab('diary')" id="tab-diary"><span class="tab-icon">📔</span><span class="tab-lbl">Дневник</span></button>
@@ -7522,6 +7522,195 @@ try {
 }catch(e){}
 </script>
 
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     BOTTOM NAV + FAB + SHEETS (Phase 2A)
+═══════════════════════════════════════════════════════════════ -->
+<nav class="bnav" id="bnav" role="navigation" aria-label="Main">
+  <button class="bnav-item active" data-tab="diary"    onclick="switchTab('diary')"    id="bnav-diary">
+    <span class="bnav-ic">📔</span><span class="bnav-lbl">Дневник</span>
+  </button>
+  <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
+    <span class="bnav-ic">📈</span><span class="bnav-lbl">Прогресс</span>
+  </button>
+  <button class="bnav-fab" onclick="openAddSheet()" id="bnav-fab" aria-label="Добавить">
+    <span class="bnav-fab-inner">+</span>
+  </button>
+  <button class="bnav-item" data-tab="aipage"   onclick="switchTab('aipage')"   id="bnav-ai">
+    <span class="bnav-ic">🤖</span><span class="bnav-lbl">AI</span>
+  </button>
+  <button class="bnav-item" onclick="openMoreSheet()" id="bnav-more">
+    <span class="bnav-ic">⋯</span><span class="bnav-lbl">Ещё</span>
+  </button>
+</nav>
+
+<!-- '+' action sheet -->
+<div class="sheet-backdrop" id="add-sheet" onclick="if(event.target===this)closeAddSheet()" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-label="Добавить">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Добавить запись</div>
+    <div class="sheet-grid">
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('scanner');setTimeout(function(){if(typeof scanSetMode==='function')scanSetMode('barcode');},50)">
+        <span class="sheet-card-ic">📦</span>
+        <span class="sheet-card-t">Штрихкод</span>
+        <span class="sheet-card-s">Скан упаковки</span>
+      </button>
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('scanner');setTimeout(function(){if(typeof scanSetMode==='function')scanSetMode('photo');},50)">
+        <span class="sheet-card-ic">📸</span>
+        <span class="sheet-card-t">Фото блюда</span>
+        <span class="sheet-card-s">Распознать по фото</span>
+      </button>
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('manual')">
+        <span class="sheet-card-ic">✍️</span>
+        <span class="sheet-card-t">Вручную</span>
+        <span class="sheet-card-s">Ввести КБЖУ</span>
+      </button>
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('calc')">
+        <span class="sheet-card-ic">🧮</span>
+        <span class="sheet-card-t">Калькулятор</span>
+        <span class="sheet-card-s">Расчёт порции</span>
+      </button>
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('myfoods')">
+        <span class="sheet-card-ic">🥗</span>
+        <span class="sheet-card-t">Мои продукты</span>
+        <span class="sheet-card-s">Сохранённые</span>
+      </button>
+      <button class="sheet-card" onclick="closeAddSheet();switchTab('water')">
+        <span class="sheet-card-ic">💧</span>
+        <span class="sheet-card-t">Вода</span>
+        <span class="sheet-card-s">+ стакан</span>
+      </button>
+    </div>
+    <button class="sheet-cancel" onclick="closeAddSheet()">Отмена</button>
+  </div>
+</div>
+
+<!-- 'Ещё' sheet -->
+<div class="sheet-backdrop" id="more-sheet" onclick="if(event.target===this)closeMoreSheet()" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-label="Ещё">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ещё</div>
+    <div class="sheet-list">
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('lbpage')">
+        <span class="sheet-row-ic">🏆</span><span class="sheet-row-t">Рейтинг</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('micropage')">
+        <span class="sheet-row-ic">🔬</span><span class="sheet-row-t">Микроэлементы</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('statpage')">
+        <span class="sheet-row-ic">📊</span><span class="sheet-row-t">Статистика</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('game')">
+        <span class="sheet-row-ic">🎮</span><span class="sheet-row-t">Игра</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('pdfpage')">
+        <span class="sheet-row-ic">📄</span><span class="sheet-row-t">PDF отчёт</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('importpage')">
+        <span class="sheet-row-ic">📥</span><span class="sheet-row-t">Импорт</span><span class="sheet-row-arr">›</span>
+      </button>
+      <div class="sheet-divider"></div>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('prempage')">
+        <span class="sheet-row-ic">⭐</span><span class="sheet-row-t">Premium</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('settingspage')">
+        <span class="sheet-row-ic">⚙️</span><span class="sheet-row-t">Настройки</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();showLangPicker()">
+        <span class="sheet-row-ic">🌍</span><span class="sheet-row-t">Язык</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('helppage')">
+        <span class="sheet-row-ic">❓</span><span class="sheet-row-t">Помощь</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" id="sheet-admin-row" style="display:none" onclick="closeMoreSheet();switchTab('adminpage')">
+        <span class="sheet-row-ic">🔧</span><span class="sheet-row-t">Админ-панель</span><span class="sheet-row-arr">›</span>
+      </button>
+    </div>
+    <button class="sheet-cancel" onclick="closeMoreSheet()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+// Phase 2A — sheet controllers + bnav state sync
+(function(){
+  // Pages that map to the 4 bottom nav slots (diary, progress, ai, scanner via FAB).
+  // Anything else opens via FAB or 'Ещё', no nav highlight.
+  var BNAV_TABS = { diary:'bnav-diary', progress:'bnav-progress', aipage:'bnav-ai' };
+
+  function setActive(tab){
+    document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active');});
+    var id = BNAV_TABS[tab];
+    if (id){ var el=document.getElementById(id); if(el) el.classList.add('active'); }
+  }
+
+  // Wrap existing switchTab to sync bottom nav state & lock body scroll on sheets
+  var _origSwitchTab = window.switchTab;
+  window.switchTab = function(tab){
+    try { _origSwitchTab.apply(this, arguments); } catch(e){ console.error(e); }
+    setActive(tab);
+    // ensure content scrolls to top on tab change for natural feel
+    try { document.querySelector('.content').scrollTop = 0; window.scrollTo(0,0); } catch(e){}
+  };
+
+  function openSheet(id){
+    var s = document.getElementById(id); if(!s) return;
+    s.classList.add('show');
+    s.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+  }
+  function closeSheet(id){
+    var s = document.getElementById(id); if(!s) return;
+    s.classList.remove('show');
+    s.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+  }
+  window.openAddSheet   = function(){ openSheet('add-sheet'); };
+  window.closeAddSheet  = function(){ closeSheet('add-sheet'); };
+  window.openMoreSheet  = function(){
+    // toggle admin row visibility based on admin status; rely on existing logic if any
+    try {
+      var admTab = document.getElementById('tab-adminpage');
+      var admRow = document.getElementById('sheet-admin-row');
+      if (admTab && admRow) admRow.style.display = (admTab.style.display === 'none' ? 'none' : 'flex');
+    } catch(e){}
+    openSheet('more-sheet');
+  };
+  window.closeMoreSheet = function(){ closeSheet('more-sheet'); };
+
+  // Close sheets on Escape & on Telegram back button
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ closeSheet('add-sheet'); closeSheet('more-sheet'); }
+  });
+  try {
+    var tg = window.Telegram && Telegram.WebApp;
+    if (tg && tg.BackButton){
+      tg.BackButton.onClick(function(){
+        var a = document.getElementById('add-sheet');
+        var m = document.getElementById('more-sheet');
+        if (a && a.classList.contains('show')) { closeSheet('add-sheet'); return; }
+        if (m && m.classList.contains('show')) { closeSheet('more-sheet'); return; }
+        // else, navigate to Diary as 'home'
+        if (typeof switchTab === 'function') switchTab('diary');
+      });
+    }
+  } catch(e){}
+
+  // On initial load — start on Diary (was 'scanner' before, which is now FAB-only)
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      try {
+        // If scanner page is still marked active by old HTML, switch to diary
+        var scanPage = document.getElementById('page-scanner');
+        if (scanPage && scanPage.classList.contains('active') && typeof switchTab === 'function'){
+          switchTab('diary');
+        }
+      } catch(e){}
+    }, 0);
+  });
+})();
+</script>
 
 </body>
 </html>
