@@ -2422,6 +2422,8 @@ function applyTranslations(){
   var _mn=document.getElementById("manual-name"); if(_mn) _mn.placeholder=i18n.name_ph||"Например: Курица";
   _s2("sync-btn",           i18n.load_data_btn||"🔄 Load data from bot");
   _s2("progress-note",      i18n.sync_note||"Open bot and tap Progress");
+  // Phase 3E — always refresh Phase 2-3 labels (rings, sheets, archive, charts, help, theme picker)
+  try { if (typeof window._applyT3 === 'function') window._applyT3(); } catch(e){ console.warn('_applyT3 failed:', e); }
 }
 
 // Запускаем переводы + вешаем кнопку языка когда DOM готов

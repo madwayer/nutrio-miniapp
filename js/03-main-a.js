@@ -1265,6 +1265,15 @@ async function saveSettings() {
       var data = await apiPost('/api/settings', body);
     if (data.ok) {
       showToast('✅ Настройки сохранены', 'var(--green)');
+      // Apply language change in the Mini App immediately (was only persisted server-side before)
+      if (body.language && typeof applyLang === 'function') {
+        try {
+          applyLang(body.language);
+          try { localStorage.setItem('nutrio_lang', LANG); } catch(e){}
+          if (typeof applyTranslations === 'function') applyTranslations();
+          if (typeof window._applyT3 === 'function') window._applyT3();
+        } catch(e) { console.warn('lang refresh failed', e); }
+      }
     } else {
       showToast('Ошибка: ' + (data.error||'?'), 'var(--accent2)');
     }
