@@ -541,7 +541,7 @@
       if (titleEl) titleEl.textContent = T('more_sheet_title');
       var rows = m.querySelectorAll('.sheet-row');
       var rowKeys = ['more_lb','more_micro','more_stats','more_game','more_pdf','more_import',
-                     'more_premium','more_settings','more_lang','more_help','more_admin'];
+                     'more_premium','more_settings','more_help','more_admin'];
       rows.forEach(function(r, i){
         var t = r.querySelector('.sheet-row-t');
         if (t && rowKeys[i]) t.textContent = T(rowKeys[i]);
