@@ -2278,6 +2278,9 @@ function applyLang(code) {
   // Мержим: берём en как базу, поверх накладываем выбранный язык
   const baseI18n = CIS.has(base) ? MINI_I18N.ru : MINI_I18N.en;
   i18n = Object.assign({}, baseI18n, MINI_I18N[LANG]||{});
+  // Expose on window so other modules (Phase 3E i18n extension) can read current state
+  window.LANG = LANG;
+  window.i18n = i18n;
 }
 
 let LANG = "ru", i18n = MINI_I18N.ru;

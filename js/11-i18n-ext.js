@@ -487,7 +487,11 @@
 
   // ─── Helper: T(key, fallback) returns translation in current LANG ──────
   window.T = function(key, fallback) {
-    var v = (window.i18n && window.i18n[key]) || (MINI_I18N.en && MINI_I18N.en[key]);
+    // i18n may be a top-level `let` (not on window) — try direct access first
+    var dict = null;
+    try { dict = (typeof i18n !== 'undefined') ? i18n : null; } catch(e){}
+    if (!dict) dict = window.i18n || null;
+    var v = (dict && dict[key]) || (MINI_I18N.en && MINI_I18N.en[key]);
     return v || fallback || key;
   };
 

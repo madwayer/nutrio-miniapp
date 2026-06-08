@@ -50,18 +50,17 @@ function calcSelectMeal(meal, btn) {
     btn.style.fontWeight  = '700';
   }
 }
-// Exports from block 0
-window.calcSetWeight   = calcSetWeight;
-window.calcUpdateWeight= calcUpdateWeight;
-window.calcSelectMeal  = calcSelectMeal;
-window.openDatePicker  = openDatePicker;
-window.dpPick          = dpPick;
-window.dpClose         = dpClose;
-window.dpRender        = dpRender;
-window.dpPrevMonth     = dpPrevMonth;
-window.dpNextMonth     = dpNextMonth;
-window.dpClose2        = dpClose2;
-window.editDiaryEntry  = editDiaryEntry;
-window.deditSave       = deditSave;
-window.deditDelete     = deditDelete;
-window.statAddWeight   = statAddWeight;
+// Exports — deferred until after all modules load, so referenced functions exist
+function _calcExports() {
+  ['calcSetWeight','calcUpdateWeight','calcSelectMeal',
+   'openDatePicker','dpPick','dpClose','dpRender','dpPrevMonth','dpNextMonth','dpClose2',
+   'editDiaryEntry','deditSave','deditDelete','statAddWeight'
+  ].forEach(function(n){
+    try {
+      var fn = eval('typeof ' + n + ' !== "undefined" ? ' + n + ' : null');
+      if (fn) window[n] = fn;
+    } catch(e){}
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _calcExports);
+else _calcExports();
