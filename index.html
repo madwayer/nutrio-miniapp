@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta name="nutrio-version" content="v9jun2026-phase3k">
+  <meta name="nutrio-version" content="v10jun2026-phase3n">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
@@ -62,10 +62,10 @@
 })();
 </script>
 
-<script src="/js/01-calc.js?v=3l"></script>
-<script src="/js/02-datepicker.js?v=3l"></script>
-<script src="/js/03-main-a.js?v=3l"></script>
-<link rel="stylesheet" href="/styles.css?v=3l">
+<script src="/js/01-calc.js?v=3n"></script>
+<script src="/js/02-datepicker.js?v=3n"></script>
+<script src="/js/03-main-a.js?v=3n"></script>
+<link rel="stylesheet" href="/styles.css?v=3n">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -1254,6 +1254,32 @@
       </div>
     </div>
 
+    <!-- Broadcast section -->
+    <div class="adm-section" id="adm-section-broadcast">
+      <div class="adm-label">📣 Рассылка</div>
+      <select id="adm-bc-audience" class="sett-select" style="width:100%;margin-bottom:8px">
+        <option value="all">Все пользователи</option>
+        <option value="premium">Только Premium</option>
+        <option value="ru">Язык: Русский</option>
+        <option value="en">Язык: English</option>
+      </select>
+      <textarea id="adm-bc-text" rows="5" style="width:100%;resize:vertical;font-family:inherit;font-size:13px;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;color:var(--text);outline:none;margin-bottom:8px" placeholder="Текст сообщения..."></textarea>
+      <div style="display:flex;gap:8px">
+        <button class="adm-btn" onclick="admBcPreview()" style="flex:1">👁 Превью</button>
+        <button class="adm-btn adm-btn-prem" onclick="admBcSend()" style="flex:1">📣 Отправить</button>
+      </div>
+      <div id="adm-bc-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:12px;margin-top:8px;font-size:13px"></div>
+      <div id="adm-bc-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
+    </div>
+
+    <!-- Admin Stats section -->
+    <div class="adm-section" id="adm-section-admstats">
+      <div class="adm-label">📈 Расширенная статистика</div>
+      <div id="adm-stats-content">
+        <div style="text-align:center;padding:20px;color:var(--text2)">Нажми для загрузки</div>
+      </div>
+    </div>
+
   </div>
 
   <div class="page" id="page-helppage">
@@ -1329,7 +1355,9 @@
     <div class="adm-nav">
       <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
       <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
-      <button class="adm-nav-btn"        id="adm-btn-payments" onclick="admSection('payments')">💳 Оплаты</button>
+      <button class="adm-nav-btn"        id="adm-btn-payments"  onclick="admSection('payments')">💳 Оплаты</button>
+      <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
+      <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
     </div>
 
     <!-- Dashboard -->
@@ -1377,14 +1405,14 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/04-main-b.js?v=3l"></script>
+<script src="/js/04-main-b.js?v=3n"></script>
 
 
 
 
 
 <!-- styles moved to /styles.css (Phase 1 refactor) -->
-<script src="/js/05-scanner.js?v=3l"></script>
+<script src="/js/05-scanner.js?v=3n"></script>
 
 
 
@@ -1393,19 +1421,19 @@
 ═══════════════════════════════════════════════════════════════ -->
 <nav class="bnav" id="bnav" role="navigation" aria-label="Main">
   <button class="bnav-item active" data-tab="diary"    onclick="switchTab('diary')"    id="bnav-diary">
-    <span class="bnav-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span class="bnav-lbl" data-i18n="nav_diary">Дневник</span>
+    <span class="bnav-ic">📔</span><span class="bnav-lbl" data-i18n="nav_diary">Дневник</span>
   </button>
   <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
-    <span class="bnav-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span><span class="bnav-lbl" data-i18n="nav_progress">Прогресс</span>
+    <span class="bnav-ic">📈</span><span class="bnav-lbl" data-i18n="nav_progress">Прогресс</span>
   </button>
   <button class="bnav-fab" onclick="openAddSheet()" id="bnav-fab" aria-label="Добавить">
     <span class="bnav-fab-inner">+</span>
   </button>
   <button class="bnav-item" data-tab="aipage"   onclick="switchTab('aipage')"   id="bnav-ai">
-    <span class="bnav-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="3" fill="currentColor" fill-opacity=".2"/></svg></span><span class="bnav-lbl">AI</span>
+    <span class="bnav-ic">🤖</span><span class="bnav-lbl">AI</span>
   </button>
   <button class="bnav-item" onclick="openMoreSheet()" id="bnav-more">
-    <span class="bnav-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span><span class="bnav-lbl" data-i18n="nav_more">Ещё</span>
+    <span class="bnav-ic">⋯</span><span class="bnav-lbl" data-i18n="nav_more">Ещё</span>
   </button>
 </nav>
 
@@ -1492,16 +1520,16 @@
   </div>
 </div>
 
-<script src="/js/06-nav.js?v=3l"></script>
+<script src="/js/06-nav.js?v=3n"></script>
 
 
-<script src="/js/07-skeleton.js?v=3l"></script>
+<script src="/js/07-skeleton.js?v=3n"></script>
 
 
-<script src="/js/08-rings-heatmap.js?v=3l"></script>
+<script src="/js/08-rings-heatmap.js?v=3n"></script>
 
 
-<script src="/js/09-ai-cards.js?v=3l"></script>
+<script src="/js/09-ai-cards.js?v=3n"></script>
 
 
 <!-- AI Archive sheet (Phase 3C) -->
@@ -1536,8 +1564,8 @@
 </div>
 
 
-<script src="/js/10-charts-archive.js?v=3l"></script>
-<script src="/js/11-i18n-ext.js?v=3l"></script>
+<script src="/js/10-charts-archive.js?v=3n"></script>
+<script src="/js/11-i18n-ext.js?v=3n"></script>
 
 </body>
 </html>

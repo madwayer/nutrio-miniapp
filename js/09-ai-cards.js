@@ -232,14 +232,14 @@ window.cleanAiText = cleanAiText;
         '<button class="help-btn help-btn-primary" onclick="_openTg(\'CaloriePilotAI_Bot\')">' +
           '<span class="help-btn-ic">🤖</span><span class="help-btn-lbl">Открыть бота</span>' +
         '</button>' +
-        '<button class="help-btn help-btn-support" onclick="_openTg(\'nutrio_support\')">' +
-          '<span class="help-btn-ic">💬</span><span class="help-btn-lbl">Поддержка</span>' +
+        '<button class="help-btn help-btn-support" onclick="_openTg(\'nutrio_support_bot\')">' +
+          '<span class="help-btn-ic">💬</span><span class="help-btn-lbl">Техподдержка</span>' +
         '</button>' +
-        '<button class="help-btn help-btn-channel" onclick="_openTg(\'NutrioApp\')">' +
+        '<button class="help-btn help-btn-channel" onclick="_openTg(\'NutriO_official\')">' +
           '<span class="help-btn-ic">📢</span><span class="help-btn-lbl">Канал</span>' +
         '</button>' +
-        '<button class="help-btn help-btn-rate" onclick="_helpRate()">' +
-          '<span class="help-btn-ic">⭐</span><span class="help-btn-lbl">Оценить</span>' +
+        '<button class="help-btn help-btn-rate" onclick="_helpDonate()">' +
+          '<span class="help-btn-ic">❤️</span><span class="help-btn-lbl">Поддержать</span>' +
         '</button>' +
       '</div>' +
       '<div class="section-title" style="margin-top:8px">Частые вопросы</div>' +
@@ -270,9 +270,14 @@ window.cleanAiText = cleanAiText;
     } catch(e){}
     window.open(url, '_blank');
   };
+  window._helpDonate = function() {
+    _openTg('CaloriePilotAI_Bot?start=donate');
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+  };
   window._helpRate = function() {
-    if (typeof showToast === 'function') showToast('Спасибо! 💜', 'var(--green)');
-    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch(e){}
+    _openTg('CaloriePilotAI_Bot?start=rate');
+    if (typeof showToast === 'function') showToast('Спасибо за оценку! ⭐', 'var(--green)');
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e){}
   };
   // Patch initHelpPage so the rewrite is applied when Help is opened
   var origInit = window.initHelpPage;
