@@ -2339,33 +2339,33 @@ body {
 
 /* ─── Light theme (dark is default — already defined at :root) ─── */
 [data-theme="light"] {
-  --bg:        #f6f7fb;
-  --bg2:       #ffffff;
+  --bg:        #f0f2f8;
+  --bg2:       #e8ebf4;
   --surface:   #ffffff;
-  --surface2:  #eef0f7;
+  --surface2:  #f4f5fb;
   --card:      #ffffff;
-  --accent:    #6a5cff;
-  --accent2:   #ff5a7d;
-  --green:     #1bc55b;
-  --text:      #15151c;
-  --text2:     #6a6c80;
-  --muted:     #93959f;
-  --shadow:    0 4px 18px rgba(20,22,40,.10);
-  --glow-green:  0 0 16px rgba(27,197,91,.20);
-  --glow-purple: 0 0 16px rgba(106,92,255,.22);
-  --glass-bg:        rgba(255,255,255,0.70);
-  --glass-bg-2:      rgba(238,240,247,0.85);
-  --glass-border:    rgba(20,22,40,0.06);
-  --glass-border-strong: rgba(20,22,40,0.12);
-  --shadow-sm:       0 1px 4px rgba(20,22,40,.06);
-  --shadow-md:       0 4px 14px rgba(20,22,40,.10);
-  --shadow-lg:       0 14px 36px rgba(20,22,40,.16);
-  --shadow-glow:     0 0 24px rgba(106,92,255,.18);
-  --gradient-accent: linear-gradient(135deg, #6a5cff 0%, #8b7eff 100%);
-  --gradient-pink:   linear-gradient(135deg, #ff5a7d 0%, #ff8fa3 100%);
-  --gradient-green:  linear-gradient(135deg, #1bc55b 0%, #20d49a 100%);
-  --gradient-orange: linear-gradient(135deg, #ff8a1f 0%, #ffb05a 100%);
-  --gradient-blue:   linear-gradient(135deg, #3a86ff 0%, #6aa6ff 100%);
+  --accent:    #5b4fff;
+  --accent2:   #e8436e;
+  --green:     #18b356;
+  --text:      #1a1b28;
+  --text2:     #5a5d72;
+  --muted:     #8a8c9c;
+  --shadow:    0 4px 18px rgba(20,22,40,.08);
+  --glow-green:  0 0 16px rgba(24,179,86,.15);
+  --glow-purple: 0 0 16px rgba(91,79,255,.15);
+  --glass-bg:        rgba(255,255,255,0.82);
+  --glass-bg-2:      rgba(244,245,251,0.90);
+  --glass-border:    rgba(20,22,40,0.07);
+  --glass-border-strong: rgba(20,22,40,0.13);
+  --shadow-sm:       0 1px 5px rgba(20,22,40,.05);
+  --shadow-md:       0 4px 16px rgba(20,22,40,.09);
+  --shadow-lg:       0 14px 36px rgba(20,22,40,.14);
+  --shadow-glow:     0 0 20px rgba(91,79,255,.14);
+  --gradient-accent: linear-gradient(135deg, #5b4fff 0%, #7c6eff 100%);
+  --gradient-pink:   linear-gradient(135deg, #e8436e 0%, #f07090 100%);
+  --gradient-green:  linear-gradient(135deg, #18b356 0%, #1dd4a0 100%);
+  --gradient-orange: linear-gradient(135deg, #f07c10 0%, #f5a840 100%);
+  --gradient-blue:   linear-gradient(135deg, #2e78f0 0%, #5a9cf8 100%);
 }
 
 [data-theme="light"] body {
@@ -3270,3 +3270,182 @@ body {
 }
 
 /* Reuse .ai-content styles inside view sheet — defined in 3B */
+
+/* ═══════════════════ Phase 3J: Premium redesign ═══════════════════ */
+.prem-status-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(108,99,255,.18) 0%, rgba(255,101,132,.14) 100%);
+  border: 1px solid rgba(108,99,255,.25);
+  text-align: center;
+  box-shadow: var(--shadow-md), 0 0 30px rgba(108,99,255,.15);
+}
+.prem-hero-glow {
+  position: absolute;
+  top: -50%; left: 50%;
+  transform: translateX(-50%);
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(108,99,255,.28), transparent 70%);
+  pointer-events: none;
+}
+.prem-status-card.premium {
+  background: linear-gradient(135deg, rgba(67,233,123,.16) 0%, rgba(54,160,255,.12) 100%);
+  border-color: rgba(67,233,123,.3);
+}
+.prem-status-icon { font-size: 40px; margin-bottom: 8px; filter: drop-shadow(0 0 12px rgba(108,99,255,.5)); }
+.prem-status-title { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.2px; }
+.prem-status-sub { font-size: 13px; color: var(--text2); font-weight: 500; }
+
+.prem-features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.prem-feat-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border-radius: 14px;
+  padding: 14px 12px;
+  transition: transform .15s ease;
+}
+.prem-feat-card:active { transform: scale(.97); }
+.prem-feat-ic { font-size: 24px; display: block; margin-bottom: 6px; }
+.prem-feat-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.prem-feat-sub { font-size: 11px; color: var(--text2); line-height: 1.4; }
+
+.prem-plans-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  margin: 4px 0 10px;
+}
+.prem-plan-card {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color .2s ease, transform .15s ease, box-shadow .2s ease;
+}
+.prem-plan-card:active { transform: scale(.98); }
+.prem-plan-card.selected {
+  border-color: var(--accent);
+  background: rgba(108,99,255,.10);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-glow);
+}
+.prem-plan-popular { border-color: rgba(67,233,123,.4); background: rgba(67,233,123,.07); }
+.prem-plan-popular.selected { border-color: var(--accent); }
+.prem-plan-badge {
+  position: absolute;
+  top: -10px; right: 14px;
+  background: var(--gradient-green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(67,233,123,.35);
+}
+.prem-plan-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.prem-plan-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.prem-plan-price { font-size: 22px; font-weight: 900; color: var(--accent); }
+.prem-plan-star { font-size: 16px; }
+
+.prem-buy-btn {
+  width: 100%;
+  padding: 16px;
+  margin-top: 4px;
+  background: var(--gradient-accent);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(108,99,255,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  transition: transform .15s ease;
+  letter-spacing: .2px;
+}
+.prem-buy-btn:active { transform: scale(.98) translateY(1px); }
+.prem-card-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.prem-card-btn:active { transform: scale(.98); }
+
+.prem-ref-section {
+  margin-top: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.prem-ref-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.prem-ref-sub { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; }
+.prem-ref-link {
+  background: var(--surface2);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12px;
+  font-family: monospace;
+  word-break: break-all;
+  cursor: pointer;
+  margin-bottom: 10px;
+  color: var(--accent);
+  transition: background .15s ease;
+}
+.prem-ref-link:active { background: var(--glass-bg-2); }
+.prem-ref-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+.prem-ref-copy {
+  flex: 1; padding: 12px;
+  background: var(--gradient-green);
+  color: #0a0a0d;
+  border: none; border-radius: 12px;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}
+.prem-ref-share {
+  flex: 1; padding: 12px;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  font-family: inherit; font-size: 13px;
+  cursor: pointer;
+}
+.prem-ref-stats { display: flex; gap: 8px; }
+.prem-ref-stat {
+  flex: 1;
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+.prem-ref-stat-val { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+.prem-ref-stat-lbl { font-size: 11px; color: var(--muted); font-weight: 500; }

@@ -966,9 +966,10 @@ async function loadLb(type) {
     }
     container.innerHTML = data.entries.map(function(e) {
       var medal = e.rank===1?'🥇':e.rank===2?'🥈':e.rank===3?'🥉':'';
+      var rankLabel = e.rank && e.rank > 0 ? (medal || ('#'+e.rank)) : (e.is_me ? '👤' : '—');
       var bg = e.is_me ? 'background:rgba(108,99,255,.15);border:1px solid var(--accent)' : 'background:var(--surface)';
       return '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;margin-bottom:6px;' + bg + '">'
-        + '<div style="font-size:' + (medal?'22':'13') + 'px;min-width:30px;text-align:center;font-weight:700;color:var(--text2)">' + (medal||('#'+e.rank)) + '</div>'
+        + '<div style="font-size:' + (medal?'22':'13') + 'px;min-width:30px;text-align:center;font-weight:700;color:var(--text2)">' + rankLabel + '</div>'
         + '<div style="flex:1;font-weight:' + (e.is_me?'800':'600') + ';font-size:14px">' + escHtml(e.name) + (e.is_me?'&nbsp;<span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:5px">ты</span>':'') + '</div>'
         + '<div style="font-weight:800;font-size:16px;color:var(--accent)">' + e.value + '&nbsp;<span style="font-size:10px;color:var(--text2);font-weight:400">' + e.unit + '</span></div>'
         + '</div>';
@@ -1358,10 +1359,12 @@ async function initPremPage() {
     if (rc) rc.textContent = data.referral_count || 0;
     if (re) re.textContent = (data.referral_count||0) * 7 + ' дн.';
     // Load ref link
-    var rb = document.getElementById('ref-link-box');
-    if (rb && data.telegram_id) {
+    if (data.telegram_id) {
       refLink = 'https://t.me/CaloriePilotAI_Bot?start=ref_' + data.telegram_id;
-      rb.textContent = refLink;
+      var rbText = document.getElementById('ref-link-text');
+      if (rbText) rbText.textContent = refLink;
+      var rb = document.getElementById('ref-link-box');
+      if (rb) rb.title = refLink;
     }
   } catch(e) {}
 }

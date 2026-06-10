@@ -94,6 +94,26 @@
     'plan-result':   { ic: '📅', title: (window.T?T('ai_plan_title','План питания'):'План питания'), sub: (window.T?T('ai_card_sub','Сгенерировано AI'):'Сгенерировано AI') },
     'recipe-result': { ic: '👨‍🍳', title: (window.T?T('ai_recipe_title','Рецепт от шефа'):'Рецепт от шефа'), sub: (window.T?T('ai_card_sub','Сгенерировано AI'):'Сгенерировано AI') }
   };
+
+// Phase 3J — clean AI text before rendering
+function cleanAiText(text) {
+  if (!text) return text;
+  // Remove recipe/рецепт numbers: "рецепт #1234:" / "recipe #1234:"
+  text = text.replace(/рецепт\s*#\d+\s*:?\s*/gi, '');
+  text = text.replace(/recipe\s*#\d+\s*:?\s*/gi, '');
+  text = text.replace(/\u0440\u0435\u0446\u0435\u043f\u0442\s*#\d+\s*:?\s*/gi, '');
+  text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]\s+\u043d\u0430\s+\u043f\u043e\u0440\u0446/gi, '\u041d\u0430 \u043f\u043e\u0440\u0446\u0438\u044e:');
+  text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]/g, '\u041a\u0411\u0416\u0423');
+  text = text.replace(/KBZhU/gi, '\u041a\u0411\u0416\u0423');
+  text = text.replace(/KBZU/gi, '\u041a\u0411\u0416\u0423');
+  var _sects = ['\u0418\u043d\u0433\u0440\u0435\u0434\u0438\u0435\u043d\u0442\u044b','Ingredients','\u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u0438','Instructions','\u041f\u0440\u0438\u0433\u043e\u0442\u043e\u0432\u043b\u0435\u043d\u0438\u0435','Preparation','Directions','Steps','Nutrition','\u041d\u0430 \u043f\u043e\u0440\u0446\u0438\u044e','\u041a\u0411\u0416\u0423'];
+  _sects.forEach(function(s){ text = text.replace(new RegExp('(' + s + '[:\\s]*)\\n{2,}', 'g'), '$1\n'); });
+  text = text.replace(/(#{1,3}[^\n]+)\n{2,}/g, '$1\n');
+  text = text.replace(/(\*\*[^*\n]+\*\*)\n{2,}/g, '$1\n');
+  return text;
+}
+window.cleanAiText = cleanAiText;
+
   function wrapResult(elId, htmlContent) {
     var el = document.getElementById(elId);
     if (!el) return;
@@ -144,7 +164,7 @@
       // If original wrote raw markdown via textContent, the element will have only text content (no nested elements).
       if (el.children.length === 0 && el.textContent.trim().length > 0) {
         var md = el.textContent;
-        wrapResult(elId, renderMarkdown(md));
+        wrapResult(elId, renderMarkdown(cleanAiText(md)));
       } else if (el.children.length === 1 && el.firstElementChild.classList && el.firstElementChild.classList.contains('ai-loading')) {
         // still loading — leave it
       } else if (el.querySelector('.ai-content')) {

@@ -139,22 +139,52 @@
     var t = e.currentTarget;
     var key = t.getAttribute('data-date');
     var c = cache[key];
+    // Single tap → tooltip; double-tap (≤1.2s on same cell) → open Diary on that date
+    var now = Date.now();
+    var lastKey = window._hmLastKey;
+    var lastT   = window._hmLastT || 0;
+    var isDouble = (key === lastKey) && (now - lastT < 1200);
+    window._hmLastKey = key; window._hmLastT = now;
+
+    if (isDouble) {
+      try {
+        // Navigate to that day in diary: parse date string, set global diaryDate, reload
+        var parts2 = key.split('-');
+        var targetDate = new Date(parseInt(parts2[0],10), parseInt(parts2[1],10)-1, parseInt(parts2[2],10));
+        if (typeof window.diaryDate !== 'undefined') window.diaryDate = targetDate;
+        if (typeof switchTab === 'function') switchTab('diary');
+        setTimeout(function(){
+          if (typeof window.loadDiary === 'function') {
+            try { window.loadDiary(); } catch(__) {}
+          }
+        }, 60);
+        try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback)
+          Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch(e){}
+      } catch(err) { console.warn(err); }
+      return;
+    }
+
     var tip = document.getElementById('hm-tip') || (function(){
       var el = document.createElement('div'); el.id = 'hm-tip'; el.className = 'hm-tip';
       document.body.appendChild(el); return el;
     })();
     var parts = key.split('-');
     var dd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var noData = (typeof T==='function') ? T('hm_no_data','нет данных') : 'нет данных';
+    var kcalLbl = (typeof T==='function') ? T('kcal_short','ккал') : 'ккал';
+    var hint    = (typeof T==='function') ? T('hm_dbl_hint','· двойной тап — открыть в дневнике')
+                                          : '· двойной тап — открыть';
     var line = shortLabel(dd) + ' · ';
-    if (c) line += Math.round(c.cals) + ' / ' + Math.round(c.goal) + ' ккал';
-    else   line += T('hm_no_data','нет данных');
+    if (c) line += Math.round(c.cals) + ' / ' + Math.round(c.goal) + ' ' + kcalLbl;
+    else   line += noData;
+    line += ' ' + hint;
     tip.textContent = line;
     var rect = t.getBoundingClientRect();
     tip.style.left = (rect.left + rect.width/2) + 'px';
     tip.style.top  = rect.top + 'px';
     tip.classList.add('show');
     clearTimeout(window._hmTipT);
-    window._hmTipT = setTimeout(function(){ tip.classList.remove('show'); }, 1800);
+    window._hmTipT = setTimeout(function(){ tip.classList.remove('show'); }, 2400);
   }
 
   function setProgress(done, total){

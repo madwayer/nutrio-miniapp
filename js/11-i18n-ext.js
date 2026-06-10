@@ -100,6 +100,26 @@
       save_food_open_tg:"Открой из Telegram",
       save_food_err:"Ошибка",
       save_food_conn_err:"Ошибка соединения",
+      kcal_short: "ккал",
+      kcal_full: "Калории",
+      macro_prot: "Белки",
+      macro_fat: "Жиры",
+      macro_carb: "Углеводы",
+      macro_prot_g: "Белки, г",
+      macro_fat_g: "Жиры, г",
+      macro_carb_g: "Углеводы, г",
+      mf_prot_g: "💪 БЕЛКИ, г",
+      mf_fat_g: "🧈 ЖИРЫ, г",
+      mf_carb_g: "🍞 УГЛЕВ, г",
+      cbju_per_100g: "КБЖУ НА 100Г",
+      mf_hint_per_100g: "КБЖУ указывается на 100г продукта",
+      add_food_btn: "✍️ Добавить еду",
+      scan_hero_sub: "Наведи камеру на штрихкод упаковки или еду — бот найдёт КБЖУ автоматически",
+      chart_weight_label: "Вес, кг",
+      hm_dbl_hint: "· двойной тап — открыть в дневнике",
+      months_full: "Январь|Февраль|Март|Апрель|Май|Июнь|Июль|Август|Сентябрь|Октябрь|Ноябрь|Декабрь",
+      weekdays_short: "Пн|Вт|Ср|Чт|Пт|Сб|Вс",
+    
     },
     en: {
       nav_diary:"Diary", nav_progress:"Progress", nav_ai:"AI", nav_more:"More",
@@ -182,6 +202,26 @@
       save_food_open_tg:"Open from Telegram",
       save_food_err:"Error",
       save_food_conn_err:"Connection error",
+      kcal_short: "kcal",
+      kcal_full: "Calories",
+      macro_prot: "Protein",
+      macro_fat: "Fat",
+      macro_carb: "Carbs",
+      macro_prot_g: "Protein, g",
+      macro_fat_g: "Fat, g",
+      macro_carb_g: "Carbs, g",
+      mf_prot_g: "💪 PROTEIN, g",
+      mf_fat_g: "🧈 FAT, g",
+      mf_carb_g: "🍞 CARBS, g",
+      cbju_per_100g: "NUTRITION PER 100G",
+      mf_hint_per_100g: "Nutrition values are per 100g of product",
+      add_food_btn: "✍️ Add food",
+      scan_hero_sub: "Point the camera at a barcode or food — the bot will find macros automatically",
+      chart_weight_label: "Weight, kg",
+      hm_dbl_hint: "· double-tap — open in diary",
+      months_full: "January|February|March|April|May|June|July|August|September|October|November|December",
+      weekdays_short: "Mon|Tue|Wed|Thu|Fri|Sat|Sun",
+    
     },
     uk: {
       nav_diary:"Щоденник", nav_progress:"Прогрес", nav_ai:"AI", nav_more:"Ще", nav_add:"Додати",
@@ -254,6 +294,26 @@
       save_food_open_tg:"Відкрий з Telegram",
       save_food_err:"Помилка",
       save_food_conn_err:"Помилка з'єднання",
+      kcal_short: "ккал",
+      kcal_full: "Калорії",
+      macro_prot: "Білки",
+      macro_fat: "Жири",
+      macro_carb: "Вуглеводи",
+      macro_prot_g: "Білки, г",
+      macro_fat_g: "Жири, г",
+      macro_carb_g: "Вуглеводи, г",
+      mf_prot_g: "💪 БІЛКИ, г",
+      mf_fat_g: "🧈 ЖИРИ, г",
+      mf_carb_g: "🍞 ВУГЛЕВ, г",
+      cbju_per_100g: "КБЖВ НА 100Г",
+      mf_hint_per_100g: "КБЖВ вказується на 100г продукту",
+      add_food_btn: "✍️ Додати їжу",
+      scan_hero_sub: "Наведи камеру на штрихкод або страву — бот знайде КБЖВ автоматично",
+      chart_weight_label: "Вага, кг",
+      hm_dbl_hint: "· подвійний тап — відкрити у щоденнику",
+      months_full: "Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень",
+      weekdays_short: "Пн|Вт|Ср|Чт|Пт|Сб|Нд",
+    
     },
     de: {
       nav_diary:"Tagebuch", nav_progress:"Fortschritt", nav_ai:"AI", nav_more:"Mehr", nav_add:"Hinzufügen",
@@ -326,6 +386,26 @@
       save_food_open_tg:"Aus Telegram öffnen",
       save_food_err:"Fehler",
       save_food_conn_err:"Verbindungsfehler",
+      kcal_short: "kcal",
+      kcal_full: "Kalorien",
+      macro_prot: "Eiweiß",
+      macro_fat: "Fett",
+      macro_carb: "Kohlenhydrate",
+      macro_prot_g: "Eiweiß, g",
+      macro_fat_g: "Fett, g",
+      macro_carb_g: "KH, g",
+      mf_prot_g: "💪 EIWEISS, g",
+      mf_fat_g: "🧈 FETT, g",
+      mf_carb_g: "🍞 KH, g",
+      cbju_per_100g: "NÄHRWERTE PRO 100G",
+      mf_hint_per_100g: "Nährwerte pro 100g Produkt",
+      add_food_btn: "✍️ Essen hinzufügen",
+      scan_hero_sub: "Richte die Kamera auf einen Barcode oder ein Gericht — der Bot findet die Makros automatisch",
+      chart_weight_label: "Gewicht, kg",
+      hm_dbl_hint: "· Doppeltipp — im Tagebuch öffnen",
+      months_full: "Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember",
+      weekdays_short: "Mo|Di|Mi|Do|Fr|Sa|So",
+    
     },
     fr: {
       nav_diary:"Journal", nav_progress:"Progrès", nav_ai:"IA", nav_more:"Plus", nav_add:"Ajouter",
@@ -398,6 +478,26 @@
       save_food_open_tg:"Ouvre depuis Telegram",
       save_food_err:"Erreur",
       save_food_conn_err:"Erreur de connexion",
+      kcal_short: "kcal",
+      kcal_full: "Calories",
+      macro_prot: "Protéines",
+      macro_fat: "Lipides",
+      macro_carb: "Glucides",
+      macro_prot_g: "Protéines, g",
+      macro_fat_g: "Lipides, g",
+      macro_carb_g: "Glucides, g",
+      mf_prot_g: "💪 PROTÉINES, g",
+      mf_fat_g: "🧈 LIPIDES, g",
+      mf_carb_g: "🍞 GLUCIDES, g",
+      cbju_per_100g: "NUTRITION POUR 100G",
+      mf_hint_per_100g: "Valeurs nutritionnelles pour 100g de produit",
+      add_food_btn: "✍️ Ajouter un repas",
+      scan_hero_sub: "Pointe la caméra sur un code-barres ou un plat — le bot trouvera les macros automatiquement",
+      chart_weight_label: "Poids, kg",
+      hm_dbl_hint: "· double-tap — ouvrir dans le journal",
+      months_full: "janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre",
+      weekdays_short: "Lun|Mar|Mer|Jeu|Ven|Sam|Dim",
+    
     },
     es: {
       nav_diary:"Diario", nav_progress:"Progreso", nav_ai:"IA", nav_more:"Más", nav_add:"Añadir",
@@ -470,6 +570,26 @@
       save_food_open_tg:"Abrir desde Telegram",
       save_food_err:"Error",
       save_food_conn_err:"Error de conexión",
+      kcal_short: "kcal",
+      kcal_full: "Calorías",
+      macro_prot: "Proteínas",
+      macro_fat: "Grasas",
+      macro_carb: "Carbohidratos",
+      macro_prot_g: "Proteínas, g",
+      macro_fat_g: "Grasas, g",
+      macro_carb_g: "Carbs, g",
+      mf_prot_g: "💪 PROTEÍNAS, g",
+      mf_fat_g: "🧈 GRASAS, g",
+      mf_carb_g: "🍞 CARBS, g",
+      cbju_per_100g: "NUTRICIÓN POR 100G",
+      mf_hint_per_100g: "Valores nutricionales por 100g de producto",
+      add_food_btn: "✍️ Añadir comida",
+      scan_hero_sub: "Apunta la cámara a un código de barras o plato — el bot encontrará los macros automáticamente",
+      chart_weight_label: "Peso, kg",
+      hm_dbl_hint: "· doble toque — abrir en el diario",
+      months_full: "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre",
+      weekdays_short: "Lun|Mar|Mié|Jue|Vie|Sáb|Dom",
+    
     },
   };
 
@@ -481,6 +601,24 @@
   Object.keys(MINI_I18N).forEach(function(lang){
     if (!EXT[lang]) MINI_I18N[lang] = Object.assign({}, EXT.en, MINI_I18N[lang]);
   });
+
+
+  // Phase 3I — additional keys merged into EXT
+  var EXT_3I = {"ru": {"diary_add_food": "✍️ Добавить еду", "macro_prot_g": "Белки, г", "macro_fat_g": "Жиры, г", "macro_carb_g": "Углеводы, г", "macro_prot": "Белки", "macro_fat": "Жиры", "macro_carb": "Углеводы", "ai_mode_nutri": "🤖 Нутрициолог", "ai_mode_plan": "📅 Планировщик", "ai_mode_recipe": "👨‍🍳 Рецепты", "ai_nutri_intro": "🤖 AI проанализирует твоё питание за последние 14 дней и даст персональные рекомендации.", "ai_nutri_limit": "Бесплатно: 3 раза в месяц · Premium: безлимит", "ai_btn_analyze": "🔍 Проанализировать питание", "ai_btn_create_plan": "📅 Создать план питания", "ai_btn_recipe_gen": "👨‍🍳 Сгенерировать рецепт", "ai_btn_recipe_next": "🔄 Другой рецепт", "ai_plan_days_lbl": "Количество дней:", "ai_plan_restrict_lbl": "Ограничения (необязательно):", "ai_plan_restrict_ph": "Без глютена, вегетарианское...", "ai_recipe_cat_lbl": "Категория:", "recipe_random": "🎲 Случайный", "recipe_fast": "⚡ До 15 мин", "recipe_protein": "💪 Много белка", "recipe_lowcal": "🔥 Мало калорий", "recipe_breakfast": "🌅 Завтрак", "recipe_lunch": "🍽 Обед/Ужин", "recipe_snack": "🥗 Перекус", "recipe_bulk": "📈 На массу", "calc_title": "🧮 Калории", "mf_per_100g": "КБЖУ НА 100Г", "mf_prot_caps": "💪 БЕЛКИ, г", "mf_fat_caps": "🧈 ЖИРЫ, г", "mf_carb_caps": "🍞 УГЛЕВ, г", "mf_hint": "КБЖУ указывается на 100г продукта", "stat_streak_lbl": "🔥 дней подряд", "scan_hero_sub": "Наведи камеру на штрихкод упаковки или еду — бот найдёт КБЖУ автоматически", "chart_weight_label": "Вес, кг"}, "en": {"diary_add_food": "✍️ Add food", "macro_prot_g": "Protein, g", "macro_fat_g": "Fat, g", "macro_carb_g": "Carbs, g", "macro_prot": "Protein", "macro_fat": "Fat", "macro_carb": "Carbs", "ai_mode_nutri": "🤖 Nutritionist", "ai_mode_plan": "📅 Planner", "ai_mode_recipe": "👨‍🍳 Recipes", "ai_nutri_intro": "🤖 AI will analyze your nutrition over the last 14 days and give personal recommendations.", "ai_nutri_limit": "Free: 3 per month · Premium: unlimited", "ai_btn_analyze": "🔍 Analyze nutrition", "ai_btn_create_plan": "📅 Create meal plan", "ai_btn_recipe_gen": "👨‍🍳 Generate recipe", "ai_btn_recipe_next": "🔄 Another recipe", "ai_plan_days_lbl": "Number of days:", "ai_plan_restrict_lbl": "Restrictions (optional):", "ai_plan_restrict_ph": "Gluten-free, vegetarian...", "ai_recipe_cat_lbl": "Category:", "recipe_random": "🎲 Random", "recipe_fast": "⚡ Under 15 min", "recipe_protein": "💪 High protein", "recipe_lowcal": "🔥 Low calorie", "recipe_breakfast": "🌅 Breakfast", "recipe_lunch": "🍽 Lunch/Dinner", "recipe_snack": "🥗 Snack", "recipe_bulk": "📈 Bulk-up", "calc_title": "🧮 Calories", "mf_per_100g": "MACROS PER 100G", "mf_prot_caps": "💪 PROTEIN, g", "mf_fat_caps": "🧈 FAT, g", "mf_carb_caps": "🍞 CARBS, g", "mf_hint": "Macros are per 100g of product", "stat_streak_lbl": "🔥 days in a row", "scan_hero_sub": "Point the camera at a package barcode or food — the bot will find macros automatically", "chart_weight_label": "Weight, kg"}, "uk": {"diary_add_food": "✍️ Додати їжу", "macro_prot_g": "Білки, г", "macro_fat_g": "Жири, г", "macro_carb_g": "Вуглеводи, г", "macro_prot": "Білки", "macro_fat": "Жири", "macro_carb": "Вуглеводи", "ai_mode_nutri": "🤖 Нутриціолог", "ai_mode_plan": "📅 Планувальник", "ai_mode_recipe": "👨‍🍳 Рецепти", "ai_nutri_intro": "🤖 AI проаналізує твоє харчування за останні 14 днів і дасть персональні рекомендації.", "ai_nutri_limit": "Безкоштовно: 3 рази на місяць · Premium: безліміт", "ai_btn_analyze": "🔍 Проаналізувати харчування", "ai_btn_create_plan": "📅 Створити план харчування", "ai_btn_recipe_gen": "👨‍🍳 Згенерувати рецепт", "ai_btn_recipe_next": "🔄 Інший рецепт", "ai_plan_days_lbl": "Кількість днів:", "ai_plan_restrict_lbl": "Обмеження (необов\\u2019язково):", "ai_plan_restrict_ph": "Без глютену, вегетаріанське...", "ai_recipe_cat_lbl": "Категорія:", "recipe_random": "🎲 Випадковий", "recipe_fast": "⚡ До 15 хв", "recipe_protein": "💪 Багато білка", "recipe_lowcal": "🔥 Мало калорій", "recipe_breakfast": "🌅 Сніданок", "recipe_lunch": "🍽 Обід/Вечеря", "recipe_snack": "🥗 Перекус", "recipe_bulk": "📈 Набір маси", "calc_title": "🧮 Калорії", "mf_per_100g": "КБЖВ НА 100Г", "mf_prot_caps": "💪 БІЛКИ, г", "mf_fat_caps": "🧈 ЖИРИ, г", "mf_carb_caps": "🍞 ВУГЛЕВ., г", "mf_hint": "КБЖВ вказується на 100г продукту", "stat_streak_lbl": "🔥 днів поспіль", "scan_hero_sub": "Наведи камеру на штрихкод упаковки або їжу — бот знайде КБЖВ автоматично", "chart_weight_label": "Вага, кг"}, "de": {"diary_add_food": "✍️ Essen hinzufügen", "macro_prot_g": "Eiweiß, g", "macro_fat_g": "Fett, g", "macro_carb_g": "Kohlenhydrate, g", "macro_prot": "Eiweiß", "macro_fat": "Fett", "macro_carb": "Kohlenhydrate", "ai_mode_nutri": "🤖 Ernährungsberater", "ai_mode_plan": "📅 Planer", "ai_mode_recipe": "👨‍🍳 Rezepte", "ai_nutri_intro": "🤖 Die KI analysiert deine Ernährung der letzten 14 Tage und gibt persönliche Empfehlungen.", "ai_nutri_limit": "Kostenlos: 3 pro Monat · Premium: unbegrenzt", "ai_btn_analyze": "🔍 Ernährung analysieren", "ai_btn_create_plan": "📅 Essensplan erstellen", "ai_btn_recipe_gen": "👨‍🍳 Rezept generieren", "ai_btn_recipe_next": "🔄 Anderes Rezept", "ai_plan_days_lbl": "Anzahl Tage:", "ai_plan_restrict_lbl": "Einschränkungen (optional):", "ai_plan_restrict_ph": "Glutenfrei, vegetarisch...", "ai_recipe_cat_lbl": "Kategorie:", "recipe_random": "🎲 Zufällig", "recipe_fast": "⚡ Unter 15 Min", "recipe_protein": "💪 Eiweißreich", "recipe_lowcal": "🔥 Kalorienarm", "recipe_breakfast": "🌅 Frühstück", "recipe_lunch": "🍽 Mittag/Abend", "recipe_snack": "🥗 Snack", "recipe_bulk": "📈 Massephase", "calc_title": "🧮 Kalorien", "mf_per_100g": "MAKROS PRO 100G", "mf_prot_caps": "💪 EIWEIẞ, g", "mf_fat_caps": "🧈 FETT, g", "mf_carb_caps": "🍞 KH, g", "mf_hint": "Makros werden pro 100g des Produkts angegeben", "stat_streak_lbl": "🔥 Tage in Folge", "scan_hero_sub": "Richte die Kamera auf einen Barcode oder das Essen — der Bot findet die Makros automatisch", "chart_weight_label": "Gewicht, kg"}, "fr": {"diary_add_food": "✍️ Ajouter un aliment", "macro_prot_g": "Protéines, g", "macro_fat_g": "Lipides, g", "macro_carb_g": "Glucides, g", "macro_prot": "Protéines", "macro_fat": "Lipides", "macro_carb": "Glucides", "ai_mode_nutri": "🤖 Nutritionniste", "ai_mode_plan": "📅 Planificateur", "ai_mode_recipe": "👨‍🍳 Recettes", "ai_nutri_intro": "🤖 L\\u2019IA analysera ta nutrition des 14 derniers jours et donnera des recommandations personnelles.", "ai_nutri_limit": "Gratuit : 3 fois/mois · Premium : illimité", "ai_btn_analyze": "🔍 Analyser la nutrition", "ai_btn_create_plan": "📅 Créer un plan", "ai_btn_recipe_gen": "👨‍🍳 Générer une recette", "ai_btn_recipe_next": "🔄 Autre recette", "ai_plan_days_lbl": "Nombre de jours :", "ai_plan_restrict_lbl": "Restrictions (facultatif) :", "ai_plan_restrict_ph": "Sans gluten, végétarien...", "ai_recipe_cat_lbl": "Catégorie :", "recipe_random": "🎲 Aléatoire", "recipe_fast": "⚡ Moins de 15 min", "recipe_protein": "💪 Riche en protéines", "recipe_lowcal": "🔥 Faible en calories", "recipe_breakfast": "🌅 Petit-déjeuner", "recipe_lunch": "🍽 Déjeuner/Dîner", "recipe_snack": "🥗 Collation", "recipe_bulk": "📈 Prise de masse", "calc_title": "🧮 Calories", "mf_per_100g": "MACROS POUR 100G", "mf_prot_caps": "💪 PROT., g", "mf_fat_caps": "🧈 LIPIDES, g", "mf_carb_caps": "🍞 GLUC., g", "mf_hint": "Macros indiquées pour 100g de produit", "stat_streak_lbl": "🔥 jours d\\u2019affilée", "scan_hero_sub": "Pointe la caméra vers un code-barres ou un plat — le bot trouvera les macros automatiquement", "chart_weight_label": "Poids, kg"}, "es": {"diary_add_food": "✍️ Añadir comida", "macro_prot_g": "Proteínas, g", "macro_fat_g": "Grasas, g", "macro_carb_g": "Carbohidratos, g", "macro_prot": "Proteínas", "macro_fat": "Grasas", "macro_carb": "Carbs", "ai_mode_nutri": "🤖 Nutricionista", "ai_mode_plan": "📅 Planificador", "ai_mode_recipe": "👨‍🍳 Recetas", "ai_nutri_intro": "🤖 La IA analizará tu nutrición de los últimos 14 días y dará recomendaciones personales.", "ai_nutri_limit": "Gratis: 3 al mes · Premium: ilimitado", "ai_btn_analyze": "🔍 Analizar nutrición", "ai_btn_create_plan": "📅 Crear plan de comidas", "ai_btn_recipe_gen": "👨‍🍳 Generar receta", "ai_btn_recipe_next": "🔄 Otra receta", "ai_plan_days_lbl": "Número de días:", "ai_plan_restrict_lbl": "Restricciones (opcional):", "ai_plan_restrict_ph": "Sin gluten, vegetariano...", "ai_recipe_cat_lbl": "Categoría:", "recipe_random": "🎲 Aleatoria", "recipe_fast": "⚡ Menos de 15 min", "recipe_protein": "💪 Alta proteína", "recipe_lowcal": "🔥 Baja caloría", "recipe_breakfast": "🌅 Desayuno", "recipe_lunch": "🍽 Almuerzo/Cena", "recipe_snack": "🥗 Snack", "recipe_bulk": "📈 Volumen", "calc_title": "🧮 Calorías", "mf_per_100g": "MACROS POR 100G", "mf_prot_caps": "💪 PROT., g", "mf_fat_caps": "🧈 GRASAS, g", "mf_carb_caps": "🍞 CARBS, g", "mf_hint": "Los macros se indican por 100g de producto", "stat_streak_lbl": "🔥 días seguidos", "scan_hero_sub": "Apunta la cámara a un código de barras o comida — el bot encontrará los macros automáticamente", "chart_weight_label": "Peso, kg"}};
+  Object.keys(EXT_3I).forEach(function(lang){
+    if (!MINI_I18N[lang]) MINI_I18N[lang] = {};
+    Object.keys(EXT_3I[lang]).forEach(function(k){
+      MINI_I18N[lang][k] = EXT_3I[lang][k];
+    });
+  });
+  // Apply EN keys as fallback to languages without explicit translation
+  Object.keys(MINI_I18N).forEach(function(lang){
+    Object.keys(EXT_3I.en).forEach(function(k){
+      if (!MINI_I18N[lang][k]) MINI_I18N[lang][k] = EXT_3I.en[k];
+    });
+  });
+  // Refresh i18n
+  try { if (typeof applyLang === 'function') applyLang(LANG); } catch(e){}
 
   // Re-run applyLang() now that MINI_I18N has been extended so `i18n` is refreshed
   try { if (typeof applyLang === 'function') applyLang(LANG); } catch(e){}
@@ -500,6 +638,20 @@
     document.querySelectorAll(sel).forEach(function(el){ if (txt) el.textContent = txt; });
   }
   function applyExt() {
+    // ── Apply data-i18n attributes ──────────────────────────────────────
+    try {
+      document.querySelectorAll('[data-i18n]').forEach(function(el){
+        var k = el.getAttribute('data-i18n'); if (k) el.textContent = T(k, el.textContent);
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+        var k = el.getAttribute('data-i18n-ph');
+        if (k) el.setAttribute('placeholder', T(k, el.getAttribute('placeholder')||''));
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(function(el){
+        var k = el.getAttribute('data-i18n-html'); if (k) el.innerHTML = T(k, el.innerHTML);
+      });
+    } catch(e) { console.warn('data-i18n apply failed:', e); }
+
     // Bottom nav labels
     var nav = {
       'bnav-diary    .bnav-lbl': T('nav_diary'),
@@ -662,6 +814,30 @@
     }
   }
 
+  // Phase 3I — generic data-i18n / data-i18n-ph processor
+  function applyDataI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var key = el.getAttribute('data-i18n');
+      if (!key) return;
+      var val = (window.T ? window.T(key) : null) || (window.i18n && window.i18n[key]) || (MINI_I18N.en && MINI_I18N.en[key]);
+      if (val) el.textContent = val;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+      var key = el.getAttribute('data-i18n-ph');
+      if (!key) return;
+      var val = (window.T ? window.T(key) : null) || (window.i18n && window.i18n[key]) || (MINI_I18N.en && MINI_I18N.en[key]);
+      if (val) el.setAttribute('placeholder', val);
+    });
+  }
+  window._applyDataI18n = applyDataI18n;
+  // Hook applyDataI18n into applyExt so it runs whenever translations refresh
+  var _origApplyExt = applyExt;
+  applyExt = function(){
+    var r = _origApplyExt.apply(this, arguments);
+    try { applyDataI18n(); } catch(e){ console.warn('data-i18n apply failed:', e); }
+    return r;
+  };
+  
   window._applyT3 = applyExt;
 
   // Re-apply on every language change by wrapping applyTranslations()

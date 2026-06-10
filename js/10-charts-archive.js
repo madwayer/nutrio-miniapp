@@ -33,12 +33,27 @@
   async function loadWeightChart(){
     if (typeof Chart === 'undefined') return;
     var uid = (typeof getUserId === 'function') ? getUserId() : 0;
-    if (!uid) return;
+    if (!uid) {
+      // Retry once — user may have just loaded
+      setTimeout(function(){ try { loadWeightChart(); } catch(e){} }, 800);
+      return;
+    }
     var base = window.API_BASE || '/api/proxy';
     var entries = [];
     try {
       var r = await fetch(base + '/api/weight_history?user_id=' + uid + '&limit=30');
-      if (r.ok) { var j = await r.json(); entries = (j && j.entries) || []; }
+      if (r.ok) {
+        var j = await r.json(); entries = (j && j.entries) || [];
+      }
+      if (!entries.length) {
+        try {
+          var r2 = await fetch(base + '/api/stats?user_id=' + uid);
+          if (r2.ok) {
+            var j2 = await r2.json();
+            if (j2 && j2.weight_history) entries = j2.weight_history.map(function(w){ return {date:w.date,weight:parseFloat(w.weight)||0}; });
+          }
+        } catch(e){}
+      }
     } catch(e){}
     var ctx = document.getElementById('chart-weight');
     if (!ctx) return;
@@ -60,7 +75,7 @@
     charts.weight = new Chart(ctx, {
       type: 'line',
       data: { labels: labels, datasets: [{
-        label: T('ring_cal','Вес'),
+        label: T('chart_weight_label','Вес, кг'),
         data: data,
         borderColor: c.accent,
         backgroundColor: makeGradient(gctx, '#6c63ff', '55', '00'),
@@ -85,7 +100,10 @@
   async function loadCalsChart(){
     if (typeof Chart === 'undefined') return;
     var uid = (typeof getUserId === 'function') ? getUserId() : 0;
-    if (!uid) return;
+    if (!uid) {
+      setTimeout(function(){ try { loadCalsChart(); } catch(e){} }, 800);
+      return;
+    }
     var base = window.API_BASE || '/api/proxy';
     var today = new Date(); today.setHours(0,0,0,0);
     var dates = [];
@@ -104,14 +122,18 @@
         if (cache[k]) { values[i] = Math.round(cache[k].cals); goalRef = cache[k].goal || goalRef; }
       }
     } else {
-      // Fetch in batches
-      var fetched = await Promise.all(dates.map(function(d){
-        return fetch(base + '/api/diary?user_id=' + uid + '&date=' + ymd(d))
-          .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-      }));
-      fetched.forEach(function(j, i){
-        if (j && j.total) { values[i] = Math.round(j.total.calories || 0); goalRef = j.daily_goal || goalRef; }
-      });
+      // Single call to /api/stats instead of 30x diary
+      try {
+        var sData = await fetch(base + '/api/stats?user_id=' + uid).then(function(r){ return r.ok ? r.json() : null; });
+        if (sData && sData.week_days) {
+          goalRef = sData.daily_goal || 2000;
+          labels = []; values = [];
+          sData.week_days.forEach(function(d){
+            labels.push(shortDay(new Date(d.date)));
+            values.push(Math.round(d.kcal || 0));
+          });
+        }
+      } catch(e){ console.error('stats fetch', e); }
     }
     var avg = Math.round(values.filter(function(v){return v>0;}).reduce(function(a,b){return a+b;},0)
               / Math.max(1, values.filter(function(v){return v>0;}).length));
@@ -150,13 +172,28 @@
   window.NutrioCharts = { weight: loadWeightChart, cals: loadCalsChart };
 
   // Hook into Progress tab — load charts once when opened
-  var origSwitch = window.switchTab;
-  if (typeof origSwitch === 'function') {
+  // Trigger charts when switching to progress; use event-based approach
+  // to avoid conflicts with multiple switchTab wrappers in other modules.
+  var _chartsTriggered = false;
+  document.addEventListener('nutrio:tab', function(ev){
+    if (ev.detail && ev.detail.tab === 'progress') {
+      if (!_chartsTriggered) {
+        _chartsTriggered = true;
+        setTimeout(function(){ try { loadWeightChart(); loadCalsChart(); } catch(e){ console.error(e); } }, 300);
+      } else {
+        // Re-render on theme change or manual refresh
+        try { loadWeightChart(); loadCalsChart(); } catch(e){}
+      }
+    }
+  });
+  // Also hook switchTab for backward compatibility (single wrap, no chain)
+  if (typeof window._chartsHooked === 'undefined') {
+    window._chartsHooked = true;
+    var _origSwitchForCharts = window.switchTab;
     window.switchTab = function(tab){
-      var r = origSwitch.apply(this, arguments);
-      if (tab === 'progress' && !window._chartsLoaded) {
-        window._chartsLoaded = true;
-        setTimeout(function(){ try { loadWeightChart(); loadCalsChart(); } catch(e){ console.error(e); } }, 400);
+      var r = _origSwitchForCharts ? _origSwitchForCharts.apply(this, arguments) : undefined;
+      if (tab === 'progress') {
+        document.dispatchEvent(new CustomEvent('nutrio:tab', { detail: { tab: 'progress' } }));
       }
       return r;
     };

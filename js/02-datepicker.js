@@ -24,8 +24,12 @@ function openDatePicker() {
 function dpRender() {
   var el = document.getElementById('dp-inner');
   if (!el) return;
-  var mN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-  var dN=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  var _dpL = (typeof LANG!=='undefined'?LANG:'ru');
+  var _dpI = (typeof MINI_I18N!=='undefined' && MINI_I18N[_dpL]) ? MINI_I18N[_dpL] : null;
+  var mN=( _dpI && _dpI.months_full ) ? _dpI.months_full.split('|')
+        : ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  var dN=( _dpI && _dpI.weekdays_short ) ? _dpI.weekdays_short.split('|')
+        : ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
   var today=new Date(); today.setHours(0,0,0,0);
   var selStr=diaryDateStr(diaryDate||new Date());
   var todayStr=diaryDateStr(today);
