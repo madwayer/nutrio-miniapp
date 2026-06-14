@@ -128,11 +128,23 @@
     ctx.font = '600 46px -apple-system, system-ui, sans-serif';
     ctx.fillText(T('share_of_goal','из') + ' ' + d.goal + ' ' + T('kcal_short','ккал'), cx, cy + 120);
 
-    // Процент-бейдж над кольцом
-    var badgeY = cy - R - 10;
-    ctx.font = '800 52px -apple-system, system-ui, sans-serif';
+    // Процент-бейдж над кольцом (в пилюле с отступом)
+    var badgeY = cy - R - 55;
+    var pctText = d.pct + '%';
+    ctx.font = '800 48px -apple-system, system-ui, sans-serif';
+    var tw = ctx.measureText(pctText).width;
+    var pw = tw + 48, ph = 64, pr = 32;
+    // Пилюля-фон
+    ctx.fillStyle = calColor + '22';
+    roundRect(ctx, cx - pw/2, badgeY - ph/2 - 4, pw, ph, pr);
+    ctx.fill();
+    ctx.strokeStyle = calColor + '55';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cx - pw/2, badgeY - ph/2 - 4, pw, ph, pr);
+    ctx.stroke();
+    // Текст
     ctx.fillStyle = calColor;
-    ctx.fillText(d.pct + '%', cx, badgeY);
+    ctx.fillText(pctText, cx, badgeY + 14);
 
     // ── Три макро-плитки ─────────────────────────────────────────────
     var tileY = 1080, tileH = 200, gap = 36;
