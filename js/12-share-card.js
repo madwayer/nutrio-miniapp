@@ -74,133 +74,186 @@
     var cv = document.getElementById('share-canvas');
     if (!cv) return;
     var ctx = cv.getContext('2d');
-    var d = window._shareDay || { eaten:0, goal:2000, pct:0, protein:0, fat:0, carbs:0, streak:0, date:new Date() };
+    var d = window._shareDay || { eaten:0, goal:2000, pct:0, protein:0, fat:0, carbs:0, streak:0, date:new Date(), water:0, waterGoal:2000, mealCount:0, topFoods:[] };
 
-    // Фон — вертикальный градиент + aurora
+    // ── Фон: глубокий градиент ───────────────────────────────────────
     var bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#101018');
-    bg.addColorStop(0.5, C.bg0);
-    bg.addColorStop(1, '#08080d');
+    bg.addColorStop(0, '#12101d');
+    bg.addColorStop(0.4, '#0c0a14');
+    bg.addColorStop(1, '#07060b');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    // Aurora-пятна
+    // Aurora
     function blob(x, y, r, color, alpha) {
       var g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, color);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
+      g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = alpha; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
     }
-    blob(W * 0.5, 120, 600, C.accent, 0.18);
-    blob(W * 0.95, 80, 420, C.gold, 0.07);
-    blob(W * 0.05, H * 0.55, 500, C.pink, 0.06);
+    blob(W*0.5, 60, 650, '#7c6cff', 0.2);
+    blob(W*0.9, 0, 400, '#d8b66a', 0.08);
+    blob(0, H*0.6, 500, '#ff5d7e', 0.05);
+    blob(W*0.5, H, 600, '#7c6cff', 0.08);
 
-    // ── Шапка: логотип ───────────────────────────────────────────────
+    // ── Шапка ────────────────────────────────────────────────────────
     ctx.textAlign = 'left';
-    ctx.fillStyle = C.text;
-    ctx.font = '800 64px -apple-system, system-ui, sans-serif';
-    ctx.fillText('🥗 NutriO', 80, 160);
-    ctx.fillStyle = C.text2;
-    ctx.font = '500 36px -apple-system, system-ui, sans-serif';
-    ctx.fillText(T('share_subtitle','Умный дневник питания'), 80, 215);
-
-    // Дата справа
+    ctx.fillStyle = '#f2f2f7';
+    ctx.font = '800 56px -apple-system, system-ui, sans-serif';
+    ctx.fillText('\u{1F957} NutriO', 80, 130);
+    ctx.fillStyle = '#9292b0';
+    ctx.font = '500 32px -apple-system, system-ui, sans-serif';
+    ctx.fillText(T('share_subtitle','Умный дневник питания'), 80, 178);
+    // Дата
     ctx.textAlign = 'right';
-    ctx.fillStyle = C.gold;
-    ctx.font = '700 40px -apple-system, system-ui, sans-serif';
-    ctx.fillText(fmtDate(d.date), W - 80, 160);
+    ctx.fillStyle = '#d8b66a';
+    ctx.font = '700 36px -apple-system, system-ui, sans-serif';
+    ctx.fillText(fmtDate(d.date), W - 80, 130);
 
-    // ── Центральное кольцо калорий ───────────────────────────────────
-    var cx = W / 2, cy = 640, R = 290;
+    // ── Мотивационный текст ──────────────────────────────────────────
+    var motiv = '';
+    if (d.pct >= 95 && d.pct <= 105) motiv = '\u{1F3AF} Идеальный баланс!';
+    else if (d.pct >= 85) motiv = '\u{1F4AA} Отличный день!';
+    else if (d.pct >= 50) motiv = '\u{26A1} На верном пути';
+    else if (d.pct > 0) motiv = '\u{1F331} Хорошее начало';
+    else motiv = '\u{1F37D}\u{FE0F} Новый день';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#b8b4d4';
+    ctx.font = '600 38px -apple-system, system-ui, sans-serif';
+    ctx.fillText(motiv, W/2, 270);
+
+    // ── Кольцо калорий (ЦЕНТР) ───────────────────────────────────────
+    var cx = W/2, cy = 580, R = 240;
     var calColor = d.pct > 115 ? C.pink : (d.pct >= 85 ? C.green : C.accent);
     var calColorB = d.pct > 115 ? '#ff8fa3' : (d.pct >= 85 ? '#5ef0a0' : C.accent2);
-    drawRing(ctx, cx, cy, R, 44, d.pct, calColor, calColorB);
+    drawRing(ctx, cx, cy, R, 36, Math.min(d.pct, 100), calColor, calColorB);
 
-    // Цифра калорий
+    // Калории — внутри кольца
     ctx.textAlign = 'center';
-    ctx.fillStyle = C.text;
-    ctx.font = '900 180px -apple-system, system-ui, sans-serif';
-    ctx.fillText(String(d.eaten), cx, cy + 40);
-    ctx.fillStyle = C.text2;
-    ctx.font = '600 46px -apple-system, system-ui, sans-serif';
-    ctx.fillText(T('share_of_goal','из') + ' ' + d.goal + ' ' + T('kcal_short','ккал'), cx, cy + 120);
-
-    // Процент-бейдж над кольцом
-    var badgeY = cy - R - 10;
-    ctx.font = '800 52px -apple-system, system-ui, sans-serif';
+    ctx.fillStyle = '#f2f2f7';
+    ctx.font = '900 150px -apple-system, system-ui, sans-serif';
+    ctx.fillText(String(d.eaten), cx, cy + 10);
+    // Процент — ВНУТРИ кольца, под калориями
     ctx.fillStyle = calColor;
-    ctx.fillText(d.pct + '%', cx, badgeY);
+    ctx.font = '800 52px -apple-system, system-ui, sans-serif';
+    ctx.fillText(d.pct + '%', cx, cy + 80);
+    // Подпись цели
+    ctx.fillStyle = '#6a6a88';
+    ctx.font = '500 34px -apple-system, system-ui, sans-serif';
+    ctx.fillText(T('share_of_goal','из') + ' ' + d.goal + ' ' + T('kcal_short','ккал'), cx, cy + 130);
 
     // ── Три макро-плитки ─────────────────────────────────────────────
-    var tileY = 1080, tileH = 200, gap = 36;
-    var tileW = (W - 160 - gap * 2) / 3;
+    var tileY = 920, tileH = 170, gap = 28;
+    var tileW = (W - 160 - gap*2) / 3;
     var macros = [
-      { lbl: T('macro_prot','Белки'), val: d.protein, unit:'г', col: C.green },
-      { lbl: T('macro_fat','Жиры'),   val: d.fat,     unit:'г', col: C.gold },
-      { lbl: T('macro_carb','Углев.'),val: d.carbs,   unit:'г', col: C.accent2 },
+      { lbl: T('macro_prot','Белки'), val: d.protein, unit:'г', col: C.green, ic:'\u{1F4AA}' },
+      { lbl: T('macro_fat','Жиры'),   val: d.fat,     unit:'г', col: C.gold,  ic:'\u{1F9C8}' },
+      { lbl: T('macro_carb','Углев.'),val: d.carbs,   unit:'г', col: C.accent2, ic:'\u{1F35E}' },
     ];
     macros.forEach(function(m, i) {
-      var x = 80 + i * (tileW + gap);
-      ctx.fillStyle = 'rgba(255,255,255,0.045)';
-      roundRect(ctx, x, tileY, tileW, tileH, 32);
+      var x = 80 + i*(tileW + gap);
+      // Фон плитки
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      roundRect(ctx, x, tileY, tileW, tileH, 28);
       ctx.fill();
-      // верхняя кромка-свет
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-      ctx.lineWidth = 2;
-      roundRect(ctx, x, tileY, tileW, tileH, 32);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, x, tileY, tileW, tileH, 28);
       ctx.stroke();
-      // значение
+      // Иконка
       ctx.textAlign = 'center';
+      ctx.font = '32px -apple-system, system-ui, sans-serif';
+      ctx.fillText(m.ic, x + tileW/2, tileY + 42);
+      // Значение
       ctx.fillStyle = m.col;
-      ctx.font = '900 88px -apple-system, system-ui, sans-serif';
-      ctx.fillText(String(Math.round(m.val)), x + tileW / 2, tileY + 110);
-      // подпись
-      ctx.fillStyle = C.text2;
-      ctx.font = '600 38px -apple-system, system-ui, sans-serif';
-      ctx.fillText(m.lbl + ', ' + m.unit, x + tileW / 2, tileY + 165);
+      ctx.font = '900 64px -apple-system, system-ui, sans-serif';
+      ctx.fillText(String(Math.round(m.val)), x + tileW/2, tileY + 112);
+      // Подпись
+      ctx.fillStyle = '#80809c';
+      ctx.font = '600 28px -apple-system, system-ui, sans-serif';
+      ctx.fillText(m.lbl + ', ' + m.unit, x + tileW/2, tileY + 150);
     });
 
-    // ── Стрик-плашка ─────────────────────────────────────────────────
-    if (d.streak && d.streak > 0) {
-      var sY = 1380;
-      var sGrad = ctx.createLinearGradient(80, sY, W - 80, sY);
-      sGrad.addColorStop(0, 'rgba(255,159,67,0.18)');
-      sGrad.addColorStop(1, 'rgba(255,93,126,0.14)');
-      ctx.fillStyle = sGrad;
-      roundRect(ctx, 80, sY, W - 160, 150, 36);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,159,67,0.3)';
-      ctx.lineWidth = 2;
-      roundRect(ctx, 80, sY, W - 160, 150, 36);
-      ctx.stroke();
+    // ── Инфо-полоса: вода + приёмов пищи ─────────────────────────────
+    var infoY = 1150;
+    var items = [];
+    if (d.mealCount > 0) items.push('\u{1F37D}\u{FE0F} ' + d.mealCount + ' ' + (d.mealCount === 1 ? 'приём' : (d.mealCount < 5 ? 'приёма' : 'приёмов')));
+    if (d.water > 0) items.push('\u{1F4A7} ' + d.water + ' / ' + d.waterGoal + ' мл');
+    if (items.length) {
       ctx.textAlign = 'center';
-      ctx.fillStyle = C.text;
-      ctx.font = '800 66px -apple-system, system-ui, sans-serif';
-      ctx.fillText('🔥 ' + d.streak + ' ' + T('share_streak_days','дней подряд'), W / 2, sY + 95);
+      ctx.fillStyle = '#7a7a96';
+      ctx.font = '500 34px -apple-system, system-ui, sans-serif';
+      ctx.fillText(items.join('     '), W/2, infoY);
     }
 
-    // ── Низ: призыв ──────────────────────────────────────────────────
+    // ── Топ-продукты ─────────────────────────────────────────────────
+    if (d.topFoods && d.topFoods.length) {
+      var listY = 1230;
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      roundRect(ctx, 80, listY, W - 160, Math.min(d.topFoods.length, 4) * 56 + 70, 28);
+      ctx.fill();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#9292b0';
+      ctx.font = '700 30px -apple-system, system-ui, sans-serif';
+      ctx.fillText('\u{1F4DD} ' + T('share_eaten_today', 'Сегодня в дневнике'), 112, listY + 42);
+      ctx.font = '500 30px -apple-system, system-ui, sans-serif';
+      ctx.fillStyle = '#b8b4d4';
+      var shown = d.topFoods.slice(0, 4);
+      shown.forEach(function(food, i) {
+        var name = food.charAt(0).toUpperCase() + food.slice(1);
+        if (name.length > 35) name = name.slice(0, 33) + '...';
+        ctx.fillText('\u{2022} ' + name, 128, listY + 88 + i * 56);
+      });
+      if (d.topFoods.length > 4) {
+        ctx.fillStyle = '#6a6a88';
+        ctx.fillText('...и ещё ' + (d.topFoods.length - 4), 128, listY + 88 + 4 * 56);
+      }
+    }
+
+    // ── Стрик ────────────────────────────────────────────────────────
+    if (d.streak && d.streak > 0) {
+      var sY = d.topFoods && d.topFoods.length ? 1580 : 1350;
+      ctx.textAlign = 'center';
+      // Огненный градиент-полоса
+      var sGrad = ctx.createLinearGradient(200, sY, W - 200, sY);
+      sGrad.addColorStop(0, 'rgba(255,140,50,0.22)');
+      sGrad.addColorStop(1, 'rgba(255,80,100,0.18)');
+      ctx.fillStyle = sGrad;
+      roundRect(ctx, 200, sY, W - 400, 100, 50);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,140,50,0.25)';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 200, sY, W - 400, 100, 50);
+      ctx.stroke();
+      ctx.fillStyle = '#f2f2f7';
+      ctx.font = '800 42px -apple-system, system-ui, sans-serif';
+      ctx.fillText('\u{1F525} ' + d.streak + ' ' + T('share_streak_days','дней подряд'), W/2, sY + 62);
+    }
+
+    // ── Низ: CTA ─────────────────────────────────────────────────────
     ctx.textAlign = 'center';
-    ctx.fillStyle = C.text2;
-    ctx.font = '500 40px -apple-system, system-ui, sans-serif';
-    ctx.fillText(T('share_cta','Считай калории по фото в Telegram'), W / 2, 1660);
-    // ссылка-бейдж
-    var linkW = 560, linkH = 96, lx = (W - linkW) / 2, ly = 1710;
+    ctx.fillStyle = '#6a6a88';
+    ctx.font = '500 34px -apple-system, system-ui, sans-serif';
+    ctx.fillText(T('share_cta','Считай калории по фото в Telegram'), W/2, 1750);
+    // Кнопка-бейдж
+    var linkW = 540, linkH = 88, lx = (W - linkW)/2, ly = 1786;
     var lg = ctx.createLinearGradient(lx, ly, lx + linkW, ly);
     lg.addColorStop(0, C.accent);
     lg.addColorStop(1, C.gold);
     ctx.fillStyle = lg;
-    roundRect(ctx, lx, ly, linkW, linkH, 48);
+    roundRect(ctx, lx, ly, linkW, linkH, 44);
     ctx.fill();
+    // Свечение кнопки
+    ctx.shadowColor = C.accent;
+    ctx.shadowBlur = 30;
+    roundRect(ctx, lx, ly, linkW, linkH, 44);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Текст кнопки
     ctx.fillStyle = '#0a0a10';
-    ctx.font = '800 44px -apple-system, system-ui, sans-serif';
-    ctx.fillText('@CaloriePilotAI_Bot', W / 2, ly + 62);
+    ctx.font = '800 38px -apple-system, system-ui, sans-serif';
+    ctx.fillText('@CaloriePilotAI_Bot', W/2, ly + 56);
   }
 
-  // ── Получить data URL карточки ───────────────────────────────────────
   function cardDataURL() {
     var cv = document.getElementById('share-canvas');
     return cv ? cv.toDataURL('image/jpeg', 0.9) : null;
@@ -239,26 +292,37 @@
     if (typeof showToast === 'function') showToast('Готовлю карточку...', 'var(--accent)');
     try {
       var base = window.API_BASE || '/api/proxy';
+      console.log('[share] sending to /api/share_card, uid=', uid, 'img size=', img.length);
       var r = await fetch(base + '/api/share_card', {
         method:'POST',
         headers: (window._authHeaders ? window._authHeaders({'Content-Type':'application/json'}) : {'Content-Type':'application/json'}),
         body: JSON.stringify({ user_id: uid, image: img, mode: 'url' })
       });
-      var data = await r.json();
-      if (data.ok && data.url && tg && tg.shareToStory) {
-        tg.shareToStory(data.url, {
-          text: '🥗 Мой день в NutriO — считай калории по фото! @CaloriePilotAI_Bot'
-        });
-        closeShareCard();
-      } else if (data.ok && data.url) {
-        // Telegram-клиент без shareToStory (старая версия) — fallback на чат
-        if (typeof showToast === 'function') showToast('Stories недоступны, отправляю в чат', 'var(--accent2)');
-        await shareToChat();
+      console.log('[share] response status:', r.status);
+      var text = await r.text();
+      console.log('[share] response body:', text.slice(0, 300));
+      var data;
+      try { data = JSON.parse(text); } catch(pe) { data = { error: 'parse error: ' + text.slice(0, 80) }; }
+      if (data.ok && data.url) {
+        console.log('[share] got url:', data.url);
+        if (tg && tg.shareToStory) {
+          tg.shareToStory(data.url, {
+            text: '🥗 Мой день в NutriO! @CaloriePilotAI_Bot'
+          });
+          closeShareCard();
+        } else {
+          // Telegram-клиент без shareToStory — fallback на чат
+          if (typeof showToast === 'function') showToast('Stories недоступны в этой версии TG, отправляю в чат', 'var(--accent2)');
+          await shareToChat();
+        }
       } else {
-        if (typeof showToast === 'function') showToast('Не удалось подготовить', 'var(--accent2)');
+        var errMsg = (data && data.error) ? data.error : ('HTTP ' + r.status);
+        console.error('[share] error:', errMsg);
+        if (typeof showToast === 'function') showToast('Ошибка: ' + errMsg, 'var(--accent2)');
       }
     } catch(e) {
-      if (typeof showToast === 'function') showToast('Ошибка: ' + e.message, 'var(--accent2)');
+      console.error('[share] exception:', e);
+      if (typeof showToast === 'function') showToast('Ошибка соединения: ' + (e.message || e), 'var(--accent2)');
     }
   };
 
@@ -270,22 +334,33 @@
     if (typeof showToast === 'function') showToast('Отправляю...', 'var(--accent)');
     try {
       var base = window.API_BASE || '/api/proxy';
+      console.log('[share-chat] sending, uid=', uid, 'img size=', img.length);
       var r = await fetch(base + '/api/share_card', {
         method:'POST',
         headers: (window._authHeaders ? window._authHeaders({'Content-Type':'application/json'}) : {'Content-Type':'application/json'}),
         body: JSON.stringify({ user_id: uid, image: img, mode: 'chat' })
       });
-      var data = await r.json();
-      if (data.ok && data.sent) {
-        if (typeof showToast === 'function') showToast('✅ Отправлено в чат с ботом!', 'var(--green)');
-        closeShareCard();
-        var tg = window.Telegram && window.Telegram.WebApp;
-        if (tg && tg.close) setTimeout(function(){ tg.close(); }, 800);
+      console.log('[share-chat] status:', r.status);
+      var text = await r.text();
+      console.log('[share-chat] body:', text.slice(0, 300));
+      var data;
+      try { data = JSON.parse(text); } catch(pe) { data = { error: 'parse error: ' + text.slice(0, 80) }; }
+      if (data.ok) {
+        if (data.sent) {
+          if (typeof showToast === 'function') showToast('✅ Отправлено в чат с ботом!', 'var(--green)');
+          closeShareCard();
+        } else {
+          // Файл сохранён но не отправлен в чат (бот не смог send_photo)
+          if (typeof showToast === 'function') showToast('Карточка сохранена, но не удалось отправить в чат', 'var(--accent2)');
+        }
       } else {
-        if (typeof showToast === 'function') showToast('Не удалось отправить', 'var(--accent2)');
+        var errMsg = (data && data.error) ? data.error : ('HTTP ' + r.status);
+        console.error('[share-chat] error:', errMsg);
+        if (typeof showToast === 'function') showToast('Ошибка: ' + errMsg, 'var(--accent2)');
       }
     } catch(e) {
-      if (typeof showToast === 'function') showToast('Ошибка: ' + e.message, 'var(--accent2)');
+      console.error('[share-chat] exception:', e);
+      if (typeof showToast === 'function') showToast('Ошибка соединения: ' + (e.message || e), 'var(--accent2)');
     }
   };
 

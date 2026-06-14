@@ -148,10 +148,19 @@ function renderDiary(data) {
   var goal  = data.daily_goal || 2000;
   var pct   = Math.min(100, Math.round(eaten / goal * 100));
   // Сохраняем снимок дня для шеринг-карточки
+  var mealCount = 0, foodNames = [];
+  if (data.meals) {
+    Object.values(data.meals).forEach(function(arr){
+      if (arr && arr.length) { mealCount += arr.length; arr.forEach(function(e){ if(e.name) foodNames.push(e.name); }); }
+    });
+  }
   window._shareDay = {
     eaten: eaten, goal: goal, pct: Math.round(eaten / goal * 100),
     protein: data.total.protein, fat: data.total.fat, carbs: data.total.carbs,
     streak: data.streak || 0, date: diaryDate,
+    water: data.water_ml || 0, waterGoal: data.water_goal || 2000,
+    mealCount: mealCount,
+    topFoods: foodNames.slice(0, 5),
   };
   var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
   var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';

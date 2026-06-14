@@ -129,6 +129,8 @@
       share_of_goal: "из",
       share_streak_days: "дней подряд",
       share_cta: "Считай калории по фото в Telegram",
+      share_eaten_today: "Сегодня в дневнике",
+    
     
     
     
@@ -243,6 +245,8 @@
       share_of_goal: "of",
       share_streak_days: "days streak",
       share_cta: "Track calories by photo on Telegram",
+      share_eaten_today: "Today in diary",
+    
     
     
     
@@ -347,6 +351,8 @@
       share_of_goal: "з",
       share_streak_days: "днів поспіль",
       share_cta: "Рахуй калорії по фото в Telegram",
+      share_eaten_today: "Сьогодні у щоденнику",
+    
     
     
     
@@ -451,6 +457,8 @@
       share_of_goal: "von",
       share_streak_days: "Tage in Folge",
       share_cta: "Kalorien per Foto in Telegram zählen",
+      share_eaten_today: "Heute im Tagebuch",
+    
     
     
     
@@ -555,6 +563,8 @@
       share_of_goal: "sur",
       share_streak_days: "jours d'affilée",
       share_cta: "Compte les calories par photo sur Telegram",
+      share_eaten_today: "Aujourd'hui dans le journal",
+    
     
     
     
@@ -659,6 +669,8 @@
       share_of_goal: "de",
       share_streak_days: "días seguidos",
       share_cta: "Cuenta calorías por foto en Telegram",
+      share_eaten_today: "Hoy en el diario",
+    
     
     
     
