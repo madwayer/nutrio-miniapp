@@ -201,7 +201,7 @@
     var uid = (typeof getUserId === 'function') ? getUserId() : 0;
     if (!uid) return Promise.resolve(null);
     var base = (window.API_BASE || '/api/proxy');
-    return fetch(base + '/api/diary?user_id=' + uid + '&date=' + dateStr)
+    return fetch(base + '/api/diary?user_id=' + uid + '&date=' + dateStr, {headers:(window._authHeaders?window._authHeaders():{})})
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d || d.error) return null;

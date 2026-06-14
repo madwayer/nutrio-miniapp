@@ -1002,7 +1002,7 @@ function addWater(ml){
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(userId){
     fetch((window.API_BASE || '/api/proxy')+'/api/water?user_id='+userId,{
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:(window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
       body:JSON.stringify({ml:ml})
     }).catch(function(){});
   }

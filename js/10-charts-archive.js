@@ -41,16 +41,21 @@
     var base = window.API_BASE || '/api/proxy';
     var entries = [];
     try {
-      var r = await fetch(base + '/api/weight_history?user_id=' + uid + '&limit=30');
+      var r = await fetch(base + '/api/weight_history?user_id=' + uid + '&limit=30', {headers:(window._authHeaders?window._authHeaders():{})});
       if (r.ok) {
         var j = await r.json(); entries = (j && j.entries) || [];
       }
       if (!entries.length) {
         try {
-          var r2 = await fetch(base + '/api/stats?user_id=' + uid);
+          var r2 = await fetch(base + '/api/stats?user_id=' + uid, {headers:(window._authHeaders?window._authHeaders():{})});
           if (r2.ok) {
             var j2 = await r2.json();
-            if (j2 && j2.weight_history) entries = j2.weight_history.map(function(w){ return {date:w.date,weight:parseFloat(w.weight)||0}; });
+            if (j2 && j2.weight_history) {
+              // stats отдаёт ISO в weight_history_iso (новый ключ) или dd.mm (старый)
+              var src2 = j2.weight_history_iso || j2.weight_history;
+              entries = src2.map(function(w){ return {date:w.date,weight:parseFloat(w.weight)||0}; })
+                            .filter(function(e){ return !isNaN(new Date(e.date).getTime()); });
+            }
           }
         } catch(e){}
       }
@@ -62,6 +67,10 @@
       return;
     }
     entries.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
+    // Одна точка на день — последнее взвешивание дня (иначе график шумит)
+    var byDay = {};
+    entries.forEach(function(e){ byDay[ymd(new Date(e.date))] = e; });
+    entries = Object.keys(byDay).sort().map(function(k){ return byDay[k]; });
     var labels = entries.map(function(e){ return shortDay(new Date(e.date)); });
     var data   = entries.map(function(e){ return Number(e.weight) || 0; });
     var sub = document.getElementById('chart-weight-sub');
@@ -114,27 +123,22 @@
     var labels = dates.map(shortDay);
     var values = new Array(dates.length).fill(0);
     var goalRef = 2000;
-    // Reuse heatmap cache if present
-    var cache = (window.NutrioHeatmap && window.NutrioHeatmap._cache) || null;
-    if (cache) {
-      for (var i = 0; i < dates.length; i++) {
-        var k = ymd(dates[i]);
-        if (cache[k]) { values[i] = Math.round(cache[k].cals); goalRef = cache[k].goal || goalRef; }
+    var gotData = false;
+    // Один вызов /api/stats (бэк отдаёт 30 дней). Кэш heatmap не используем —
+    // пустой объект кэша давал нулевой график (ловушка truthy {}).
+    try {
+      var sData = await fetch(base + '/api/stats?user_id=' + uid, {headers:(window._authHeaders?window._authHeaders():{})}).then(function(r){ return r.ok ? r.json() : null; });
+      if (sData && sData.week_days && sData.week_days.length) {
+        goalRef = sData.daily_goal || 2000;
+        labels = []; values = [];
+        sData.week_days.forEach(function(d){
+          var dt = new Date(d.date);
+          labels.push(isNaN(dt.getTime()) ? String(d.date) : shortDay(dt));
+          values.push(Math.round(d.kcal || 0));
+        });
+        gotData = values.some(function(v){ return v > 0; });
       }
-    } else {
-      // Single call to /api/stats instead of 30x diary
-      try {
-        var sData = await fetch(base + '/api/stats?user_id=' + uid).then(function(r){ return r.ok ? r.json() : null; });
-        if (sData && sData.week_days) {
-          goalRef = sData.daily_goal || 2000;
-          labels = []; values = [];
-          sData.week_days.forEach(function(d){
-            labels.push(shortDay(new Date(d.date)));
-            values.push(Math.round(d.kcal || 0));
-          });
-        }
-      } catch(e){ console.error('stats fetch', e); }
-    }
+    } catch(e){ console.error('stats fetch', e); }
     var avg = Math.round(values.filter(function(v){return v>0;}).reduce(function(a,b){return a+b;},0)
               / Math.max(1, values.filter(function(v){return v>0;}).length));
     var sub = document.getElementById('chart-cals-sub');
@@ -142,6 +146,10 @@
 
     var ctx = document.getElementById('chart-cals');
     if (!ctx) return;
+    if (!gotData) {
+      ctx.parentElement.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">' + T('chart_cal_no_data','Пока нет записей еды за 30 дней. Добавь еду — график оживёт') + ' 🍽</div>';
+      return;
+    }
     var c = themeColors();
     var gctx = ctx.getContext('2d');
     var bg = values.map(function(v){
@@ -176,7 +184,7 @@
   // to avoid conflicts with multiple switchTab wrappers in other modules.
   var _chartsTriggered = false;
   document.addEventListener('nutrio:tab', function(ev){
-    if (ev.detail && ev.detail.tab === 'progress') {
+    if (ev.detail && (ev.detail.tab === 'statpage' || ev.detail.tab === 'progress')) {
       if (!_chartsTriggered) {
         _chartsTriggered = true;
         setTimeout(function(){ try { loadWeightChart(); loadCalsChart(); } catch(e){ console.error(e); } }, 300);
@@ -192,8 +200,8 @@
     var _origSwitchForCharts = window.switchTab;
     window.switchTab = function(tab){
       var r = _origSwitchForCharts ? _origSwitchForCharts.apply(this, arguments) : undefined;
-      if (tab === 'progress') {
-        document.dispatchEvent(new CustomEvent('nutrio:tab', { detail: { tab: 'progress' } }));
+      if (tab === 'statpage' || tab === 'progress') {
+        document.dispatchEvent(new CustomEvent('nutrio:tab', { detail: { tab: tab } }));
       }
       return r;
     };
@@ -235,7 +243,7 @@
     if (!uid) { box.innerHTML = '<div class="ai-arch-empty">' + T('arch_open_telegram','Открой Mini App из Telegram') + '</div>'; return; }
     var base = window.API_BASE || '/api/proxy';
     try {
-      var r = await fetch(base + '/api/ai_archive?user_id=' + uid + '&limit=50' + (currentKind ? '&kind=' + currentKind : ''));
+      var r = await fetch(base + '/api/ai_archive?user_id=' + uid + '&limit=50' + (currentKind ? '&kind=' + currentKind : ''), {headers:(window._authHeaders?window._authHeaders():{})});
       var j = await r.json();
       if (!j.ok) throw new Error(j.error || 'failed');
       if (!j.items || !j.items.length) {
@@ -288,7 +296,7 @@
     var sheet = document.getElementById('ai-view-sheet');
     if (sheet) { sheet.classList.add('show'); sheet.setAttribute('aria-hidden','false'); }
     try {
-      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id);
+      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id, {headers:(window._authHeaders?window._authHeaders():{})});
       var j = await r.json();
       if (!j.ok) throw new Error(j.error || 'failed');
       var meta = kindMeta(j.kind);
@@ -315,7 +323,7 @@
     if (!uid) return;
     var base = window.API_BASE || '/api/proxy';
     try {
-      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id, { method:'DELETE' });
+      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id, { method:'DELETE', headers:(window._authHeaders?window._authHeaders():{}) });
       var j = await r.json();
       if (j.ok) {
         closeAiView();

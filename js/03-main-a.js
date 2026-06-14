@@ -17,12 +17,29 @@ function getUserId() {
 
 var API_BASE = '/api/proxy';
 window.API_BASE = API_BASE;
+
+// Telegram initData — cryptographically signed, used by backend to verify identity.
+function _tgInitData() {
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    return (tg && tg.initData) ? tg.initData : '';
+  } catch(e) { return ''; }
+}
+function _authHeaders(extra) {
+  var h = extra || {};
+  var id = _tgInitData();
+  if (id) h['X-Telegram-Init-Data'] = id;
+  return h;
+}
+window._authHeaders = _authHeaders;
+
 async function apiGet(path, params) {
   var uid = getUserId();
   var url = API_BASE + path + '?user_id=' + uid;
   if (params) { for(var k in params) url += '&'+k+'='+encodeURIComponent(params[k]); }
   try {
-    var r = await fetch(url);
+    var r = await fetch(url, { headers: _authHeaders() });
+    if (r.status === 429) return { error: 'rate_limited', _rate: true };
     return await r.json();
   } catch(e) { return {error: e.message}; }
 }
@@ -30,7 +47,8 @@ async function apiPost(path, body) {
   if (!body) body = {};
   if (!body.user_id) body.user_id = parseInt(getUserId());
   try {
-    var r = await fetch(API_BASE + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    var r = await fetch(API_BASE + path, {method:'POST', headers:_authHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body)});
+    if (r.status === 429) return { error: 'rate_limited', _rate: true };
     var d = await r.json();
     if (r.status === 402) d._limit = true;
     return d;
@@ -40,7 +58,7 @@ async function apiDelete(path, body) {
   if (!body) body = {};
   if (!body.user_id) body.user_id = parseInt(getUserId());
   try {
-    var r = await fetch(API_BASE + path, {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    var r = await fetch(API_BASE + path, {method:'DELETE', headers:_authHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body)});
     return await r.json();
   } catch(e) { return {error: e.message}; }
 }
@@ -129,6 +147,12 @@ function renderDiary(data) {
   var eaten = data.total.calories;
   var goal  = data.daily_goal || 2000;
   var pct   = Math.min(100, Math.round(eaten / goal * 100));
+  // Сохраняем снимок дня для шеринг-карточки
+  window._shareDay = {
+    eaten: eaten, goal: goal, pct: Math.round(eaten / goal * 100),
+    protein: data.total.protein, fat: data.total.fat, carbs: data.total.carbs,
+    streak: data.streak || 0, date: diaryDate,
+  };
   var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
   var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';
   var fill = document.getElementById('diary-prog-fill');
@@ -1437,7 +1461,10 @@ var admCurrentPage = 0;
 var admSearchQ = '';
 
 function _adminHeaders() {
-  return {'Content-Type':'application/json', 'X-Admin-Id': String(getUserId())};
+  var h = {'Content-Type':'application/json', 'X-Admin-Id': String(getUserId())};
+  var id = (typeof _tgInitData === 'function') ? _tgInitData() : '';
+  if (id) h['X-Telegram-Init-Data'] = id;
+  return h;
 }
 
 async function _admFetch(action, extra) {
@@ -1473,12 +1500,87 @@ async function initAdminPage() {
 })();
 
 function admSection(name) {
-  ['dash','users','payments'].forEach(function(s) {
-    document.getElementById('adm-btn-' + s).className = 'adm-nav-btn' + (s===name?' active':'');
-    document.getElementById('adm-section-' + s).className = 'adm-section' + (s===name?' active':'');
+  ['dash','users','payments','broadcast','admstats'].forEach(function(s) {
+    var btn = document.getElementById('adm-btn-' + s);
+    var sec = document.getElementById('adm-section-' + s);
+    if (btn) btn.className = 'adm-nav-btn' + (s===name?' active':'');
+    if (sec) sec.className = 'adm-section' + (s===name?' active':'');
   });
   if (name==='users')    admLoadUsers(0,'');
   if (name==='payments') admLoadPayments();
+  if (name==='admstats') admLoadStats();
+}
+
+// ── BROADCAST (рассылка) ────────────────────────────────
+function admBcPreview() {
+  var ta = document.getElementById('adm-bc-text');
+  var text = (ta && ta.value || '').trim();
+  if (!text) { showToast('Введи текст', 'var(--accent2)'); return; }
+  var p = document.getElementById('adm-bc-preview');
+  if (p) {
+    p.style.display = 'block';
+    p.innerHTML = '<strong>Превью:</strong><br>' + text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/\n/g,'<br>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  }
+}
+async function admBcSend() {
+  var ta = document.getElementById('adm-bc-text');
+  var text = (ta && ta.value || '').trim();
+  var audSel = document.getElementById('adm-bc-audience');
+  var audience = (audSel && audSel.value) || 'all';
+  if (!text) { showToast('Введи текст', 'var(--accent2)'); return; }
+  if (!confirm('Отправить рассылку аудитории «' + audience + '»? Отменить будет нельзя.')) return;
+  var status = document.getElementById('adm-bc-status');
+  if (status) status.textContent = '⏳ Отправляю... (может занять минуты при большой базе)';
+  try {
+    var res = await fetch('/api/proxy/api/admin', {
+      method:'POST', headers:_adminHeaders(),
+      body: JSON.stringify({ action:'broadcast', audience:audience, text:text })
+    });
+    var data = await res.json();
+    if (data.ok) {
+      if (status) status.textContent = '✅ Отправлено: ' + (data.sent||0) + ' · ошибок: ' + (data.errors||0);
+      showToast('Рассылка отправлена!', 'var(--green)');
+      if (ta) ta.value = '';
+    } else {
+      if (status) status.textContent = '❌ ' + (data.error||'Ошибка');
+      showToast('Ошибка рассылки', 'var(--accent2)');
+    }
+  } catch(e) {
+    if (status) status.textContent = '❌ Ошибка соединения';
+  }
+}
+
+// ── РАСШИРЕННАЯ СТАТИСТИКА ──────────────────────────────
+async function admLoadStats() {
+  var box = document.getElementById('adm-stats-content');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">⏳ Загрузка...</div>';
+  try {
+    var res = await fetch('/api/proxy/api/admin?action=detailed_stats', {headers:_adminHeaders()});
+    var data = await res.json();
+    if (!data.ok) { box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка: ' + (data.error||'?') + '</div>'; return; }
+    var s = data.stats || {};
+    function kpi(v,l){ return '<div class="adm-kpi"><div class="adm-kpi-val">'+v+'</div><div class="adm-kpi-lbl">'+l+'</div></div>'; }
+    var langs = (s.lang_breakdown||[]).map(function(l){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+        + '<div style="min-width:34px;font-weight:700;font-size:12px">' + (l.lang||'?') + '</div>'
+        + '<div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">'
+        +   '<div style="height:100%;width:' + Math.min(100, l.pct||0) + '%;background:var(--accent);border-radius:4px"></div>'
+        + '</div>'
+        + '<div style="min-width:38px;text-align:right;font-size:12px;color:var(--text2)">' + (l.count||0) + '</div>'
+        + '</div>';
+    }).join('');
+    box.innerHTML =
+      '<div class="adm-kpi-row">' + kpi(s.total_users||0,'Всего') + kpi(s.premium_users||0,'Premium') + kpi(s.active_7d||0,'Актив 7д') + kpi(s.new_7d||0,'Новых 7д') + '</div>'
+      + '<div class="adm-kpi-row" style="margin-top:8px">' + kpi(s.total_entries||0,'Записей еды') + kpi(s.avg_entries||0,'Сред/юзер') + kpi(s.ai_generations||0,'AI генер.') + kpi(s.water_entries||0,'Вода') + '</div>'
+      + '<div style="margin-top:14px"><div class="adm-label">🌍 Языки (топ-10)</div>' + (langs||'<div style="color:var(--muted);font-size:12px">нет данных</div>') + '</div>';
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка загрузки</div>';
+  }
 }
 
 // ── DASHBOARD ──────────────────────────────────────────

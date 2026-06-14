@@ -103,9 +103,10 @@ export default async function handler(req, res) {
 
   const ct = upstream.headers['content-type'] || 'application/json';
   res.status(upstream.statusCode || 502);
-  if (isPdf || ct.includes('pdf')) {
-    res.setHeader('Content-Type', 'application/pdf');
+  if (isPdf || ct.includes('pdf') || ct.startsWith('image/') || upstreamPath.startsWith('/share/')) {
+    res.setHeader('Content-Type', ct.startsWith('image/') ? ct : 'application/pdf');
     if (upstream.headers['content-disposition']) res.setHeader('Content-Disposition', upstream.headers['content-disposition']);
+    if (upstreamPath.startsWith('/share/')) res.setHeader('Cache-Control', 'public, max-age=86400');
     upstream.pipe(res);
     return;
   }

@@ -2706,7 +2706,7 @@ function saveProduct() {
   };
   fetch((window.API_BASE || '/api/proxy') + '/api/save_food', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify(payload),
   }).then(function(r){ return r.json().catch(function(){ return {}; }); })
     .then(function(resp){
@@ -3010,7 +3010,7 @@ function _scanCaptureSend(b64, video) {
 
   var apiBase = (window.API_BASE || '/api/proxy');
   fetch(apiBase + '/api/photo', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify({user_id: userId||0, image: b64, meal_type:'другое', save: false})
   }).then(function(r){ return r.json(); })
     .then(function(d) {
@@ -3080,7 +3080,7 @@ function scanPhotoSave() {
   var meal = document.getElementById('scan-pr-meal');
   var apiBase = (window.API_BASE || '/api/proxy');
   fetch(apiBase + '/api/manual', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify({user_id:userId, food_name:photoResultData.name,
       meal_type:(meal&&meal.value)||'другое', weight:photoResultData.weight,
       calories:photoResultData.calories, protein:photoResultData.protein,
@@ -3099,7 +3099,7 @@ function scanBrSave() {
   var factor = w / 100;
   var apiBase = (window.API_BASE || '/api/proxy');
   fetch(apiBase + '/api/manual', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify({user_id:userId, food_name:_scanData.name,
       meal_type:(meal&&meal.value)||'другое', weight:w,
       calories:Math.round(_scanData.calories*factor), protein:Math.round(_scanData.protein*factor*10)/10,
@@ -3198,7 +3198,7 @@ function sendManual() {
   const apiBase = (window.API_BASE || '/api/proxy');
   fetch(apiBase + '/api/manual', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify({ user_id: userId, food_name: name.charAt(0).toUpperCase()+name.slice(1), meal_type: meal, weight: parseInt(weight) })
   }).then(r => r.json())
     .then(d => {

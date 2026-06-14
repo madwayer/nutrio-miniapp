@@ -119,6 +119,18 @@
       hm_dbl_hint: "· двойной тап — открыть в дневнике",
       months_full: "Январь|Февраль|Март|Апрель|Май|Июнь|Июль|Август|Сентябрь|Октябрь|Ноябрь|Декабрь",
       weekdays_short: "Пн|Вт|Ср|Чт|Пт|Сб|Вс",
+      chart_cal_no_data: "Пока нет записей еды за 30 дней. Добавь еду — график оживёт",
+      share_day: "Поделиться днём",
+      share_title: "Мой день в NutriO",
+      share_to_story: "В Stories",
+      share_to_chat: "Отправить в чат",
+      share_save: "Сохранить картинку",
+      share_subtitle: "Умный дневник питания",
+      share_of_goal: "из",
+      share_streak_days: "дней подряд",
+      share_cta: "Считай калории по фото в Telegram",
+    
+    
     
     },
     en: {
@@ -221,6 +233,18 @@
       hm_dbl_hint: "· double-tap — open in diary",
       months_full: "January|February|March|April|May|June|July|August|September|October|November|December",
       weekdays_short: "Mon|Tue|Wed|Thu|Fri|Sat|Sun",
+      chart_cal_no_data: "No food entries in the last 30 days yet. Add food and the chart comes alive",
+      share_day: "Share my day",
+      share_title: "My day in NutriO",
+      share_to_story: "To Stories",
+      share_to_chat: "Send to chat",
+      share_save: "Save image",
+      share_subtitle: "Smart nutrition diary",
+      share_of_goal: "of",
+      share_streak_days: "days streak",
+      share_cta: "Track calories by photo on Telegram",
+    
+    
     
     },
     uk: {
@@ -313,6 +337,18 @@
       hm_dbl_hint: "· подвійний тап — відкрити у щоденнику",
       months_full: "Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень",
       weekdays_short: "Пн|Вт|Ср|Чт|Пт|Сб|Нд",
+      chart_cal_no_data: "Поки немає записів їжі за 30 днів. Додай їжу — графік оживе",
+      share_day: "Поділитися днем",
+      share_title: "Мій день у NutriO",
+      share_to_story: "У Stories",
+      share_to_chat: "Надіслати в чат",
+      share_save: "Зберегти картинку",
+      share_subtitle: "Розумний щоденник харчування",
+      share_of_goal: "з",
+      share_streak_days: "днів поспіль",
+      share_cta: "Рахуй калорії по фото в Telegram",
+    
+    
     
     },
     de: {
@@ -405,6 +441,18 @@
       hm_dbl_hint: "· Doppeltipp — im Tagebuch öffnen",
       months_full: "Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember",
       weekdays_short: "Mo|Di|Mi|Do|Fr|Sa|So",
+      chart_cal_no_data: "Noch keine Einträge in 30 Tagen. Füge Essen hinzu — der Chart erwacht",
+      share_day: "Tag teilen",
+      share_title: "Mein Tag bei NutriO",
+      share_to_story: "Zu Stories",
+      share_to_chat: "In Chat senden",
+      share_save: "Bild speichern",
+      share_subtitle: "Smartes Ernährungstagebuch",
+      share_of_goal: "von",
+      share_streak_days: "Tage in Folge",
+      share_cta: "Kalorien per Foto in Telegram zählen",
+    
+    
     
     },
     fr: {
@@ -497,6 +545,18 @@
       hm_dbl_hint: "· double-tap — ouvrir dans le journal",
       months_full: "janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre",
       weekdays_short: "Lun|Mar|Mer|Jeu|Ven|Sam|Dim",
+      chart_cal_no_data: "Pas d'entrées sur 30 jours. Ajoute un repas — le graphique s'anime",
+      share_day: "Partager ma journée",
+      share_title: "Ma journée NutriO",
+      share_to_story: "En Stories",
+      share_to_chat: "Envoyer au chat",
+      share_save: "Enregistrer l'image",
+      share_subtitle: "Journal nutritionnel intelligent",
+      share_of_goal: "sur",
+      share_streak_days: "jours d'affilée",
+      share_cta: "Compte les calories par photo sur Telegram",
+    
+    
     
     },
     es: {
@@ -589,6 +649,18 @@
       hm_dbl_hint: "· doble toque — abrir en el diario",
       months_full: "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre",
       weekdays_short: "Lun|Mar|Mié|Jue|Vie|Sáb|Dom",
+      chart_cal_no_data: "Sin registros en 30 días. Añade comida y el gráfico cobra vida",
+      share_day: "Compartir mi día",
+      share_title: "Mi día en NutriO",
+      share_to_story: "A Stories",
+      share_to_chat: "Enviar al chat",
+      share_save: "Guardar imagen",
+      share_subtitle: "Diario nutricional inteligente",
+      share_of_goal: "de",
+      share_streak_days: "días seguidos",
+      share_cta: "Cuenta calorías por foto en Telegram",
+    
+    
     
     },
   };
