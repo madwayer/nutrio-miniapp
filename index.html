@@ -62,10 +62,10 @@
 })();
 </script>
 
-<script src="/js/01-calc.js?v=3u"></script>
-<script src="/js/02-datepicker.js?v=3u"></script>
-<script src="/js/03-main-a.js?v=3u"></script>
-<link rel="stylesheet" href="/styles.css?v=3u">
+<script src="/js/01-calc.js?v=3v"></script>
+<script src="/js/02-datepicker.js?v=3v"></script>
+<script src="/js/03-main-a.js?v=3v"></script>
+<link rel="stylesheet" href="/styles.css?v=3v">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -464,11 +464,12 @@
     </div>
 
     <!-- Достижения -->
-    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;">
-      <div id="achievements-title" style="font-size:13px;color:var(--text2);margin-bottom:10px;"></div>
-      <div id="achievements-list" style="display:flex;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:12px;color:var(--text2);" id="achievements-placeholder"></div>
+    <div class="ach-section">
+      <div class="ach-header">
+        <div class="ach-title" data-i18n="achievements_title">🏅 Достижения</div>
+        <div class="ach-counter" id="ach-counter">0 / 27</div>
       </div>
+      <div class="ach-grid" id="achievements-list"></div>
     </div>
 
     <!-- Вес история -->
@@ -1364,14 +1365,14 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/04-main-b.js?v=3u"></script>
+<script src="/js/04-main-b.js?v=3v"></script>
 
 
 
 
 
 <!-- styles moved to /styles.css (Phase 1 refactor) -->
-<script src="/js/05-scanner.js?v=3u"></script>
+<script src="/js/05-scanner.js?v=3v"></script>
 
 
 
@@ -1479,16 +1480,16 @@
   </div>
 </div>
 
-<script src="/js/06-nav.js?v=3u"></script>
+<script src="/js/06-nav.js?v=3v"></script>
 
 
-<script src="/js/07-skeleton.js?v=3u"></script>
+<script src="/js/07-skeleton.js?v=3v"></script>
 
 
-<script src="/js/08-rings-heatmap.js?v=3u"></script>
+<script src="/js/08-rings-heatmap.js?v=3v"></script>
 
 
-<script src="/js/09-ai-cards.js?v=3u"></script>
+<script src="/js/09-ai-cards.js?v=3v"></script>
 
 
 <!-- AI Archive sheet (Phase 3C) -->
@@ -1523,10 +1524,21 @@
 </div>
 
 
-<script src="/js/10-charts-archive.js?v=3u"></script>
-<script src="/js/11-i18n-ext.js?v=3u"></script>
-<script src="/js/12-share-card.js?v=3u"></script>
+<script src="/js/10-charts-archive.js?v=3v"></script>
+<script src="/js/11-i18n-ext.js?v=3v"></script>
+<script src="/js/12-share-card.js?v=3v"></script>
 
+<!-- Achievement detail modal -->
+<div class="sheet-backdrop" id="ach-detail-sheet" onclick="if(event.target===this)closeAchDetail()" aria-hidden="true">
+  <div class="sheet" role="dialog" style="max-width:380px;text-align:center">
+    <div class="sheet-handle"></div>
+    <div id="ach-detail-emoji" style="font-size:64px;margin:12px 0 8px"></div>
+    <div id="ach-detail-name" style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px"></div>
+    <div id="ach-detail-desc" style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:16px"></div>
+    <div id="ach-detail-status" style="font-size:13px;font-weight:700;margin-bottom:12px"></div>
+    <button class="sheet-cancel" onclick="closeAchDetail()">Закрыть</button>
+  </div>
+</div>
 <!-- Share card modal -->
 <div class="sheet-backdrop" id="share-sheet" onclick="if(event.target===this)closeShareCard()" aria-hidden="true">
   <div class="sheet share-sheet-inner" role="dialog" aria-label="Поделиться">

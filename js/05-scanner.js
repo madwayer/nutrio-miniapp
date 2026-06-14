@@ -1064,16 +1064,27 @@ function renderProgress(){
   var pctEl = document.getElementById('kcal-progress-pct');
   if(pctEl) pctEl.textContent = pct + '%';
 
-  // Достижения
+  // Достижения — полная сетка с разблокированными и заблокированными
   if(d.achievements && d.achievements.length){
     var list = document.getElementById('achievements-list');
-    var ph = document.getElementById('achievements-placeholder');
-    if(ph) ph.style.display='none';
+    var counter = document.getElementById('ach-counter');
+    var unlocked = d.achievements.filter(function(a){ return a.unlocked; }).length;
+    var total = d.achievements.length;
+    if(counter) counter.textContent = unlocked + ' / ' + total;
     if(list){
+      var isRu = (typeof LANG !== 'undefined' && LANG === 'ru');
       list.innerHTML = d.achievements.map(function(a){
-        return '<span title="'+a.name+'" style="font-size:24px;cursor:default;">'+a.emoji+'</span>';
+        var name = isRu ? (a.name_ru || a.name) : (a.name_en || a.name);
+        var cls = a.unlocked ? 'ach-card unlocked' : 'ach-card locked';
+        return '<button class="' + cls + '" onclick="openAchDetail(\'' + (a.key||'') + '\')" data-key="' + (a.key||'') + '">'
+          + '<div class="ach-emoji">' + a.emoji + '</div>'
+          + '<div class="ach-name">' + name + '</div>'
+          + '</button>';
       }).join('');
     }
+    // Сохраняем для детальной модалки
+    window._achData = {};
+    d.achievements.forEach(function(a){ window._achData[a.key] = a; });
   }
 }
 
@@ -1089,7 +1100,7 @@ function requestProgressData(){
     if(btn){ btn.disabled=false; btn.textContent=i18n&&i18n.load_data_btn||'🔄 Load data'; }
     return;
   }
-  fetch((window.API_BASE || '/api/proxy')+'/api/progress?user_id='+userId)
+  fetch((window.API_BASE || '/api/proxy')+'/api/progress?user_id='+userId, {headers:(window._authHeaders?window._authHeaders():{})})
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data.error){ throw new Error(data.error); }
@@ -1135,3 +1146,33 @@ try {
     }catch(e){}
   }
 }catch(e){}
+
+// ── Achievement detail modal ─────────────────────────────────────────────
+window.openAchDetail = function(key) {
+  var data = (window._achData || {})[key];
+  if (!data) return;
+  var isRu = (typeof LANG !== 'undefined' && LANG === 'ru');
+  var name = isRu ? (data.name_ru || data.name) : (data.name_en || data.name);
+  var desc = isRu ? (data.desc_ru || data.desc_en || '') : (data.desc_en || data.desc_ru || '');
+  var emoji = document.getElementById('ach-detail-emoji');
+  var nameEl = document.getElementById('ach-detail-name');
+  var descEl = document.getElementById('ach-detail-desc');
+  var statusEl = document.getElementById('ach-detail-status');
+  if (emoji) emoji.textContent = data.emoji;
+  if (nameEl) nameEl.textContent = name;
+  if (descEl) descEl.textContent = desc;
+  if (statusEl) {
+    if (data.unlocked) {
+      statusEl.innerHTML = '<span style="color:var(--green);font-size:15px">✅ Разблокировано</span>';
+    } else {
+      statusEl.innerHTML = '<span style="color:var(--muted);font-size:15px">🔒 Заблокировано</span>';
+    }
+  }
+  var sheet = document.getElementById('ach-detail-sheet');
+  if (sheet) { sheet.classList.add('show'); sheet.setAttribute('aria-hidden','false'); }
+  try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+};
+window.closeAchDetail = function() {
+  var sheet = document.getElementById('ach-detail-sheet');
+  if (sheet) { sheet.classList.remove('show'); sheet.setAttribute('aria-hidden','true'); }
+};
