@@ -2524,7 +2524,7 @@ body {
 .gring-cell.carb .gring-fill { stroke: url(#gring-grad-carb); color: #54a0ff; }
 .gring-pct {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2532,6 +2532,8 @@ body {
   font-size: 13px;
   color: var(--text);
   letter-spacing: -.2px;
+  pointer-events: none;
+  z-index: 2;
 }
 .gring-label {
   font-size: 11px;
