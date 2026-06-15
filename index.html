@@ -62,10 +62,10 @@
 })();
 </script>
 
-<script src="/js/01-calc.js?v=3v"></script>
-<script src="/js/02-datepicker.js?v=3v"></script>
-<script src="/js/03-main-a.js?v=3v"></script>
-<link rel="stylesheet" href="/styles.css?v=3v">
+<script src="/js/01-calc.js?v=3w"></script>
+<script src="/js/02-datepicker.js?v=3w"></script>
+<script src="/js/03-main-a.js?v=3w"></script>
+<link rel="stylesheet" href="/styles.css?v=3w">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -889,13 +889,8 @@
 
     <!-- Планировщик -->
     <div class="ai-section" id="ai-section-plan">
+      <!-- Кнопки дней инжектятся из JS (09-ai-cards.js → ensurePlanDaysPicker) -->
       <div class="ai-sub-label" data-i18n="ai_plan_days_lbl">Количество дней:</div>
-      <div class="plan-days-row">
-        <button class="plan-day-btn" onclick="selectPlanDays(1)">1</button>
-        <button class="plan-day-btn selected" onclick="selectPlanDays(3)">3</button>
-        <button class="plan-day-btn" onclick="selectPlanDays(5)">5</button>
-        <button class="plan-day-btn" onclick="selectPlanDays(7)">7</button>
-      </div>
       <div class="ai-sub-label" data-i18n="ai_plan_restrict_lbl">Ограничения (необязательно):</div>
       <input type="text" id="plan-restrictions" placeholder="Без глютена, вегетарианское..." data-i18n-ph="ai_plan_restrict_ph"
         style="width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:12px">
@@ -1365,14 +1360,14 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/04-main-b.js?v=3v"></script>
+<script src="/js/04-main-b.js?v=3w"></script>
 
 
 
 
 
 <!-- styles moved to /styles.css (Phase 1 refactor) -->
-<script src="/js/05-scanner.js?v=3v"></script>
+<script src="/js/05-scanner.js?v=3w"></script>
 
 
 
@@ -1480,16 +1475,16 @@
   </div>
 </div>
 
-<script src="/js/06-nav.js?v=3v"></script>
+<script src="/js/06-nav.js?v=3w"></script>
 
 
-<script src="/js/07-skeleton.js?v=3v"></script>
+<script src="/js/07-skeleton.js?v=3w"></script>
 
 
-<script src="/js/08-rings-heatmap.js?v=3v"></script>
+<script src="/js/08-rings-heatmap.js?v=3w"></script>
 
 
-<script src="/js/09-ai-cards.js?v=3v"></script>
+<script src="/js/09-ai-cards.js?v=3w"></script>
 
 
 <!-- AI Archive sheet (Phase 3C) -->
@@ -1524,9 +1519,9 @@
 </div>
 
 
-<script src="/js/10-charts-archive.js?v=3v"></script>
-<script src="/js/11-i18n-ext.js?v=3v"></script>
-<script src="/js/12-share-card.js?v=3v"></script>
+<script src="/js/10-charts-archive.js?v=3w"></script>
+<script src="/js/11-i18n-ext.js?v=3w"></script>
+<script src="/js/12-share-card.js?v=3w"></script>
 
 <!-- Achievement detail modal -->
 <div class="sheet-backdrop" id="ach-detail-sheet" onclick="if(event.target===this)closeAchDetail()" aria-hidden="true">
