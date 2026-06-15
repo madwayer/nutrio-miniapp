@@ -38,22 +38,39 @@
       var h = isHeading(line);
       if (h) { var lvl = Math.min(3, h[1].length); out.push('<h'+lvl+'>'+inlineFmt(h[2])+'</h'+lvl+'>'); i++; continue; }
       if (isHr(line)) { out.push('<hr>'); i++; continue; }
-      // unordered list
+      // unordered list (tolerant of blank lines between items)
       if (/^\s*[-*+]\s+/.test(line)) {
         var items = [];
-        while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-          items.push('<li>' + inlineFmt(lines[i].replace(/^\s*[-*+]\s+/, '')) + '</li>');
-          i++;
+        while (i < lines.length) {
+          var cl = lines[i];
+          if (/^\s*[-*+]\s+/.test(cl)) {
+            items.push('<li>' + inlineFmt(cl.replace(/^\s*[-*+]\s+/, '')) + '</li>');
+            i++;
+          } else if (!cl.trim()) {
+            var k = i + 1;
+            while (k < lines.length && !lines[k].trim()) k++;
+            if (k < lines.length && /^\s*[-*+]\s+/.test(lines[k])) { i++; }
+            else break;
+          } else break;
         }
         out.push('<ul>' + items.join('') + '</ul>');
         continue;
       }
-      // ordered list
+      // ordered list (tolerant of blank lines between items)
       if (/^\s*\d+\.\s+/.test(line)) {
         var items2 = [];
-        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-          items2.push('<li>' + inlineFmt(lines[i].replace(/^\s*\d+\.\s+/, '')) + '</li>');
-          i++;
+        while (i < lines.length) {
+          var cl = lines[i];
+          if (/^\s*\d+\.\s+/.test(cl)) {
+            items2.push('<li>' + inlineFmt(cl.replace(/^\s*\d+\.\s+/, '')) + '</li>');
+            i++;
+          } else if (!cl.trim()) {
+            // Пустая строка — пропускаем если дальше ещё цифра
+            var k = i + 1;
+            while (k < lines.length && !lines[k].trim()) k++;
+            if (k < lines.length && /^\s*\d+\.\s+/.test(lines[k])) { i++; }
+            else break;
+          } else break;
         }
         out.push('<ol>' + items2.join('') + '</ol>');
         continue;
