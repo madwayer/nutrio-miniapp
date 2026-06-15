@@ -3755,3 +3755,114 @@ button, .sheet-row, .bnav-item, .prem-plan-card, .ai-arch-item {
   -webkit-box-orient: vertical;
 }
 .ach-card.unlocked .ach-name { color: var(--text); }
+
+/* ═══════════════ Elite AI content typography ═══════════════ */
+.ai-content {
+  font-size: 14.5px;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+.ai-content h2 {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  margin: 18px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(124,108,255,.15);
+}
+.ai-content h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold, #d8b66a);
+  margin: 14px 0 6px;
+}
+.ai-content strong {
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+[data-theme="light"] .ai-content strong { color: #1a1b28; }
+
+/* Списки ингредиентов / шаги — аккуратнее */
+.ai-content ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 6px 0 14px;
+}
+.ai-content ul li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 6px;
+}
+.ai-content ul li::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  color: var(--accent);
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.ai-content ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 6px 0 14px;
+  counter-reset: step;
+}
+.ai-content ol li {
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 10px;
+  counter-increment: step;
+}
+.ai-content ol li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0; top: 0;
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(124,108,255,.3);
+}
+
+/* Нутриенты-строка: выглядит как бейдж */
+.ai-content p:last-of-type {
+  /* "На порцию: ..." — обычно последний параграф */
+}
+
+/* Карточка результата: внутренняя тень сверху для глубины */
+.ai-result-inner {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.ai-result-inner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20px; right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,108,255,.3), rgba(216,182,106,.2), transparent);
+  border-radius: 1px;
+}
+[data-theme="light"] .ai-result-inner::before {
+  background: linear-gradient(90deg, transparent, rgba(91,79,255,.15), rgba(216,182,106,.1), transparent);
+}
+
+/* Хедер карточки — чуть крупнее и с золотой ноткой */
+.ai-result-header-icon {
+  width: 36px; height: 36px;
+  font-size: 18px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--gold, #d8b66a) 100%);
+  box-shadow: 0 4px 14px rgba(124,108,255,.35), 0 0 20px rgba(216,182,106,.15);
+}
+.ai-result-header-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}

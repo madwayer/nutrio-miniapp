@@ -102,7 +102,12 @@ function cleanAiText(text) {
   text = text.replace(/рецепт\s*#\d+\s*:?\s*/gi, '');
   text = text.replace(/recipe\s*#\d+\s*:?\s*/gi, '');
   text = text.replace(/\u0440\u0435\u0446\u0435\u043f\u0442\s*#\d+\s*:?\s*/gi, '');
-  text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]\s+\u043d\u0430\s+\u043f\u043e\u0440\u0446/gi, '\u041d\u0430 \u043f\u043e\u0440\u0446\u0438\u044e:');
+  // Фикс КБЖУ на порцию → На порцию (матчим полное слово, не обрезаем)
+  text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]\s+[Нн]а\s+порцию\s*:?/gi, '\u041d\u0430 \u043f\u043e\u0440\u0446\u0438\u044e:');
+  text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]\s+[Нн]а\s+\u043f\u043e\u0440\u0446\u0438\u044e\s*:?/gi, '\u041d\u0430 \u043f\u043e\u0440\u0446\u0438\u044e:');
+  // Убрать двойное двоеточие если осталось
+  text = text.replace(/::\s*/g, ': ');
+  text = text.replace(/:\s*ию\s*:/gi, ':');
   text = text.replace(/\u041a[\u0411\u0431][\u0416\u0436]?[\u0423\u0443]/g, '\u041a\u0411\u0416\u0423');
   text = text.replace(/KBZhU/gi, '\u041a\u0411\u0416\u0423');
   text = text.replace(/KBZU/gi, '\u041a\u0411\u0416\u0423');
