@@ -233,29 +233,9 @@ function toggleMeal(header) {
   if (arrow) arrow.style.transform = collapsed ? '' : 'rotate(-90deg)';
 }
 
-async function deleteDiaryEntry(entryId, btn) {
-  var userId = getUserId();
-  if (!userId) return;
-  showConfirm('Удалить из списка?', function() { calcItems.splice(idx, 1); calcRenderItems(); }); return;
-
-  var row = btn.closest('.diary-entry');
-  if (row) row.style.opacity = '0.4';
-
-  try {
-    var data = await apiPost('/api/diary/delete', {entry_id: entryId});
-    if (data.ok) {
-      showToast('Удалено', 'var(--green)');
-      loadDiary();
-    } else {
-      if (row) row.style.opacity = '1';
-      showToast('Ошибка удаления', 'var(--accent2)');
-    }
-  } catch(e) {
-    if (row) row.style.opacity = '1';
-    showToast('Ошибка', 'var(--accent2)');
-  }
-}
-
+// deleteDiaryEntry удалена: она была сломана (return сразу после showConfirm + ссылки
+// на калькуляторные переменные idx/calcItems). В реальном UI удаление идёт через
+// editDiaryEntry → модалка → deditDelete (см. 02-datepicker.js).
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -385,7 +365,8 @@ function calcRenderItems() {
   var h = new Date().getHours();
   var autoMeal = h<10 ? 'завтрак' : h<14 ? 'обед' : h<18 ? 'обед' : h<21 ? 'ужин' : 'перекус';
   var mealBtn = document.querySelector('[onclick*="calcSelectMeal(\''+autoMeal+'\'"]');
-  if (!_calcSelectedMeal || _calcSelectedMeal === 'обед') {
+  // Не перезаписываем выбор юзера; авто-логика срабатывает только если он сам ничего не нажимал.
+  if (!_calcUserPickedMeal) {
     _calcSelectedMeal = autoMeal;
     document.querySelectorAll('#calc-meal-btns button').forEach(function(b) {
       var isSel = b.textContent.trim().toLowerCase().indexOf(autoMeal) !== -1 || b.getAttribute('onclick').indexOf(autoMeal) !== -1;
@@ -400,8 +381,8 @@ async function calcSave() {
   if (!calcItems.length) return;
   var userId = getUserId();
   if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
-  // Auto-select meal by time if not manually chosen
-  if (!_calcSelectedMeal || _calcSelectedMeal === 'обед') {
+  // Авто-выбор приёма пищи только если юзер не выбирал явно
+  if (!_calcUserPickedMeal) {
     var h = new Date().getHours();
     _calcSelectedMeal = h<10 ? 'завтрак' : h<14 ? 'обед' : h<18 ? 'обед' : h<21 ? 'ужин' : 'перекус';
   }
@@ -426,6 +407,7 @@ async function calcSave() {
 function calcClear() {
   calcItems = [];
   calcCurrentResult = null;
+  _calcUserPickedMeal = false;
   document.getElementById('calc-items-list').innerHTML = '';
   document.getElementById('calc-result-preview').style.display = 'none';
   document.getElementById('calc-total-card').style.display = 'none';
@@ -893,8 +875,17 @@ async function runRecipe() {
     } else if (data.ok) {
       res.textContent = data.text;
       // Сохраняем название в историю
-      var match = data.text.match(/🍽\s*(.+?)\n/);
-      if (match) recipeHistory.push(match[1].trim().replace(/\*/g,''));
+      // Достаём название рецепта надёжно: первая непустая строка очищенная от
+      // markdown/эмодзи/служебных префиксов. Старая регулярка `/🍽\s*(.+?)\n/`
+      // ломалась если AI отвечал без 🍽 или без \n в нужном месте.
+      var firstLine = (data.text || '').split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean)[0] || '';
+      var title = firstLine
+        .replace(/^[#*>•\-—–\s]+/, '')                        // markdown/маркеры списка
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '') // эмодзи
+        .replace(/\*\*([^*]+)\*\*/g, '$1')                     // bold
+        .replace(/\*/g, '')                                    // оставшиеся *
+        .trim();
+      if (title) recipeHistory.push(title);
       if (recipeHistory.length > 5) recipeHistory = recipeHistory.slice(-5);
       nextBtn.style.display = 'block';
       btn.style.display = 'none';
@@ -1033,7 +1024,7 @@ async function downloadPdf() {
   btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
   try {
     var url = API_BASE + '/api/pdf?user_id=' + userId + '&days=' + pdfDays;
-    var res = await fetch(url);
+    var res = await fetch(url, { headers: _authHeaders() });
     if (!res.ok) {
       var ct = (res.headers.get('content-type')||'');
       var err = ct.includes('json') ? await res.json().catch(()=>({})) : {};

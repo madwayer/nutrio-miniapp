@@ -148,16 +148,49 @@ async function deditSave(id) {
   var fat  = parseFloat(document.getElementById('dedit-fat').value) || 0;
   var carb = parseFloat(document.getElementById('dedit-carb').value) || 0;
   if (!name) { showToast('Введи название', 'var(--accent2)'); return; }
-  // Delete old + add new
-  var del = await apiPost('/api/diary/delete', {entry_id: id});
-  if (!del.ok) { showToast('Ошибка', 'var(--accent2)'); return; }
-  var add = await apiPost('/api/calculator/save', {
-    meal_type: (document.getElementById('dedit-meal') ? document.getElementById('dedit-meal').value : 'другое'),
-    items: [{name: name.charAt(0).toUpperCase()+name.slice(1), calories: cal, protein: prot, fat: fat, carbs: carb, weight: 0, he: carb/12}]
-  });
+  var meal = document.getElementById('dedit-meal') ? document.getElementById('dedit-meal').value : 'другое';
+
+  // Атомарный апдейт через новый PATCH /api/diary/edit.
+  // Раньше тут был DELETE + INSERT, что приводило к потере записи если второй запрос падал.
+  // Если бэк ещё старый (нет ручки edit) — фоллбэк на старую логику.
+  var res;
+  try {
+    res = await fetch(API_BASE + '/api/diary/edit', {
+      method: 'PATCH',
+      headers: _authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({
+        user_id:  parseInt(userId),
+        entry_id: id,
+        name:     name.charAt(0).toUpperCase()+name.slice(1),
+        calories: cal,
+        protein:  prot,
+        fat:      fat,
+        carbs:    carb,
+        meal_type: meal,
+      }),
+    });
+  } catch(e) { res = null; }
+
   var modal = document.getElementById('diary-edit-modal');
+  var ok = false;
+  if (res && (res.status === 200 || res.status === 304)) {
+    try { var d = await res.json(); ok = !!d.ok; } catch(e) { ok = false; }
+  }
+
+  // Фоллбэк на старую логику если ручка edit не отвечает (например, бэк ещё не обновлён)
+  if (!ok && res && (res.status === 404 || res.status === 405)) {
+    var del = await apiPost('/api/diary/delete', {entry_id: id});
+    if (del.ok) {
+      var add = await apiPost('/api/calculator/save', {
+        meal_type: meal,
+        items: [{name: name.charAt(0).toUpperCase()+name.slice(1), calories: cal, protein: prot, fat: fat, carbs: carb, weight: 0, he: carb/12}]
+      });
+      ok = !!add.ok;
+    }
+  }
+
   if (modal) document.body.removeChild(modal);
-  if (add.ok) { showToast('✅ Обновлено!', 'var(--green)'); loadDiary(); }
+  if (ok) { showToast('✅ Обновлено!', 'var(--green)'); loadDiary(); }
   else showToast('Ошибка сохранения', 'var(--accent2)');
 }
 

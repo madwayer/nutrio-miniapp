@@ -252,12 +252,16 @@
       }
       box.innerHTML = j.items.map(function(it){
         var meta = kindMeta(it.kind);
+        // Экранируем title и snippet — title из AI-генерации, может содержать любые символы.
+        var esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        var safeTitle = esc(it.title || meta.name);
+        var safeSnippet = esc((it.snippet || '').slice(0, 300));
         return '<button class="ai-arch-item" onclick="openAiItem(' + it.id + ')">'
           + '<span class="ai-arch-ic" style="background:' + meta.color + '">' + meta.ic + '</span>'
           + '<div class="ai-arch-body">'
-          +   '<div class="ai-arch-row1"><span class="ai-arch-title">' + (it.title || meta.name) + '</span>'
+          +   '<div class="ai-arch-row1"><span class="ai-arch-title">' + safeTitle + '</span>'
           +   '<span class="ai-arch-date">' + fmtDate(it.created_at) + '</span></div>'
-          +   '<div class="ai-arch-snippet">' + (it.snippet || '').replace(/[<>]/g,'') + '</div>'
+          +   '<div class="ai-arch-snippet">' + safeSnippet + '</div>'
           + '</div></button>';
       }).join('');
     } catch(e) {

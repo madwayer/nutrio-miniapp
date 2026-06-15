@@ -34,8 +34,10 @@ function calcUpdateWeight() {
 }
 
 var _calcSelectedMeal = 'обед';
+var _calcUserPickedMeal = false; // юзер сам выбрал → не перезаписывать авто-логикой по времени
 function calcSelectMeal(meal, btn) {
   _calcSelectedMeal = meal;
+  _calcUserPickedMeal = true;
   var inp = document.getElementById('calc-meal-select');
   if (inp) inp.value = meal;
   document.querySelectorAll('#calc-meal-btns button').forEach(function(b) {

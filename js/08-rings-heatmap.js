@@ -198,6 +198,8 @@
   }
 
   function fetchDay(dateStr){
+    // Оставлено для совместимости — одиночный фетч больше не используется,
+    // loadAll() дёргает /api/calendar_summary один раз на весь диапазон.
     var uid = (typeof getUserId === 'function') ? getUserId() : 0;
     if (!uid) return Promise.resolve(null);
     var base = (window.API_BASE || '/api/proxy');
@@ -214,22 +216,51 @@
     if (loading) return;
     loading = true;
     setStatus(T('hm_loading','Загружаю данные...'));
-    var today = new Date(); today.setHours(0,0,0,0);
-    var dates = [];
-    for (var i = 0; i < DAYS; i++) {
-      var d = new Date(today); d.setDate(today.getDate() - i);
-      dates.push(ymd(d));
+
+    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+    var base = (window.API_BASE || '/api/proxy');
+    var ok = false;
+
+    if (uid) {
+      try {
+        var r = await fetch(base + '/api/calendar_summary?user_id=' + uid + '&days=' + DAYS, {
+          headers: (window._authHeaders ? window._authHeaders() : {}),
+        });
+        if (r.ok) {
+          var d = await r.json();
+          if (d && d.ok && Array.isArray(d.days)) {
+            var goal = d.daily_goal || 2000;
+            d.days.forEach(function(row){
+              cache[row.date] = { cals: row.kcal || 0, goal: goal };
+            });
+            setProgress(DAYS, DAYS);
+            buildEmpty();
+            ok = true;
+          }
+        }
+      } catch(e) { /* fallback ниже */ }
     }
-    var done = 0;
-    for (var i = 0; i < dates.length; i += BATCH) {
-      var batch = dates.slice(i, i + BATCH);
-      var results = await Promise.all(batch.map(fetchDay));
-      results.forEach(function(r, idx){
-        if (r) cache[batch[idx]] = r;
-        done++; setProgress(done, dates.length);
-      });
-      buildEmpty();
+
+    // Фоллбэк на старый поштучный фетч (если бэк ещё не обновлён до /api/calendar_summary)
+    if (!ok && uid) {
+      var today = new Date(); today.setHours(0,0,0,0);
+      var dates = [];
+      for (var i = 0; i < DAYS; i++) {
+        var dd = new Date(today); dd.setDate(today.getDate() - i);
+        dates.push(ymd(dd));
+      }
+      var done = 0;
+      for (var i = 0; i < dates.length; i += BATCH) {
+        var batch = dates.slice(i, i + BATCH);
+        var results = await Promise.all(batch.map(fetchDay));
+        results.forEach(function(r, idx){
+          if (r) cache[batch[idx]] = r;
+          done++; setProgress(done, dates.length);
+        });
+        buildEmpty();
+      }
     }
+
     setStatus('');
     var btn = document.getElementById('hm-load-btn');
     if (btn) { btn.textContent = T('hm_refresh','🔄 Обновить'); btn.disabled = false; }
