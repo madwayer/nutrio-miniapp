@@ -447,100 +447,11 @@ window.cleanAiText = cleanAiText;
       }
     };
   };
-  window._helpDonate = async function() {
+  window._helpDonate = function() {
     try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
-    // Дёргаем инфо (номер карты + варианты Stars)
-    var info = {};
-    try {
-      var base = window.API_BASE || '/api/proxy';
-      var r = await fetch(base + '/api/donate_info', {headers:(window._authHeaders?window._authHeaders():{})});
-      info = await r.json();
-    } catch(e) {}
-    var card = (info && info.card_number) || '';
-    var amounts = (info && info.stars_amounts) || [50, 100, 250, 500];
-
-    var existing = document.getElementById('nutrio-donate-modal');
-    if (existing) document.body.removeChild(existing);
-    var overlay = document.createElement('div');
-    overlay.id = 'nutrio-donate-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
-
-    var starsBtns = amounts.map(function(a){
-      return '<button class="ndon-star" data-amt="' + a + '" style="padding:12px 8px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;color:var(--text);font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px">' +
-        '<span style="font-size:18px">⭐</span>' +
-        '<span>' + a + '</span>' +
-      '</button>';
-    }).join('');
-
-    var cardSection = card ? (
-      '<div style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin:18px 0 8px">💳 КАРТА (РФ)</div>' +
-      '<div id="ndon-card" style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">' +
-        '<div style="flex:1;font-family:monospace;font-size:15px;letter-spacing:1px;color:var(--text)">' + card + '</div>' +
-        '<button id="ndon-copy" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">📋</button>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5">Переведи любую сумму. Если нужен чек или комментарий — напиши в техподдержку.</div>'
-    ) : '';
-
-    overlay.innerHTML =
-      '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto">' +
-        '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>' +
-        '<div style="font-weight:800;font-size:17px;margin-bottom:6px">❤️ Поддержать NutriO</div>' +
-        '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Спасибо что хочешь помочь проекту. Выбери способ — Telegram Stars или карта.</div>' +
-        '<div style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">⭐ TELEGRAM STARS</div>' +
-        '<div id="ndon-stars" style="display:grid;grid-template-columns:repeat(' + Math.min(amounts.length, 4) + ',1fr);gap:8px">' + starsBtns + '</div>' +
-        cardSection +
-        '<button id="ndon-close" style="width:100%;padding:13px;margin-top:18px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Закрыть</button>' +
-      '</div>';
-    document.body.appendChild(overlay);
-    document.getElementById('ndon-close').onclick = function(){ document.body.removeChild(overlay); };
-
-    // Копировать карту
-    var copyBtn = document.getElementById('ndon-copy');
-    if (copyBtn) copyBtn.onclick = function(){
-      try {
-        navigator.clipboard.writeText(card);
-        copyBtn.textContent = '✓';
-        if (typeof showToast === 'function') showToast('Номер карты скопирован', 'var(--green)');
-        setTimeout(function(){ copyBtn.textContent = '📋'; }, 1500);
-      } catch(e) {
-        if (typeof showToast === 'function') showToast('Не удалось скопировать', 'var(--accent2)');
-      }
-    };
-
-    // Stars-кнопки
-    overlay.querySelectorAll('.ndon-star').forEach(function(btn){
-      btn.onclick = async function(){
-        var amt = parseInt(btn.getAttribute('data-amt'));
-        btn.disabled = true; var orig = btn.innerHTML; btn.innerHTML = '<span>⏳</span>';
-        try {
-          var d = (typeof apiPost === 'function')
-            ? await apiPost('/api/donate_stars', { amount: amt })
-            : {error: 'no api'};
-          if (d && d.ok && d.invoice_url) {
-            try {
-              var tg = window.Telegram && window.Telegram.WebApp;
-              if (tg && tg.openInvoice) {
-                tg.openInvoice(d.invoice_url, function(status){
-                  if (status === 'paid') {
-                    if (typeof showToast === 'function') showToast('❤️ Спасибо за поддержку!', 'var(--green)');
-                    document.body.removeChild(overlay);
-                  }
-                });
-              } else if (tg && tg.openTelegramLink) {
-                tg.openTelegramLink(d.invoice_url);
-              } else {
-                window.open(d.invoice_url, '_blank');
-              }
-            } catch(e) {}
-          } else {
-            if (typeof showToast === 'function') showToast('Ошибка: ' + (d && d.error ? d.error : 'не удалось создать инвойс'), 'var(--accent2)');
-          }
-        } catch(e) {
-          if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
-        }
-        btn.disabled = false; btn.innerHTML = orig;
-      };
-    });
+    // Простая схема: дёргаем бэк-ручку, она шлёт юзеру в чат с ботом меню донатов
+    // (Stars / Карта) с inline-кнопками. Дальше юзер идёт по уже существующему flow.
+    _helpAction('donate', '❤️ Меню донатов в чате с ботом', 'Не удалось открыть меню донатов');
   };
   window._helpRate = function() {
     _openTg('CaloriePilotAI_Bot?start=rate');
