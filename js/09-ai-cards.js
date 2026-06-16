@@ -251,10 +251,10 @@ window.cleanAiText = cleanAiText;
         '<div class="help-hero-sub">Открой бота, напиши в поддержку или загляни в канал NutriO</div>' +
       '</div>' +
       '<div class="help-btn-row">' +
-        '<button class="help-btn help-btn-primary" onclick="_openTg(\'CaloriePilotAI_Bot\')">' +
+        '<button class="help-btn help-btn-primary" onclick="_openBotChat()">' +
           '<span class="help-btn-ic">🤖</span><span class="help-btn-lbl">Открыть бота</span>' +
         '</button>' +
-        '<button class="help-btn help-btn-support" onclick="_openTg(\'nutrio_support_bot\')">' +
+        '<button class="help-btn help-btn-support" onclick="_openTg(\'CaloriePilotAI_Bot?start=support\')">' +
           '<span class="help-btn-ic">💬</span><span class="help-btn-lbl">Техподдержка</span>' +
         '</button>' +
         '<button class="help-btn help-btn-channel" onclick="_openTg(\'NutriO_official\')">' +
@@ -292,9 +292,36 @@ window.cleanAiText = cleanAiText;
     } catch(e){}
     window.open(url, '_blank');
   };
+  // Открыть чат с ботом и закрыть Mini App, чтобы юзер увидел чат на основном слое.
+  // openTelegramLink сам по себе НЕ сворачивает миниапп — он открывает поверх, и
+  // юзер не понимает что произошло. Закрытие миниаппа после короткой паузы решает это.
+  window._openBotChat = function() {
+    var url = 'https://t.me/CaloriePilotAI_Bot';
+    try {
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+        Telegram.WebApp.openTelegramLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch(e) { window.open(url, '_blank'); }
+    // Даём Telegram время начать переход — потом закрываемся.
+    setTimeout(function(){
+      try {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close();
+      } catch(e){}
+    }, 250);
+  };
   window._helpDonate = function() {
-    _openTg('CaloriePilotAI_Bot?start=donate');
-    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+    var url = 'https://t.me/CaloriePilotAI_Bot?start=donate';
+    try {
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+        Telegram.WebApp.openTelegramLink(url);
+      } else { window.open(url, '_blank'); }
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    } catch(e) { window.open(url, '_blank'); }
+    setTimeout(function(){
+      try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
+    }, 250);
   };
   window._helpRate = function() {
     _openTg('CaloriePilotAI_Bot?start=rate');

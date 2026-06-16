@@ -663,10 +663,12 @@ function renderStats(data) {
   // Bar chart 7 дней
   var chart = document.getElementById('stat-bar-chart');
   if (chart && data.week_days) {
-    var maxKcal = Math.max.apply(null, data.week_days.map(function(d) { return d.kcal; })) || goal;
+    // Бэк отдаёт 30 дней в week_days. Для бар-чарта "Последние 7 дней" берём только последние 7.
+    var last7 = data.week_days.slice(-7);
+    var maxKcal = Math.max.apply(null, last7.map(function(d) { return d.kcal; })) || goal;
     var today   = new Date().toISOString().split('T')[0];
     var days    = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-    chart.innerHTML = data.week_days.map(function(d) {
+    chart.innerHTML = last7.map(function(d) {
       var pct2   = d.kcal ? Math.round(d.kcal / maxKcal * 100) : 3;
       var isToday = d.date === today;
       var over   = d.kcal > goal;
@@ -930,8 +932,17 @@ async function initMicroPage() {
 
     var hasAnyData = data.nutrients.some(function(n) { return n.has_data; });
     if (!hasAnyData) {
-      container.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">📊</div>'
-        + '<div>Данные о микронутриентах доступны только для продуктов USDA.<br><small>Добавляй продукты через поиск в Калькуляторе</small></div></div>';
+      container.innerHTML = '<div class="micro-explain">'
+        + '<div style="font-size:42px;text-align:center;margin-bottom:8px">📊</div>'
+        + '<div style="font-weight:700;text-align:center;margin-bottom:10px">Для этих записей данных пока нет</div>'
+        + '<div style="font-size:13px;color:var(--text2);line-height:1.5">'
+        +   'Микронутриенты (витамины, минералы, клетчатка) сейчас приходят только с расширенными источниками:'
+        +   '<ul style="margin:8px 0;padding-left:18px;color:var(--text2);font-size:12px;line-height:1.6">'
+        +     '<li><b>Штрихкоды</b> — большая часть товаров отдаёт состав через OpenFoodFacts</li>'
+        +     '<li><b>Поиск в Калькуляторе</b> с английскими названиями — попадание в базу USDA</li>'
+        +   '</ul>'
+        +   '<div style="margin-top:8px"><b>Российские продукты</b> в локальной базе сейчас имеют только КБЖУ. Мы постепенно расширяем покрытие — спасибо за терпение.</div>'
+        + '</div></div>';
       return;
     }
 
@@ -988,19 +999,51 @@ async function loadLb(type) {
       container.innerHTML = '<div class="lb-empty"><div style="font-size:40px">🏆</div><div>Пока нет данных</div></div>';
       return;
     }
-    container.innerHTML = data.entries.map(function(e) {
-      var medal = e.rank===1?'🥇':e.rank===2?'🥈':e.rank===3?'🥉':'';
-      var rankLabel = e.rank && e.rank > 0 ? (medal || ('#'+e.rank)) : (e.is_me ? '👤' : '—');
+    var entries = data.entries;
+    var unitTop = entries[0] && entries[0].unit ? entries[0].unit : '';
+    // ---- Подиум для топ-3 ----
+    var top3 = entries.slice(0, 3);
+    var rest = entries.slice(3);
+    var podiumHtml = '';
+    if (top3.length >= 1) {
+      var byRank = { 1:null, 2:null, 3:null };
+      top3.forEach(function(e){ byRank[e.rank] = e; });
+      var makeStep = function(e, height, medal){
+        if (!e) return '<div class="lb-podium-step empty" style="height:' + height + 'px"></div>';
+        var youCls = e.is_me ? ' you' : '';
+        return '<div class="lb-podium-step' + youCls + '" style="height:' + height + 'px">'
+          + '<div class="lb-podium-medal">' + medal + '</div>'
+          + '<div class="lb-podium-name">' + escHtml(e.name) + (e.is_me?'&nbsp;⭐':'') + '</div>'
+          + '<div class="lb-podium-val">' + e.value + '<span class="lb-podium-unit">' + (e.unit||'') + '</span></div>'
+          + '</div>';
+      };
+      podiumHtml = '<div class="lb-podium">'
+        + makeStep(byRank[2], 84,  '🥈')
+        + makeStep(byRank[1], 110, '🥇')
+        + makeStep(byRank[3], 64,  '🥉')
+        + '</div>';
+    }
+    // ---- Остальной список с #4 ----
+    var restHtml = rest.map(function(e) {
       var bg = e.is_me ? 'background:rgba(108,99,255,.15);border:1px solid var(--accent)' : 'background:var(--surface)';
       return '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;margin-bottom:6px;' + bg + '">'
-        + '<div style="font-size:' + (medal?'22':'13') + 'px;min-width:30px;text-align:center;font-weight:700;color:var(--text2)">' + rankLabel + '</div>'
+        + '<div style="font-size:13px;min-width:36px;text-align:center;font-weight:700;color:var(--text2)">#' + e.rank + '</div>'
         + '<div style="flex:1;font-weight:' + (e.is_me?'800':'600') + ';font-size:14px">' + escHtml(e.name) + (e.is_me?'&nbsp;<span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:5px">ты</span>':'') + '</div>'
-        + '<div style="font-weight:800;font-size:16px;color:var(--accent)">' + e.value + '&nbsp;<span style="font-size:10px;color:var(--text2);font-weight:400">' + e.unit + '</span></div>'
+        + '<div style="font-weight:800;font-size:16px;color:var(--accent)">' + e.value + '&nbsp;<span style="font-size:10px;color:var(--text2);font-weight:400">' + (e.unit||'') + '</span></div>'
         + '</div>';
     }).join('');
-    if (data.my_rank && !data.entries.find(function(e){ return e.is_me; })) {
-      container.innerHTML += '<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2)">Ты на #' + data.my_rank + ' месте</div>';
+    container.innerHTML = podiumHtml + restHtml;
+    // ---- Футер с позицией юзера ----
+    var meInList = entries.find(function(e){ return e.is_me; });
+    var footer = '';
+    if (data.my_rank && !meInList) {
+      footer = 'Ты на #' + data.my_rank + ' месте · топ-' + entries.length;
+    } else if (meInList) {
+      footer = 'Ты на #' + meInList.rank + ' из ' + entries.length;
+    } else {
+      footer = 'Топ-' + entries.length;
     }
+    container.innerHTML += '<div style="text-align:center;padding:12px 0 4px;font-size:12px;color:var(--text2)">' + footer + '</div>';
   } catch(e) {
     container.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
   }
@@ -1023,24 +1066,21 @@ async function downloadPdf() {
   var btn = document.getElementById('pdf-dl-btn');
   btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
   try {
-    var url = API_BASE + '/api/pdf?user_id=' + userId + '&days=' + pdfDays;
-    var res = await fetch(url, { headers: _authHeaders() });
-    if (!res.ok) {
-      var ct = (res.headers.get('content-type')||'');
-      var err = ct.includes('json') ? await res.json().catch(()=>({})) : {};
-      showToast('Ошибка: ' + (err.error || 'HTTP '+res.status), 'var(--accent2)');
+    // PDF доставляется как документ в чат с ботом — это надёжнее чем blob-скачка,
+    // которая на мобильном Telegram WebView молча игнорируется.
+    var data = await apiPost('/api/pdf_send', { days: pdfDays });
+    if (!data || !data.ok) {
+      showToast('Ошибка: ' + ((data && data.error) || 'не удалось отправить'), 'var(--accent2)');
       return;
     }
-    var blob = await res.blob();
-    var burl = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    a.href   = burl;
-    a.download = 'nutrio_report_' + pdfDays + 'days.pdf';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(burl);
-    showToast('✅ PDF скачан!', 'var(--green)');
+    showToast('✅ PDF отправлен в чат бота', 'var(--green)');
+    // Предложим открыть чат с ботом
+    setTimeout(function(){
+      try {
+        var tg = window.Telegram && window.Telegram.WebApp;
+        if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/CaloriePilotAI_Bot');
+      } catch(e) {}
+    }, 600);
   } catch(e) {
     showToast('Ошибка генерации', 'var(--accent2)');
   } finally {
@@ -1097,6 +1137,8 @@ function importParseCSV(text) {
   var title = document.getElementById('imp-progress-title');
   var stats = document.getElementById('imp-stats');
   var bar   = document.getElementById('imp-progress-bar');
+  var prev  = document.getElementById('imp-preview');
+  var prevList = document.getElementById('imp-preview-list');
 
   prog.style.display = 'block';
   conf.style.display = entries.length > 0 ? 'block' : 'none';
@@ -1104,13 +1146,65 @@ function importParseCSV(text) {
 
   if (entries.length === 0) {
     title.textContent = '❌ Не удалось разобрать файл';
-    stats.textContent = 'Проверь формат файла';
+    stats.textContent = 'Проверь формат файла. Поддерживаются даты: 2024-12-31, 31.12.2024, 31/12/2024, 12/31/2024.';
+    if (prev) prev.style.display = 'none';
   } else {
     title.textContent = '✅ Файл обработан';
     var dateSet = new Set(entries.map(function(e){return e.date.split('T')[0];}));
     stats.textContent = 'Найдено: ' + entries.length + ' записей за ' + dateSet.size + ' дней · Формат: ' + format.toUpperCase();
     document.getElementById('imp-confirm-btn').textContent = '✅ Импортировать ' + entries.length + ' записей';
+    // Превью первых 5 записей чтобы юзер мог визуально проверить
+    if (prev && prevList) {
+      var esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+      prevList.innerHTML = entries.slice(0, 5).map(function(e){
+        var dt = '';
+        try { dt = new Date(e.date).toISOString().slice(0,10); } catch(_) { dt = e.date.slice(0,10); }
+        return '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:10px;padding:8px 10px;font-size:12px;display:flex;justify-content:space-between;gap:8px">'
+          + '<div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>' + esc(e.name) + '</b> · ' + esc(e.meal) + '</div>'
+          + '<div style="color:var(--text2);white-space:nowrap">' + Math.round(e.calories) + ' ккал · ' + dt + '</div>'
+          + '</div>';
+      }).join('');
+      prev.style.display = 'block';
+    }
   }
+}
+
+// Универсальный парсер даты:
+//   2024-12-31, 2024-12-31T08:00, 2024-12-31 08:00:00
+//   31.12.2024,  31.12.2024 08:00
+//   31/12/2024,  12/31/2024 (US)
+// Возвращает ISO-строку. Если ничего не распарсилось — текущая дата.
+function importParseDate(ds) {
+  if (!ds) return new Date().toISOString();
+  ds = String(ds).trim();
+  // Чистый ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(ds)) {
+    var dt = new Date(ds);
+    if (!isNaN(dt.getTime())) return dt.toISOString();
+  }
+  // DD.MM.YYYY [HH:MM]
+  var m = ds.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ T](\d{1,2}):(\d{1,2}))?/);
+  if (m) {
+    var dt2 = new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]),
+                       parseInt(m[4]||0), parseInt(m[5]||0));
+    if (!isNaN(dt2.getTime())) return dt2.toISOString();
+  }
+  // DD/MM/YYYY или MM/DD/YYYY — пробуем оба варианта, берём валидный
+  var m2 = ds.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{1,2}))?/);
+  if (m2) {
+    var p1 = parseInt(m2[1]), p2 = parseInt(m2[2]), y = parseInt(m2[3]);
+    var hh = parseInt(m2[4]||0), mm = parseInt(m2[5]||0);
+    // Если первое > 12 — точно DD/MM. Иначе пробуем MM/DD (более частый формат CSV из US-приложений)
+    var dd, mo;
+    if (p1 > 12) { dd = p1; mo = p2; }
+    else { mo = p1; dd = p2; }
+    var dt3 = new Date(y, mo-1, dd, hh, mm);
+    if (!isNaN(dt3.getTime())) return dt3.toISOString();
+  }
+  // Фоллбэк: системный парсер
+  var dtf = new Date(ds);
+  if (!isNaN(dtf.getTime())) return dtf.toISOString();
+  return new Date().toISOString();
 }
 
 function importDetectFormat(h) {
@@ -1137,33 +1231,27 @@ function importParseMFP(row, headers) {
   if (!name || !cal) return null;
   var mealMap = {breakfast:'завтрак',lunch:'обед',dinner:'ужин',snack:'перекус'};
   var meal = mealMap[get('meal').toLowerCase()] || 'другое';
-  var ds = get('date'); var dt;
-  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
   return {name:name, calories:cal, protein:parseFloat(get('protein (g)'))||0,
           fat:parseFloat(get('fat (g)'))||0, carbs:parseFloat(get('carbohydrates (g)'))||0,
-          meal:meal, date:dt};
+          meal:meal, date:importParseDate(get('date'))};
 }
 
 function importParseFat(row, headers) {
   var get = function(key) { var i = headers.indexOf(key); return i>=0 ? (row[i]||'') : ''; };
   var name = get('food name'); var cal = parseFloat(get('calories')) || 0;
   if (!name || !cal) return null;
-  var ds = get('date'); var dt;
-  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
   return {name:name, calories:cal, protein:parseFloat(get('protein (g)'))||0,
           fat:parseFloat(get('fat (g)'))||0, carbs:parseFloat(get('carbohydrate (g)'))||0,
-          meal:'другое', date:dt};
+          meal:'другое', date:importParseDate(get('date'))};
 }
 
 function importParseGeneric(row, headers) {
   var get = function(key) { var i = headers.indexOf(key); return i>=0 ? (row[i]||'') : ''; };
   var name = get('food') || get('name') || get('product'); var cal = parseFloat(get('calories') || get('kcal')) || 0;
   if (!name || !cal) return null;
-  var ds = get('date'); var dt;
-  try { dt = new Date(ds).toISOString(); } catch(e) { dt = new Date().toISOString(); }
   return {name:name, calories:cal, protein:parseFloat(get('protein'))||0,
           fat:parseFloat(get('fat'))||0, carbs:parseFloat(get('carbs')||get('carbohydrates'))||0,
-          meal:get('meal')||'другое', date:dt};
+          meal:get('meal')||'другое', date:importParseDate(get('date'))};
 }
 
 async function importConfirm() {
@@ -1197,6 +1285,8 @@ function importReset() {
   document.getElementById('imp-progress').style.display = 'none';
   document.getElementById('imp-confirm-section').style.display = 'none';
   document.getElementById('imp-file-input').value = '';
+  var prev = document.getElementById('imp-preview');
+  if (prev) prev.style.display = 'none';
 }
 
 // ===== НАСТРОЙКИ =====
