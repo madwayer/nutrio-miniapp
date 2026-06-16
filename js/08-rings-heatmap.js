@@ -274,6 +274,11 @@
       buildEmpty();
       var btn = document.getElementById('hm-load-btn');
       if (btn) btn.addEventListener('click', loadAll);
+      // Автозагрузка при первом открытии — юзеру не нужно жать кнопку.
+      // Защита от повторного запуска — флаг loaded/loading внутри loadAll.
+      if (!loaded && !loading) {
+        setTimeout(function(){ loadAll(); }, 100);
+      }
     },
     load: loadAll
   };

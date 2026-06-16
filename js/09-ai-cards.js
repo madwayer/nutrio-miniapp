@@ -261,19 +261,21 @@ window.cleanAiText = cleanAiText;
           '<span class="help-btn-ic">📢</span><span class="help-btn-lbl">Канал</span>' +
         '</button>' +
         '<button class="help-btn help-btn-rate" onclick="_helpDonate()">' +
-          '<span class="help-btn-ic">❤️</span><span class="help-btn-lbl">Поддержать</span>' +
+          '<span class="help-btn-ic">❤️</span><span class="help-btn-lbl">Поддержать проект</span>' +
         '</button>' +
       '</div>' +
       '<div class="section-title" style="margin-top:8px">Частые вопросы</div>' +
       '<div class="faq-section">' +
-        _faq('Как считаются калории?', 'AI определяет состав блюда по фото или штрихкоду, затем рассчитывает КБЖУ на указанную порцию. Можно отредактировать вес — пересчёт мгновенный.') +
-        _faq('Сколько фото в день можно?', 'Бесплатно — 10 фото в день. С Premium — без ограничений.') +
-        _faq('Что в Premium?', 'Безлимит фото-распознавания, голосовых, AI-нутрициолога (3 раза/мес у free), генератор рецептов (10 у free), планировщик питания, PDF-отчёты до 90 дней, без рекламы.') +
-        _faq('Как добавить свой продукт?', 'В нижней панели нажми "+" → Мои продукты → "Добавить". Сохранённое будет в быстром доступе.') +
-        _faq('Не работает сканер штрихкода', 'Проверь что в браузере/Telegram разрешён доступ к камере. На некоторых старых устройствах сканер запускается медленно — подержи штрихкод неподвижно 2-3 секунды.') +
-        _faq('Как сменить цель калорий?', 'Открой Настройки (Ещё → ⚙️) → раздел Профиль → вес, цель, активность. Норма пересчитается автоматически.') +
-        _faq('Можно ли импортировать данные?', 'Да. Ещё → Импорт. Поддерживаются CSV из MyFitnessPal, FatSecret, Yazio. До 5000 записей за раз.') +
-        _faq('Где мой дневник за прошлые дни?', 'На вкладке Дневник стрелочки ← → перелистывают дни. Тапни по дате — откроется календарь.') +
+        _faq('Как считаются калории?', 'AI распознаёт состав блюда по фото или штрихкоду, считает КБЖУ на указанный вес. Можно отредактировать порцию — пересчёт мгновенный.') +
+        _faq('Что входит в Premium?', 'Безлимит AI-нутрициолога (у Free — 3 в месяц), безлимит планов питания (у Free — 1/мес) и рецептов (у Free — 5/мес), PDF-отчёты до 90 дней (у Free — 7), приоритет в техподдержке.') +
+        _faq('Сколько фото можно распознавать?', 'Без ограничений — фото-распознавание не лимитировано даже на Free. Лимиты есть только на AI-нутрициолога, рецепты и планы питания.') +
+        _faq('Как добавить свой продукт?', 'В нижней панели «Ещё» → «Мои продукты» → «Добавить». Сохранённое всегда под рукой в калькуляторе.') +
+        _faq('Не работает сканер штрихкода', 'Проверь что Telegram имеет доступ к камере (Настройки телефона → Telegram → Камера). Если работает в дневной свет, но не ночью — нужно больше освещения, контраст на штрихкоде должен быть высоким.') +
+        _faq('Как сменить цель калорий?', 'Открой «Ещё» → ⚙️ Настройки → раздел Профиль. Поменяй вес, рост или цель — норма пересчитается автоматически.') +
+        _faq('Можно ли импортировать данные?', 'Да. «Ещё» → 📥 Импорт. Поддерживаются CSV из MyFitnessPal, FatSecret, Yazio. До 5000 записей за раз. Перед импортом увидишь превью первых 5 записей.') +
+        _faq('Где мой дневник за прошлые дни?', 'На вкладке «Дневник» стрелочки ← → перелистывают дни. Тапни по дате — откроется календарь.') +
+        _faq('Не приходят напоминания', 'Зайди в «Ещё» → Настройки → Напоминания. Включи нужные и выбери время. Бот должен быть не заблокирован в Telegram.') +
+        _faq('Как поддержать проект?', 'Помощь → «❤️ Поддержать проект». Принимаем Telegram Stars или перевод на карту (РФ). Это сильно помогает развитию.') +
       '</div>' +
       '<div class="help-footer">NutriO · версия Mini App ' + (document.querySelector('meta[name="nutrio-version"]')||{}).content + '</div>';
   }
@@ -445,9 +447,100 @@ window.cleanAiText = cleanAiText;
       }
     };
   };
-  window._helpDonate = function() {
+  window._helpDonate = async function() {
     try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
-    _helpAction('donate', '❤️ Меню донатов в чате с ботом', 'Не удалось открыть меню донатов');
+    // Дёргаем инфо (номер карты + варианты Stars)
+    var info = {};
+    try {
+      var base = window.API_BASE || '/api/proxy';
+      var r = await fetch(base + '/api/donate_info', {headers:(window._authHeaders?window._authHeaders():{})});
+      info = await r.json();
+    } catch(e) {}
+    var card = (info && info.card_number) || '';
+    var amounts = (info && info.stars_amounts) || [50, 100, 250, 500];
+
+    var existing = document.getElementById('nutrio-donate-modal');
+    if (existing) document.body.removeChild(existing);
+    var overlay = document.createElement('div');
+    overlay.id = 'nutrio-donate-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+
+    var starsBtns = amounts.map(function(a){
+      return '<button class="ndon-star" data-amt="' + a + '" style="padding:12px 8px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;color:var(--text);font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px">' +
+        '<span style="font-size:18px">⭐</span>' +
+        '<span>' + a + '</span>' +
+      '</button>';
+    }).join('');
+
+    var cardSection = card ? (
+      '<div style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin:18px 0 8px">💳 КАРТА (РФ)</div>' +
+      '<div id="ndon-card" style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">' +
+        '<div style="flex:1;font-family:monospace;font-size:15px;letter-spacing:1px;color:var(--text)">' + card + '</div>' +
+        '<button id="ndon-copy" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">📋</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5">Переведи любую сумму. Если нужен чек или комментарий — напиши в техподдержку.</div>'
+    ) : '';
+
+    overlay.innerHTML =
+      '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto">' +
+        '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>' +
+        '<div style="font-weight:800;font-size:17px;margin-bottom:6px">❤️ Поддержать NutriO</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Спасибо что хочешь помочь проекту. Выбери способ — Telegram Stars или карта.</div>' +
+        '<div style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">⭐ TELEGRAM STARS</div>' +
+        '<div id="ndon-stars" style="display:grid;grid-template-columns:repeat(' + Math.min(amounts.length, 4) + ',1fr);gap:8px">' + starsBtns + '</div>' +
+        cardSection +
+        '<button id="ndon-close" style="width:100%;padding:13px;margin-top:18px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Закрыть</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('ndon-close').onclick = function(){ document.body.removeChild(overlay); };
+
+    // Копировать карту
+    var copyBtn = document.getElementById('ndon-copy');
+    if (copyBtn) copyBtn.onclick = function(){
+      try {
+        navigator.clipboard.writeText(card);
+        copyBtn.textContent = '✓';
+        if (typeof showToast === 'function') showToast('Номер карты скопирован', 'var(--green)');
+        setTimeout(function(){ copyBtn.textContent = '📋'; }, 1500);
+      } catch(e) {
+        if (typeof showToast === 'function') showToast('Не удалось скопировать', 'var(--accent2)');
+      }
+    };
+
+    // Stars-кнопки
+    overlay.querySelectorAll('.ndon-star').forEach(function(btn){
+      btn.onclick = async function(){
+        var amt = parseInt(btn.getAttribute('data-amt'));
+        btn.disabled = true; var orig = btn.innerHTML; btn.innerHTML = '<span>⏳</span>';
+        try {
+          var d = (typeof apiPost === 'function')
+            ? await apiPost('/api/donate_stars', { amount: amt })
+            : {error: 'no api'};
+          if (d && d.ok && d.invoice_url) {
+            try {
+              var tg = window.Telegram && window.Telegram.WebApp;
+              if (tg && tg.openInvoice) {
+                tg.openInvoice(d.invoice_url, function(status){
+                  if (status === 'paid') {
+                    if (typeof showToast === 'function') showToast('❤️ Спасибо за поддержку!', 'var(--green)');
+                    document.body.removeChild(overlay);
+                  }
+                });
+              } else if (tg && tg.openTelegramLink) {
+                tg.openTelegramLink(d.invoice_url);
+              } else {
+                window.open(d.invoice_url, '_blank');
+              }
+            } catch(e) {}
+          } else {
+            if (typeof showToast === 'function') showToast('Ошибка: ' + (d && d.error ? d.error : 'не удалось создать инвойс'), 'var(--accent2)');
+          }
+        } catch(e) {
+          if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
+        }
+        btn.disabled = false; btn.innerHTML = orig;
+      };
+    });
   };
   window._helpRate = function() {
     _openTg('CaloriePilotAI_Bot?start=rate');
