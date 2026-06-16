@@ -999,51 +999,19 @@ async function loadLb(type) {
       container.innerHTML = '<div class="lb-empty"><div style="font-size:40px">🏆</div><div>Пока нет данных</div></div>';
       return;
     }
-    var entries = data.entries;
-    var unitTop = entries[0] && entries[0].unit ? entries[0].unit : '';
-    // ---- Подиум для топ-3 ----
-    var top3 = entries.slice(0, 3);
-    var rest = entries.slice(3);
-    var podiumHtml = '';
-    if (top3.length >= 1) {
-      var byRank = { 1:null, 2:null, 3:null };
-      top3.forEach(function(e){ byRank[e.rank] = e; });
-      var makeStep = function(e, height, medal){
-        if (!e) return '<div class="lb-podium-step empty" style="height:' + height + 'px"></div>';
-        var youCls = e.is_me ? ' you' : '';
-        return '<div class="lb-podium-step' + youCls + '" style="height:' + height + 'px">'
-          + '<div class="lb-podium-medal">' + medal + '</div>'
-          + '<div class="lb-podium-name">' + escHtml(e.name) + (e.is_me?'&nbsp;⭐':'') + '</div>'
-          + '<div class="lb-podium-val">' + e.value + '<span class="lb-podium-unit">' + (e.unit||'') + '</span></div>'
-          + '</div>';
-      };
-      podiumHtml = '<div class="lb-podium">'
-        + makeStep(byRank[2], 84,  '🥈')
-        + makeStep(byRank[1], 110, '🥇')
-        + makeStep(byRank[3], 64,  '🥉')
-        + '</div>';
-    }
-    // ---- Остальной список с #4 ----
-    var restHtml = rest.map(function(e) {
+    container.innerHTML = data.entries.map(function(e) {
+      var medal = e.rank===1?'🥇':e.rank===2?'🥈':e.rank===3?'🥉':'';
+      var rankLabel = e.rank && e.rank > 0 ? (medal || ('#'+e.rank)) : (e.is_me ? '👤' : '—');
       var bg = e.is_me ? 'background:rgba(108,99,255,.15);border:1px solid var(--accent)' : 'background:var(--surface)';
       return '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;margin-bottom:6px;' + bg + '">'
-        + '<div style="font-size:13px;min-width:36px;text-align:center;font-weight:700;color:var(--text2)">#' + e.rank + '</div>'
+        + '<div style="font-size:' + (medal?'22':'13') + 'px;min-width:30px;text-align:center;font-weight:700;color:var(--text2)">' + rankLabel + '</div>'
         + '<div style="flex:1;font-weight:' + (e.is_me?'800':'600') + ';font-size:14px">' + escHtml(e.name) + (e.is_me?'&nbsp;<span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:5px">ты</span>':'') + '</div>'
         + '<div style="font-weight:800;font-size:16px;color:var(--accent)">' + e.value + '&nbsp;<span style="font-size:10px;color:var(--text2);font-weight:400">' + (e.unit||'') + '</span></div>'
         + '</div>';
     }).join('');
-    container.innerHTML = podiumHtml + restHtml;
-    // ---- Футер с позицией юзера ----
-    var meInList = entries.find(function(e){ return e.is_me; });
-    var footer = '';
-    if (data.my_rank && !meInList) {
-      footer = 'Ты на #' + data.my_rank + ' месте · топ-' + entries.length;
-    } else if (meInList) {
-      footer = 'Ты на #' + meInList.rank + ' из ' + entries.length;
-    } else {
-      footer = 'Топ-' + entries.length;
+    if (data.my_rank && !data.entries.find(function(e){ return e.is_me; })) {
+      container.innerHTML += '<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2)">Ты на #' + data.my_rank + ' месте</div>';
     }
-    container.innerHTML += '<div style="text-align:center;padding:12px 0 4px;font-size:12px;color:var(--text2)">' + footer + '</div>';
   } catch(e) {
     container.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
   }

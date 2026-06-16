@@ -278,56 +278,72 @@
     }
   }
 
+  // Универсальный confirm через Telegram WebApp (выглядит нативно)
+  // или браузерный confirm как fоллбэк.
+  function tgConfirm(text){
+    return new Promise(function(resolve){
+      try {
+        var tg = window.Telegram && window.Telegram.WebApp;
+        if (tg && tg.showConfirm) {
+          tg.showConfirm(text, function(ok){ resolve(!!ok); });
+          return;
+        }
+      } catch(e){}
+      resolve(window.confirm(text));
+    });
+  }
+
   // Удаление одной записи прямо из списка (по кнопке-корзине), без открытия.
   window.deleteAiItemQuick = async function(id){
-    if (!confirm(T('arch_delete_confirm','Удалить запись?'))) return;
-    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
-    if (!uid) return;
-    var base = window.API_BASE || '/api/proxy';
+    var ok = await tgConfirm('Удалить запись?');
+    if (!ok) return;
     try {
-      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id, {
-        method:'DELETE', headers:(window._authHeaders?window._authHeaders():{})
-      });
-      var j = await r.json();
-      if (j.ok) {
-        if (typeof showToast === 'function') showToast(T('arch_deleted','Удалено'), 'var(--green)');
+      var d = (typeof apiDelete === 'function')
+        ? await apiDelete('/api/ai_archive_item', { id: id })
+        : await (async function(){
+            var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+            var base = window.API_BASE || '/api/proxy';
+            var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id,
+                                { method:'DELETE', headers:(window._authHeaders?window._authHeaders():{}) });
+            return await r.json();
+          })();
+      if (d && d.ok) {
+        if (typeof showToast === 'function') showToast('Удалено', 'var(--green)');
         loadList();
       } else if (typeof showToast === 'function') {
-        showToast(T('arch_delete_err','Ошибка удаления'), 'var(--accent2)');
+        showToast('Ошибка удаления', 'var(--accent2)');
       }
     } catch(e){
-      if (typeof showToast === 'function') showToast(T('save_food_conn_err','Ошибка соединения'), 'var(--accent2)');
+      if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
     }
   };
 
   // Очистить весь архив (или только активный фильтр) с подтверждением.
   window.clearAiArchive = async function(){
     var msg = currentKind
-      ? T('arch_clear_kind_confirm','Удалить все записи в этой категории? Это нельзя отменить.')
-      : T('arch_clear_confirm','Удалить ВСЕ записи из архива? Это нельзя отменить.');
-    if (!confirm(msg)) return;
-    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
-    if (!uid) return;
-    var base = window.API_BASE || '/api/proxy';
+      ? 'Удалить все записи в этой категории? Это нельзя отменить.'
+      : 'Удалить ВСЕ записи из архива? Это нельзя отменить.';
+    var ok = await tgConfirm(msg);
+    if (!ok) return;
     var btn = document.getElementById('ai-arch-clear');
     if (btn) btn.disabled = true;
     try {
-      var r = await fetch(base + '/api/ai_archive_clear', {
-        method:'POST',
-        headers: (window._authHeaders ? window._authHeaders({'Content-Type':'application/json'}) : {'Content-Type':'application/json'}),
-        body: JSON.stringify({ user_id: parseInt(uid), kind: currentKind || null })
-      });
-      var j = await r.json();
-      if (j.ok) {
-        if (typeof showToast === 'function') showToast(T('arch_cleared','Архив очищен'), 'var(--green)');
+      // Через apiPost — он сам подставит user_id и initData заголовок.
+      var payload = {};
+      if (currentKind) payload.kind = currentKind;
+      var d = (typeof apiPost === 'function')
+        ? await apiPost('/api/ai_archive_clear', payload)
+        : {error: 'no api'};
+      if (d && d.ok) {
+        if (typeof showToast === 'function') showToast('Архив очищен', 'var(--green)');
         loadList();
       } else {
         if (btn) btn.disabled = false;
-        if (typeof showToast === 'function') showToast(T('arch_clear_err','Ошибка очистки'), 'var(--accent2)');
+        if (typeof showToast === 'function') showToast('Ошибка: ' + (d && d.error ? d.error : 'не удалось'), 'var(--accent2)');
       }
     } catch(e){
       if (btn) btn.disabled = false;
-      if (typeof showToast === 'function') showToast(T('save_food_conn_err','Ошибка соединения'), 'var(--accent2)');
+      if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
     }
   };
 
