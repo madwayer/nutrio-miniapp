@@ -248,6 +248,8 @@
       if (!j.ok) throw new Error(j.error || 'failed');
       if (!j.items || !j.items.length) {
         box.innerHTML = '<div class="ai-arch-empty">' + T('arch_empty','Пока пусто. Сгенерируй что-нибудь!') + '</div>';
+        var clearBtnEmpty = document.getElementById('ai-arch-clear');
+        if (clearBtnEmpty) clearBtnEmpty.disabled = true;
         return;
       }
       box.innerHTML = j.items.map(function(it){
@@ -256,18 +258,78 @@
         var esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
         var safeTitle = esc(it.title || meta.name);
         var safeSnippet = esc((it.snippet || '').slice(0, 300));
-        return '<button class="ai-arch-item" onclick="openAiItem(' + it.id + ')">'
-          + '<span class="ai-arch-ic" style="background:' + meta.color + '">' + meta.ic + '</span>'
-          + '<div class="ai-arch-body">'
-          +   '<div class="ai-arch-row1"><span class="ai-arch-title">' + safeTitle + '</span>'
-          +   '<span class="ai-arch-date">' + fmtDate(it.created_at) + '</span></div>'
-          +   '<div class="ai-arch-snippet">' + safeSnippet + '</div>'
-          + '</div></button>';
+        return '<div class="ai-arch-row">'
+          + '<button class="ai-arch-item" onclick="openAiItem(' + it.id + ')">'
+          +   '<span class="ai-arch-ic" style="background:' + meta.color + '">' + meta.ic + '</span>'
+          +   '<div class="ai-arch-body">'
+          +     '<div class="ai-arch-row1"><span class="ai-arch-title">' + safeTitle + '</span>'
+          +     '<span class="ai-arch-date">' + fmtDate(it.created_at) + '</span></div>'
+          +     '<div class="ai-arch-snippet">' + safeSnippet + '</div>'
+          +   '</div>'
+          + '</button>'
+          + '<button class="ai-arch-del-btn" onclick="deleteAiItemQuick(' + it.id + ')" aria-label="' + esc(T('arch_delete_one','Удалить запись')) + '">🗑</button>'
+          + '</div>';
       }).join('');
+      // Включаем кнопку "Очистить всё" только если есть записи
+      var clearBtn = document.getElementById('ai-arch-clear');
+      if (clearBtn) clearBtn.disabled = false;
     } catch(e) {
       box.innerHTML = '<div class="ai-arch-empty">' + T('arch_load_error','Ошибка загрузки') + '</div>';
     }
   }
+
+  // Удаление одной записи прямо из списка (по кнопке-корзине), без открытия.
+  window.deleteAiItemQuick = async function(id){
+    if (!confirm(T('arch_delete_confirm','Удалить запись?'))) return;
+    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+    if (!uid) return;
+    var base = window.API_BASE || '/api/proxy';
+    try {
+      var r = await fetch(base + '/api/ai_archive_item?user_id=' + uid + '&id=' + id, {
+        method:'DELETE', headers:(window._authHeaders?window._authHeaders():{})
+      });
+      var j = await r.json();
+      if (j.ok) {
+        if (typeof showToast === 'function') showToast(T('arch_deleted','Удалено'), 'var(--green)');
+        loadList();
+      } else if (typeof showToast === 'function') {
+        showToast(T('arch_delete_err','Ошибка удаления'), 'var(--accent2)');
+      }
+    } catch(e){
+      if (typeof showToast === 'function') showToast(T('save_food_conn_err','Ошибка соединения'), 'var(--accent2)');
+    }
+  };
+
+  // Очистить весь архив (или только активный фильтр) с подтверждением.
+  window.clearAiArchive = async function(){
+    var msg = currentKind
+      ? T('arch_clear_kind_confirm','Удалить все записи в этой категории? Это нельзя отменить.')
+      : T('arch_clear_confirm','Удалить ВСЕ записи из архива? Это нельзя отменить.');
+    if (!confirm(msg)) return;
+    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+    if (!uid) return;
+    var base = window.API_BASE || '/api/proxy';
+    var btn = document.getElementById('ai-arch-clear');
+    if (btn) btn.disabled = true;
+    try {
+      var r = await fetch(base + '/api/ai_archive_clear', {
+        method:'POST',
+        headers: (window._authHeaders ? window._authHeaders({'Content-Type':'application/json'}) : {'Content-Type':'application/json'}),
+        body: JSON.stringify({ user_id: parseInt(uid), kind: currentKind || null })
+      });
+      var j = await r.json();
+      if (j.ok) {
+        if (typeof showToast === 'function') showToast(T('arch_cleared','Архив очищен'), 'var(--green)');
+        loadList();
+      } else {
+        if (btn) btn.disabled = false;
+        if (typeof showToast === 'function') showToast(T('arch_clear_err','Ошибка очистки'), 'var(--accent2)');
+      }
+    } catch(e){
+      if (btn) btn.disabled = false;
+      if (typeof showToast === 'function') showToast(T('save_food_conn_err','Ошибка соединения'), 'var(--accent2)');
+    }
+  };
 
   window.openAiArchive = function(){
     var s = document.getElementById('ai-archive-sheet');
