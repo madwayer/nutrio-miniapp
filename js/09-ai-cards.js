@@ -330,9 +330,56 @@ window.cleanAiText = cleanAiText;
       if (typeof showToast === 'function') showToast(toastErr, 'var(--accent2)');
     }
   }
+  // Открывает inline-модал «Опиши проблему» прямо в Mini App.
+  // Так не зависим от Telegram navigation и юзеру не нужно прыгать между окнами.
   window._helpSupport = function(){
     try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
-    _helpAction('support', '💬 Сообщение отправлено в чат с ботом', 'Не удалось открыть техподдержку');
+    var existing = document.getElementById('nutrio-support-modal');
+    if (existing) document.body.removeChild(existing);
+    var overlay = document.createElement('div');
+    overlay.id = 'nutrio-support-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+    overlay.innerHTML =
+      '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4)">' +
+        '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>' +
+        '<div style="font-weight:800;font-size:17px;margin-bottom:6px">💬 Техподдержка NutriO</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Опиши проблему или вопрос. Мы получим сообщение и ответим тебе в чат с ботом.</div>' +
+        '<textarea id="nsup-msg" placeholder="Например: При сохранении продукта появляется ошибка..." rows="5"' +
+          ' style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:12px;font:inherit;font-size:14px;resize:vertical;min-height:90px"></textarea>' +
+        '<input id="nsup-email" type="email" placeholder="Email (опционально, для обратной связи)"' +
+          ' style="width:100%;box-sizing:border-box;padding:10px 12px;margin-top:8px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:13px">' +
+        '<div style="display:flex;gap:10px;margin-top:14px">' +
+          '<button id="nsup-cancel" style="flex:1;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Отмена</button>' +
+          '<button id="nsup-send"   style="flex:2;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">📤 Отправить</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('nsup-cancel').onclick = function(){ document.body.removeChild(overlay); };
+    document.getElementById('nsup-send').onclick = async function(){
+      var msg   = (document.getElementById('nsup-msg').value || '').trim();
+      var email = (document.getElementById('nsup-email').value || '').trim();
+      if (msg.length < 5) {
+        if (typeof showToast === 'function') showToast('Опиши проблему чуть подробнее', 'var(--accent2)');
+        return;
+      }
+      var btn = document.getElementById('nsup-send');
+      btn.disabled = true; btn.textContent = '⏳ Отправляю...';
+      try {
+        var d = (typeof apiPost === 'function')
+          ? await apiPost('/api/support_send', { message: msg, email: email })
+          : {error: 'no api'};
+        if (d && d.ok) {
+          document.body.removeChild(overlay);
+          if (typeof showToast === 'function') showToast('✅ Сообщение отправлено! Ответ придёт в чат с ботом.', 'var(--green)');
+        } else {
+          btn.disabled = false; btn.textContent = '📤 Отправить';
+          if (typeof showToast === 'function') showToast('Ошибка: ' + (d && d.error ? d.error : 'не удалось'), 'var(--accent2)');
+        }
+      } catch(e) {
+        btn.disabled = false; btn.textContent = '📤 Отправить';
+        if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
+      }
+    };
   };
   window._helpDonate = function() {
     try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}

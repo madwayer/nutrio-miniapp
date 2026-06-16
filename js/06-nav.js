@@ -63,14 +63,18 @@
     }
   } catch(e){}
 
-  // On initial load — start on Diary (was 'scanner' before, which is now FAB-only)
+  // On initial load — always init Diary so date label and data are populated.
+  // Раньше initDiaryPage вызывался ТОЛЬКО если page-scanner был active в HTML.
+  // Теперь HTML дефолтно открывает page-diary → условие не срабатывало → пустой
+  // календарь. Гарантированно вызываем switchTab('diary'), он сам и пересохранит
+  // активный класс, и вызовет initDiaryPage().
   document.addEventListener('DOMContentLoaded', function(){
     setTimeout(function(){
       try {
-        // If scanner page is still marked active by old HTML, switch to diary
-        var scanPage = document.getElementById('page-scanner');
-        if (scanPage && scanPage.classList.contains('active') && typeof switchTab === 'function'){
+        if (typeof switchTab === 'function') {
           switchTab('diary');
+        } else if (typeof initDiaryPage === 'function') {
+          initDiaryPage();
         }
       } catch(e){}
     }, 0);

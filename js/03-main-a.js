@@ -1019,13 +1019,46 @@ async function loadLb(type) {
 
 // ===== PDF =====
 var pdfDays = 7;
+var _pdfIsPremium = false;
 
-function initPdfPage() { /* nothing on init */ }
+async function initPdfPage() {
+  // При открытии страницы PDF проверяем премиум-статус и блокируем недоступные опции.
+  try {
+    var data = await apiGet('/api/settings');
+    _pdfIsPremium = !!(data && data.is_premium);
+  } catch(e) { _pdfIsPremium = false; }
+
+  ['pdf-opt-30','pdf-opt-90'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (_pdfIsPremium) {
+      el.classList.remove('locked');
+      el.style.opacity = '';
+      el.style.cursor = 'pointer';
+    } else {
+      el.classList.add('locked');
+      el.style.opacity = '0.45';
+      el.style.cursor = 'not-allowed';
+    }
+  });
+  // Если выбрана недоступная опция — сбрасываем на 7
+  if (!_pdfIsPremium && pdfDays > 7) {
+    var opt7 = document.getElementById('pdf-opt-7');
+    if (opt7) selectPdfDays(7, opt7);
+  }
+}
 
 function selectPdfDays(days, el) {
+  // Блокируем выбор премиум-опций для не-премиума
+  if (days > 7 && !_pdfIsPremium) {
+    if (typeof showToast === 'function') {
+      showToast('Доступно с Premium. Нажми «Пример Premium» чтобы посмотреть.', 'var(--accent2)');
+    }
+    return;
+  }
   pdfDays = days;
   document.querySelectorAll('.pdf-option-card').forEach(function(c) { c.classList.remove('selected'); });
-  el.classList.add('selected');
+  if (el) el.classList.add('selected');
 }
 
 async function downloadPdf() { return _downloadPdf(false); }
