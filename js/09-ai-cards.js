@@ -340,7 +340,7 @@ window.cleanAiText = cleanAiText;
     overlay.id = 'nutrio-support-modal';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
     overlay.innerHTML =
-      '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4)">' +
+      '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto">' +
         '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>' +
         '<div style="font-weight:800;font-size:17px;margin-bottom:6px">💬 Техподдержка NutriO</div>' +
         '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Опиши проблему или вопрос. Мы получим сообщение и ответим тебе в чат с ботом.</div>' +
@@ -348,12 +348,49 @@ window.cleanAiText = cleanAiText;
           ' style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:12px;font:inherit;font-size:14px;resize:vertical;min-height:90px"></textarea>' +
         '<input id="nsup-email" type="email" placeholder="Email (опционально, для обратной связи)"' +
           ' style="width:100%;box-sizing:border-box;padding:10px 12px;margin-top:8px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:13px">' +
+        '<div style="display:flex;gap:8px;margin-top:10px;align-items:center">' +
+          '<label for="nsup-file" style="display:flex;align-items:center;gap:6px;padding:10px 12px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text2);font-weight:600">📎 Скриншот</label>' +
+          '<input id="nsup-file" type="file" accept="image/*" style="display:none">' +
+          '<span id="nsup-file-name" style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>' +
+          '<button id="nsup-file-clear" type="button" style="display:none;background:transparent;border:none;color:var(--accent2);font-size:18px;cursor:pointer;padding:0 6px">×</button>' +
+        '</div>' +
+        '<img id="nsup-preview" alt="" style="display:none;max-width:100%;max-height:220px;border-radius:10px;margin-top:10px;object-fit:contain;background:var(--surface2)">' +
         '<div style="display:flex;gap:10px;margin-top:14px">' +
           '<button id="nsup-cancel" style="flex:1;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Отмена</button>' +
           '<button id="nsup-send"   style="flex:2;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">📤 Отправить</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(overlay);
+
+    var attachedBase64 = '';
+    var fileInput = document.getElementById('nsup-file');
+    var fileName  = document.getElementById('nsup-file-name');
+    var fileClear = document.getElementById('nsup-file-clear');
+    var preview   = document.getElementById('nsup-preview');
+
+    fileInput.addEventListener('change', function(){
+      var f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      if (f.size > 8 * 1024 * 1024) {
+        if (typeof showToast === 'function') showToast('Картинка слишком большая (макс 8 МБ)', 'var(--accent2)');
+        fileInput.value = ''; return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        attachedBase64 = ev.target.result || '';
+        fileName.textContent = f.name + ' · ' + Math.round(f.size/1024) + ' КБ';
+        fileClear.style.display = 'inline-block';
+        preview.src = attachedBase64;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(f);
+    });
+    fileClear.addEventListener('click', function(){
+      attachedBase64 = ''; fileInput.value = '';
+      fileName.textContent = ''; fileClear.style.display = 'none';
+      preview.src = ''; preview.style.display = 'none';
+    });
+
     document.getElementById('nsup-cancel').onclick = function(){ document.body.removeChild(overlay); };
     document.getElementById('nsup-send').onclick = async function(){
       var msg   = (document.getElementById('nsup-msg').value || '').trim();
@@ -365,8 +402,10 @@ window.cleanAiText = cleanAiText;
       var btn = document.getElementById('nsup-send');
       btn.disabled = true; btn.textContent = '⏳ Отправляю...';
       try {
+        var payload = { message: msg, email: email };
+        if (attachedBase64) payload.image_base64 = attachedBase64;
         var d = (typeof apiPost === 'function')
-          ? await apiPost('/api/support_send', { message: msg, email: email })
+          ? await apiPost('/api/support_send', payload)
           : {error: 'no api'};
         if (d && d.ok) {
           document.body.removeChild(overlay);

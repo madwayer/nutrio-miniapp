@@ -110,7 +110,49 @@ function initDiaryPage() {
   if (diaryDateStr(diaryDate) !== diaryDateStr(today) && !diaryData) {
     diaryDate = new Date();
   }
+  // Перед загрузкой дневника убедимся что юзер прошёл онбординг в боте.
+  // Если нет — показываем блокирующий экран и не даём пользоваться приложением.
+  checkOnboardingAndLoad();
+}
+
+async function checkOnboardingAndLoad() {
+  try {
+    var data = await apiGet('/api/settings');
+    if (data && data.ok && data.is_onboarded === false) {
+      showOnboardingBlocker();
+      return;
+    }
+  } catch(e) { /* при ошибке всё равно пробуем загрузить */ }
   loadDiary();
+}
+
+function showOnboardingBlocker() {
+  if (document.getElementById('nutrio-onb-blocker')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'nutrio-onb-blocker';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:99998;display:flex;align-items:center;justify-content:center;padding:24px';
+  overlay.innerHTML =
+    '<div style="max-width:360px;text-align:center">' +
+      '<div style="font-size:64px;margin-bottom:14px">🥗</div>' +
+      '<div style="font-weight:800;font-size:22px;margin-bottom:10px">Сначала зарегистрируйся</div>' +
+      '<div style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:22px">' +
+        'Чтобы приложение работало корректно, пройди короткую регистрацию в боте: укажи рост, вес и цель. Это займёт минуту.' +
+      '</div>' +
+      '<button onclick="_startOnboardingInBot()"' +
+      ' style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer">' +
+        '🤖 Открыть бота' +
+      '</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+function _startOnboardingInBot() {
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/CaloriePilotAI_Bot');
+  } catch(e){}
+  setTimeout(function(){
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
+  }, 300);
 }
 
 async function loadDiary() {
