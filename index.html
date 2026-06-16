@@ -104,7 +104,7 @@
 <div class="content">
 
   <!-- SCANNER PAGE -->
-  <div class="page active" id="page-scanner">
+  <div class="page" id="page-scanner">
 
     <!-- Mode toggle -->
     <div style="display:flex;background:var(--surface);border-radius:14px;padding:4px;margin-bottom:14px">
@@ -257,7 +257,7 @@
 
 
   <!-- WATER PAGE -->
-    <div class="page" id="page-diary">
+    <div class="page active" id="page-diary">
     <div class="diary-date-nav">
       <button onclick="diaryPrevDay()">‹</button>
       <span class="diary-date-label" id="diary-date-label" onclick="openDatePicker()">—</span>
@@ -958,9 +958,9 @@
       <div class="pdf-option-title">90 дней <span class="pdf-premium-badge">Premium</span></div>
       <div class="pdf-option-desc">Полная история за 3 месяца</div>
     </div>
-    <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Скачать PDF</button>
+    <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Получить PDF</button>
     <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
-      PDF откроется в браузере. Сохрани его через меню браузера.
+      📨 PDF придёт файлом в чат с ботом — сохрани оттуда через меню Telegram.
     </div>
   </div>
 
@@ -979,6 +979,12 @@
       <div style="font-weight:700;margin-bottom:4px" id="imp-progress-title">Обрабатываю файл...</div>
       <div class="imp-progress-bar-wrap"><div class="imp-progress-bar-fill" id="imp-progress-bar" style="width:0%"></div></div>
       <div class="imp-stats" id="imp-stats"></div>
+    </div>
+
+    <!-- Превью первых 5 записей -->
+    <div id="imp-preview" style="display:none;margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:.5px">ПРЕВЬЮ (первые 5 записей)</div>
+      <div id="imp-preview-list" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>
 
     <!-- Кнопки подтверждения -->
@@ -1053,24 +1059,24 @@
       <div class="sett-row">
         <div><div class="sett-label">Часовой пояс</div><div class="sett-sublabel">UTC+N</div></div>
         <select class="sett-select" id="sett-tz">
-          <option value="0">UTC+0</option>
-          <option value="1">UTC+1</option>
-          <option value="2">UTC+2</option>
-          <option value="3">UTC+3 (МСК)</option>
-          <option value="4">UTC+4</option>
-          <option value="5">UTC+5</option>
-          <option value="6">UTC+6</option>
-          <option value="7">UTC+7 (Новосиб)</option>
-          <option value="8">UTC+8</option>
-          <option value="9">UTC+9</option>
-          <option value="10">UTC+10</option>
-          <option value="11">UTC+11</option>
-          <option value="12">UTC+12</option>
-          <option value="-1">UTC-1</option>
+          <option value="-5">UTC-5 (Нью-Йорк)</option>
+          <option value="-4">UTC-4 (Нью-Йорк, лето)</option>
+          <option value="-3">UTC-3 (Буэнос-Айрес)</option>
           <option value="-2">UTC-2</option>
-          <option value="-3">UTC-3</option>
-          <option value="-4">UTC-4</option>
-          <option value="-5">UTC-5</option>
+          <option value="-1">UTC-1 (Азорские о-ва)</option>
+          <option value="0">UTC+0 (Лондон)</option>
+          <option value="1">UTC+1 (Берлин)</option>
+          <option value="2">UTC+2 (Киев, Афины)</option>
+          <option value="3">UTC+3 (Москва, Минск)</option>
+          <option value="4">UTC+4 (Самара, Баку)</option>
+          <option value="5">UTC+5 (Екатеринбург, Ташкент)</option>
+          <option value="6">UTC+6 (Омск, Астана)</option>
+          <option value="7">UTC+7 (Новосибирск, Красноярск)</option>
+          <option value="8">UTC+8 (Иркутск, Улан-Удэ)</option>
+          <option value="9">UTC+9 (Якутск)</option>
+          <option value="10">UTC+10 (Владивосток)</option>
+          <option value="11">UTC+11 (Магадан, Сахалин)</option>
+          <option value="12">UTC+12 (Камчатка)</option>
         </select>
       </div>
     </div>
@@ -1491,7 +1497,10 @@
 <div class="sheet-backdrop" id="ai-archive-sheet" onclick="if(event.target===this)closeAiArchive()" aria-hidden="true">
   <div class="sheet" role="dialog" aria-label="Архив AI">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Архив AI</div>
+    <div class="ai-arch-header">
+      <div class="sheet-title" style="margin:0">Архив AI</div>
+      <button class="ai-arch-clear-btn" onclick="clearAiArchive()" id="ai-arch-clear">🗑 <span data-i18n="arch_clear_all">Очистить всё</span></button>
+    </div>
     <div class="ai-arch-tabs">
       <button class="ai-arch-tab active" data-kind=""       onclick="aiArchSetKind('',this)">Все</button>
       <button class="ai-arch-tab"        data-kind="nutri"  onclick="aiArchSetKind('nutri',this)">🤖 Анализ</button>
