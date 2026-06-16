@@ -371,17 +371,39 @@ window.cleanAiText = cleanAiText;
     fileInput.addEventListener('change', function(){
       var f = fileInput.files && fileInput.files[0];
       if (!f) return;
-      if (f.size > 8 * 1024 * 1024) {
-        if (typeof showToast === 'function') showToast('Картинка слишком большая (макс 8 МБ)', 'var(--accent2)');
-        fileInput.value = ''; return;
-      }
+      // Сжимаем картинку на клиенте: max 1280px по большей стороне, JPEG 80%.
+      // Это даёт 100-400 КБ вместо 2-5 МБ исходника телефонной камеры.
       var reader = new FileReader();
       reader.onload = function(ev){
-        attachedBase64 = ev.target.result || '';
-        fileName.textContent = f.name + ' · ' + Math.round(f.size/1024) + ' КБ';
-        fileClear.style.display = 'inline-block';
-        preview.src = attachedBase64;
-        preview.style.display = 'block';
+        var img = new Image();
+        img.onload = function(){
+          var maxDim = 1280;
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.round(w * scale), ch = Math.round(h * scale);
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          try {
+            attachedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            var approxKb = Math.round(attachedBase64.length * 0.75 / 1024);
+            fileName.textContent = f.name + ' · сжато до ~' + approxKb + ' КБ';
+            fileClear.style.display = 'inline-block';
+            preview.src = attachedBase64;
+            preview.style.display = 'block';
+          } catch(e) {
+            if (typeof showToast === 'function') showToast('Не удалось обработать картинку', 'var(--accent2)');
+            console.error('[support] image compress failed', e);
+          }
+        };
+        img.onerror = function(){
+          if (typeof showToast === 'function') showToast('Не удалось прочитать картинку', 'var(--accent2)');
+        };
+        img.src = ev.target.result;
+      };
+      reader.onerror = function(){
+        if (typeof showToast === 'function') showToast('Не удалось открыть файл', 'var(--accent2)');
       };
       reader.readAsDataURL(f);
     });
@@ -404,9 +426,11 @@ window.cleanAiText = cleanAiText;
       try {
         var payload = { message: msg, email: email };
         if (attachedBase64) payload.image_base64 = attachedBase64;
+        console.log('[support] sending, payload size ~' + Math.round(JSON.stringify(payload).length/1024) + ' КБ');
         var d = (typeof apiPost === 'function')
           ? await apiPost('/api/support_send', payload)
           : {error: 'no api'};
+        console.log('[support] response:', d);
         if (d && d.ok) {
           document.body.removeChild(overlay);
           if (typeof showToast === 'function') showToast('✅ Сообщение отправлено! Ответ придёт в чат с ботом.', 'var(--green)');
@@ -416,7 +440,8 @@ window.cleanAiText = cleanAiText;
         }
       } catch(e) {
         btn.disabled = false; btn.textContent = '📤 Отправить';
-        if (typeof showToast === 'function') showToast('Ошибка соединения', 'var(--accent2)');
+        console.error('[support] send error:', e);
+        if (typeof showToast === 'function') showToast('Ошибка соединения: ' + e.message, 'var(--accent2)');
       }
     };
   };
