@@ -254,7 +254,7 @@ window.cleanAiText = cleanAiText;
         '<button class="help-btn help-btn-primary" onclick="_openBotChat()">' +
           '<span class="help-btn-ic">🤖</span><span class="help-btn-lbl">Открыть бота</span>' +
         '</button>' +
-        '<button class="help-btn help-btn-support" onclick="_openTg(\'CaloriePilotAI_Bot?start=support\')">' +
+        '<button class="help-btn help-btn-support" onclick="_helpSupport()">' +
           '<span class="help-btn-ic">💬</span><span class="help-btn-lbl">Техподдержка</span>' +
         '</button>' +
         '<button class="help-btn help-btn-channel" onclick="_openTg(\'NutriO_official\')">' +
@@ -311,17 +311,32 @@ window.cleanAiText = cleanAiText;
       } catch(e){}
     }, 250);
   };
-  window._helpDonate = function() {
-    var url = 'https://t.me/CaloriePilotAI_Bot?start=donate';
+  // Универсальная функция: послать /api/help_action и закрыть Mini App.
+  async function _helpAction(action, toastOk, toastErr) {
     try {
-      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
-        Telegram.WebApp.openTelegramLink(url);
-      } else { window.open(url, '_blank'); }
-      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
-    } catch(e) { window.open(url, '_blank'); }
-    setTimeout(function(){
-      try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
-    }, 250);
+      if (typeof apiPost === 'function') {
+        var d = await apiPost('/api/help_action', { action: action });
+        if (d && d.ok) {
+          if (typeof showToast === 'function') showToast(toastOk, 'var(--green)');
+          // Даём Telegram время доставить пуш — потом закрываем Mini App
+          setTimeout(function(){
+            try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
+          }, 400);
+          return;
+        }
+      }
+      if (typeof showToast === 'function') showToast(toastErr, 'var(--accent2)');
+    } catch(e) {
+      if (typeof showToast === 'function') showToast(toastErr, 'var(--accent2)');
+    }
+  }
+  window._helpSupport = function(){
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+    _helpAction('support', '💬 Сообщение отправлено в чат с ботом', 'Не удалось открыть техподдержку');
+  };
+  window._helpDonate = function() {
+    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
+    _helpAction('donate', '❤️ Меню донатов в чате с ботом', 'Не удалось открыть меню донатов');
   };
   window._helpRate = function() {
     _openTg('CaloriePilotAI_Bot?start=rate');

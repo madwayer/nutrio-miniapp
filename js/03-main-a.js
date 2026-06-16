@@ -1028,21 +1028,26 @@ function selectPdfDays(days, el) {
   el.classList.add('selected');
 }
 
-async function downloadPdf() {
+async function downloadPdf() { return _downloadPdf(false); }
+async function downloadPdfPreview() { return _downloadPdf(true); }
+
+async function _downloadPdf(preview) {
   var userId = getUserId();
   if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
-  var btn = document.getElementById('pdf-dl-btn');
-  btn.disabled = true; btn.textContent = '⏳ Генерирую PDF...';
+  var btn = document.getElementById(preview ? 'pdf-preview-btn' : 'pdf-dl-btn');
+  var origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = preview ? '⏳ Генерирую превью...' : '⏳ Генерирую PDF...'; }
   try {
     // PDF доставляется как документ в чат с ботом — это надёжнее чем blob-скачка,
     // которая на мобильном Telegram WebView молча игнорируется.
-    var data = await apiPost('/api/pdf_send', { days: pdfDays });
+    var payload = { days: pdfDays };
+    if (preview) payload.preview = true;
+    var data = await apiPost('/api/pdf_send', payload);
     if (!data || !data.ok) {
       showToast('Ошибка: ' + ((data && data.error) || 'не удалось отправить'), 'var(--accent2)');
       return;
     }
-    showToast('✅ PDF отправлен в чат бота', 'var(--green)');
-    // Предложим открыть чат с ботом
+    showToast(preview ? '✅ Превью отправлено в чат' : '✅ PDF отправлен в чат', 'var(--green)');
     setTimeout(function(){
       try {
         var tg = window.Telegram && window.Telegram.WebApp;
@@ -1052,7 +1057,7 @@ async function downloadPdf() {
   } catch(e) {
     showToast('Ошибка генерации', 'var(--accent2)');
   } finally {
-    btn.disabled = false; btn.textContent = '📥 Скачать PDF';
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
 }
 
@@ -1429,11 +1434,18 @@ async function initPremPage() {
     var buySect = document.getElementById('prem-buy-section');
 
     if (data.is_premium) {
-      card.className  = 'prem-status-card premium';
-      icon.textContent  = '⭐';
-      title.textContent = 'Premium активен';
-      sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';
-      buySect.style.display = 'none';
+      if (card)  card.className  = 'prem-status-card premium';
+      if (icon)  icon.textContent  = '⭐';
+      if (title) title.textContent = 'Premium активен';
+      if (sub)   sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';
+      if (buySect) buySect.style.display = 'none';
+    } else {
+      // Премиум закончился или его не было — возвращаем дефолтное состояние карточки.
+      if (card)  card.className  = 'prem-status-card free';
+      if (icon)  icon.textContent  = '⭐';
+      if (title) title.textContent = 'NutriO Premium';
+      if (sub)   sub.textContent   = 'Разблокируй полный потенциал';
+      if (buySect) buySect.style.display = '';
     }
     // Load referral data too
     var rc = document.getElementById('ref-count');
@@ -1807,7 +1819,7 @@ window.calcSave = calcSave; window.calcClear = calcClear; window.calcQuickAdd = 
 window.sugarLogAdd = sugarLogAdd; window.mfShowForm = mfShowForm; window.mfHideForm = mfHideForm;
 window.mfSave = mfSave; window.mfDelete = mfDelete; window.mfUse = mfUse;
 window.mfHideUse = mfHideUse; window.mfUseConfirm = mfUseConfirm;
-window.selectPdfDays = selectPdfDays; window.downloadPdf = downloadPdf;
+window.selectPdfDays = selectPdfDays; window.downloadPdf = downloadPdf; window.downloadPdfPreview = downloadPdfPreview;
 window.refCopyLink = refCopyLink; window.refShare = refShare;
 window.selectPlan = selectPlan; window.premBuyStars = premBuyStars; window.premBuyCard = premBuyCard;
 window.toggleFaq = toggleFaq; window.helpOpenBot = helpOpenBot; window.helpOpenSupport = helpOpenSupport;

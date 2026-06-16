@@ -959,6 +959,10 @@
       <div class="pdf-option-desc">Полная история за 3 месяца</div>
     </div>
     <button class="pdf-dl-btn" id="pdf-dl-btn" onclick="downloadPdf()">📥 Получить PDF</button>
+    <button class="pdf-dl-btn" id="pdf-preview-btn" onclick="downloadPdfPreview()"
+      style="margin-top:8px;background:var(--surface);color:var(--text);border:1px solid var(--glass-border)">
+      👁 Превью Premium (с водяным знаком)
+    </button>
     <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
       📨 PDF придёт файлом в чат с ботом — сохрани оттуда через меню Telegram.
     </div>
@@ -1499,7 +1503,7 @@
     <div class="sheet-handle"></div>
     <div class="ai-arch-header">
       <div class="sheet-title" style="margin:0">Архив AI</div>
-      <button class="ai-arch-clear-btn" onclick="clearAiArchive()" id="ai-arch-clear">🗑 Очистить</button>
+      <button class="ai-arch-clear-btn" onclick="clearAiArchive()" id="ai-arch-clear">🗑 Удалить всё</button>
     </div>
     <div class="ai-arch-tabs">
       <button class="ai-arch-tab active" data-kind=""       onclick="aiArchSetKind('',this)">Все</button>
