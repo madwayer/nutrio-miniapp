@@ -918,6 +918,7 @@ var waterGoal  = 2000;
 var waterLog   = []; // [{time, ml}]
 
 function initWaterPage(){
+  // 1) Сначала рендерим из localStorage чтобы что-то показать сразу
   try {
     var saved = localStorage.getItem('nutrio_water_' + _todayKey());
     if(saved){ var d = JSON.parse(saved); waterToday = d.total||0; waterLog = d.log||[]; }
@@ -925,6 +926,8 @@ function initWaterPage(){
     if(gSaved) waterGoal = parseInt(gSaved)||2000;
   } catch(e){}
   renderWater();
+  // 2) Дёргаем сервер чтобы синхронизировать с тем что налили в боте
+  _syncWaterFromServer();
   // Переводы вкладки Вода
   var _u = i18n&&i18n.water_unit||'мл';
   var _ul = i18n&&i18n.water_unit_l||'л';
@@ -936,6 +939,28 @@ function initWaterPage(){
   if(_inp) _inp.placeholder = _u;
   var _wgl = document.getElementById('water-goal-lbl');
   if(_wgl) _wgl.textContent = (i18n&&i18n.water_goal_lbl||'цель: ')+waterGoal+' '+_u;
+}
+
+// Подтягивает воду с бэка (синхронизация Mini App ↔ чат с ботом)
+async function _syncWaterFromServer(){
+  try {
+    var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+    if (!uid) return;
+    var base = window.API_BASE || '/api/proxy';
+    var r = await fetch(base + '/api/water?user_id=' + uid, {
+      headers: (window._authHeaders ? window._authHeaders() : {}),
+    });
+    var d = await r.json();
+    if (!d || !d.ok) return;
+    waterToday = d.total_ml || 0;
+    waterLog   = (d.entries || []).map(function(e){
+      return { ml: e.ml, time: e.time };
+    });
+    // Сохраняем синхронизированный кеш
+    try { localStorage.setItem('nutrio_water_' + _todayKey(),
+      JSON.stringify({total: waterToday, log: waterLog})); } catch(e){}
+    renderWater();
+  } catch(e) { /* offline — оставляем localStorage версию */ }
 }
 
 function _todayKey(){
@@ -1029,6 +1054,17 @@ function initProgressPage(){
     if(saved){ progressData = JSON.parse(saved); renderProgress(); }
   }catch(e){}
 
+  // Heatmap-сетка и автозагрузка через API — чтобы юзеру не нужно было
+  // жать кнопку "Загрузить данные из бота". Это идемпотентно: если данные
+  // уже загружены, loadAll просто вернёт сразу.
+  try {
+    if (window.NutrioHeatmap && typeof window.NutrioHeatmap.init === 'function') {
+      window.NutrioHeatmap.init();
+    }
+    if (window.NutrioHeatmap && typeof window.NutrioHeatmap.load === 'function') {
+      window.NutrioHeatmap.load();
+    }
+  } catch(e){}
 }
 
 function renderProgress(){
