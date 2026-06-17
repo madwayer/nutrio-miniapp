@@ -1596,11 +1596,15 @@ function selectPlan(plan, el) {
 
 function premBuyStars() {
   var url = 'https://t.me/CaloriePilotAI_Bot?start=buy_' + selectedPlan;
+  // Для t.me/... ссылок нужен openTelegramLink — он откроет в Telegram.
+  // openLink открывает в браузере (внутреннем или внешнем), что для нас не подходит.
   try {
     var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
-    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    else if (tg && tg.openLink) tg.openLink(url);
     else window.open(url, '_blank');
+    // Закрываем Mini App чтобы юзер сразу попал в чат с ботом
+    setTimeout(function(){ try { if (tg && tg.close) tg.close(); } catch(e){} }, 250);
   } catch(e) { window.open(url, '_blank'); }
 }
 
@@ -1608,9 +1612,10 @@ function premBuyCard() {
   var url = 'https://t.me/CaloriePilotAI_Bot?start=pay_' + selectedPlan;
   try {
     var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
-    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+    else if (tg && tg.openLink) tg.openLink(url);
     else window.open(url, '_blank');
+    setTimeout(function(){ try { if (tg && tg.close) tg.close(); } catch(e){} }, 250);
   } catch(e) { window.open(url, '_blank'); }
 }
 
