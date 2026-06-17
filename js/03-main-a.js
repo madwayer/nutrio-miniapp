@@ -1741,7 +1741,7 @@ async function initAdminPage() {
   }
   document.getElementById('adm-admin-label').textContent = 'ID: ' + uid;
   admSection('dash');
-  admLoadDash();
+  admLoadDashV2();
 }
 
 // Show admin tab only for admins
@@ -1756,16 +1756,326 @@ async function initAdminPage() {
 })();
 
 function admSection(name) {
-  ['dash','users','payments','broadcast','admstats'].forEach(function(s) {
+  ['dash','tickets','users','payments','revenue','broadcast','admstats'].forEach(function(s) {
     var btn = document.getElementById('adm-btn-' + s);
     var sec = document.getElementById('adm-section-' + s);
     if (btn) btn.className = 'adm-nav-btn' + (s===name?' active':'');
     if (sec) sec.className = 'adm-section' + (s===name?' active':'');
   });
+  if (name==='dash')     admLoadDashV2();
+  if (name==='tickets')  admLoadTickets('');
   if (name==='users')    admLoadUsers(0,'');
   if (name==='payments') admLoadPayments();
+  if (name==='revenue')  admLoadRevenue();
   if (name==='admstats') admLoadStats();
 }
+
+// ════════════════════════════════════════════════════════
+// ПАКЕТ 2: ТИКЕТЫ
+// ════════════════════════════════════════════════════════
+var admTicketStatus = '';  // '' | new | replied | closed
+
+async function admLoadTickets(status) {
+  if (status !== undefined) admTicketStatus = status;
+  var list = document.getElementById('adm-tickets-list');
+  if (!list) return;
+  list.innerHTML = '<div class="ai-loading">Загружаю тикеты...</div>';
+  try {
+    var url = '/api/proxy/api/admin?action=tickets' + (admTicketStatus ? '&status='+admTicketStatus : '');
+    var r = await fetch(url, {headers: _adminHeaders()});
+    var d = await r.json();
+    if (!d.ok) { list.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка</div>'; return; }
+    if (!d.tickets || !d.tickets.length) {
+      list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)">'
+        + '<div style="font-size:40px;margin-bottom:10px">📭</div>'
+        + '<div>Нет тикетов в этом статусе</div></div>';
+      return;
+    }
+    list.innerHTML = d.tickets.map(function(t){
+      var statusBadge = t.status === 'new' ?
+        '<span style="background:var(--accent2);color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">НОВЫЙ</span>' :
+        t.status === 'replied' ?
+        '<span style="background:var(--green);color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">ОТВЕЧЕН</span>' :
+        '<span style="background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">ЗАКРЫТ</span>';
+      var dateStr = t.created_at ? new Date(t.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      return '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:14px;margin-bottom:10px">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+        +   '<div style="font-weight:700;font-size:14px">#' + t.id + '</div>'
+        +   statusBadge
+        +   '<div style="margin-left:auto;font-size:11px;color:var(--text2)">' + dateStr + '</div>'
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">'
+        +   '👤 ' + escHtml(t.first_name||'—') + ' '
+        +   (t.username ? '@' + escHtml(t.username) : '')
+        +   ' · <span style="opacity:.7">id=' + t.telegram_id + '</span>'
+        + '</div>'
+        + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:13px;line-height:1.5;color:var(--text);margin-bottom:10px;white-space:pre-wrap;word-wrap:break-word">' + escHtml(t.message) + '</div>'
+        + (t.admin_reply ? '<div style="background:rgba(22,163,74,.08);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:10px"><b style="color:var(--green)">📩 Ответ:</b> ' + escHtml(t.admin_reply) + '</div>' : '')
+        + '<div style="display:flex;gap:6px">'
+        +   '<button onclick="admTicketReply(' + t.telegram_id + ',' + t.id + ')" style="flex:1;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">📩 Ответить через бота</button>'
+        +   (t.status !== 'closed' ? '<button onclick="admTicketClose(' + t.id + ')" style="padding:10px 14px;background:var(--surface2);color:var(--text);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">✅ Закрыть</button>' : '')
+        + '</div>'
+        + '</div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка загрузки</div>';
+  }
+}
+window.admLoadTickets = admLoadTickets;
+
+async function admTicketClose(ticketId) {
+  if (!confirm('Закрыть тикет #' + ticketId + '?')) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method: 'POST',
+      headers: _adminHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({action:'ticket_close', ticket_id: ticketId})
+    });
+    var d = await r.json();
+    if (d.ok) { showToast('Закрыт', 'var(--green)'); admLoadTickets(); }
+    else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
+  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+}
+window.admTicketClose = admTicketClose;
+
+function admTicketReply(userId, ticketId) {
+  // Открываем чат с юзером в Telegram. Так как через Mini App нельзя написать
+  // напрямую от имени бота — даём админу простую кнопку чтобы он использовал
+  // /tickets или ответ через клавиатуру в чате.
+  var msg = 'Чтобы ответить — открой чат с ботом и используй кнопку «📩 Ответить» под тикетом #' + ticketId + ', либо команду /tickets.';
+  showToast(msg, 'var(--accent)');
+}
+window.admTicketReply = admTicketReply;
+
+// ════════════════════════════════════════════════════════
+// ПАКЕТ 2: ФИНАНСЫ
+// ════════════════════════════════════════════════════════
+async function admLoadRevenue() {
+  var box = document.getElementById('adm-revenue-content');
+  if (!box) return;
+  box.innerHTML = '<div class="ai-loading">Загружаю...</div>';
+  try {
+    var r = await fetch('/api/proxy/api/admin?action=revenue', {headers:_adminHeaders()});
+    var d = await r.json();
+    if (!d.ok) { box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка</div>'; return; }
+    function rev(label, val, sub, color) {
+      return '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:14px;margin-bottom:10px">'
+        + '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:4px">' + label + '</div>'
+        + '<div style="font-size:26px;font-weight:800;color:' + (color||'var(--accent)') + '">' + val + '</div>'
+        + (sub ? '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + sub + '</div>' : '')
+        + '</div>';
+    }
+    box.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+      +   '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:12px;text-align:center">'
+      +     '<div style="font-size:11px;color:var(--text2);font-weight:700">📅 СЕГОДНЯ</div>'
+      +     '<div style="font-size:22px;font-weight:800;color:var(--green);margin-top:4px">' + (d.cards_today_rub||0).toLocaleString('ru-RU') + ' ₽</div>'
+      +   '</div>'
+      +   '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:12px;text-align:center">'
+      +     '<div style="font-size:11px;color:var(--text2);font-weight:700">📅 НЕДЕЛЯ</div>'
+      +     '<div style="font-size:22px;font-weight:800;color:var(--green);margin-top:4px">' + (d.cards_week_rub||0).toLocaleString('ru-RU') + ' ₽</div>'
+      +   '</div>'
+      + '</div>'
+      + rev('💰 ВЫРУЧКА ЗА МЕСЯЦ', (d.cards_month_rub||0).toLocaleString('ru-RU') + ' ₽', 'Подтверждённые карточные оплаты', 'var(--green)')
+      + rev('📊 ОЦЕНОЧНЫЙ MRR', (d.estimated_mrr_rub||0).toLocaleString('ru-RU') + ' ₽', 'На основе активных Premium × 449₽', 'var(--accent)')
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+      +   '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:12px;text-align:center">'
+      +     '<div style="font-size:11px;color:var(--text2);font-weight:700">⭐ PREMIUM ЮЗЕРОВ</div>'
+      +     '<div style="font-size:24px;font-weight:800;color:#facc15;margin-top:4px">' + (d.active_premium||0) + '</div>'
+      +   '</div>'
+      +   '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:12px;text-align:center">'
+      +     '<div style="font-size:11px;color:var(--text2);font-weight:700">⏳ ОЖИДАЮТ ОПЛАТЫ</div>'
+      +     '<div style="font-size:24px;font-weight:800;color:var(--accent2);margin-top:4px">' + (d.pending_payments||0) + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '<button class="ai-action-btn" style="margin-top:12px;width:100%" onclick="admLoadRevenue()">🔄 Обновить</button>';
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка загрузки</div>';
+  }
+}
+window.admLoadRevenue = admLoadRevenue;
+
+// ════════════════════════════════════════════════════════
+// ПАКЕТ 2: ПРОФИЛЬ ЮЗЕРА с действиями
+// ════════════════════════════════════════════════════════
+async function admUserProfile(userId) {
+  var existing = document.getElementById('adm-userprof-modal');
+  if (existing) document.body.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'adm-userprof-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  overlay.innerHTML =
+    '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 28px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.5)">'
+    + '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>'
+    + '<div id="adm-userprof-body"><div class="ai-loading">Загружаю профиль...</div></div>'
+    + '<button onclick="document.body.removeChild(document.getElementById(\'adm-userprof-modal\'))" style="width:100%;padding:13px;margin-top:14px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Закрыть</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+
+  try {
+    var r = await fetch('/api/proxy/api/admin?action=user_detail&id=' + userId, {headers:_adminHeaders()});
+    var d = await r.json();
+    var body = document.getElementById('adm-userprof-body');
+    if (!d.ok) { body.innerHTML = '<div style="color:var(--accent2)">Не удалось загрузить</div>'; return; }
+    var u = d.user || {};
+    var name = (u.first_name||'').trim() || '—';
+    var uname = u.username ? '@' + u.username : '';
+    var premBadge = u.is_premium ?
+      '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">⭐ PREMIUM</span>' :
+      '<span style="background:var(--surface2);color:var(--text2);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700">FREE</span>';
+
+    body.innerHTML =
+      '<div style="font-weight:800;font-size:18px;margin-bottom:4px">' + escHtml(name) + ' ' + premBadge + '</div>'
+      + '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">'
+      +   (uname ? escHtml(uname) + ' · ' : '')
+      +   'id=' + u.telegram_id
+      + '</div>'
+
+      // Сводка
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">'
+      +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+      +     '<div style="font-size:16px;font-weight:800;color:var(--accent)">' + (u.food_entries||0) + '</div>'
+      +     '<div style="font-size:10px;color:var(--text2)">Записей</div></div>'
+      +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+      +     '<div style="font-size:16px;font-weight:800;color:var(--green)">' + (u.streak_days||0) + '</div>'
+      +     '<div style="font-size:10px;color:var(--text2)">Стрик</div></div>'
+      +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+      +     '<div style="font-size:16px;font-weight:800;color:#facc15">' + (u.photos_today||0) + '/5</div>'
+      +     '<div style="font-size:10px;color:var(--text2)">Фото сегодня</div></div>'
+      + '</div>'
+
+      // Параметры
+      + '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.7">'
+      +   '🎯 Цель: <b>' + escHtml(u.goal||'—') + '</b><br>'
+      +   '⚖️ Вес: <b>' + (u.weight||'—') + ' кг</b> · 📏 Рост: <b>' + (u.height||'—') + ' см</b><br>'
+      +   '🔥 Норма: <b>' + (u.daily_goal||'—') + ' ккал</b><br>'
+      +   (u.premium_until ? '⭐ Premium до: <b>' + escHtml(u.premium_until) + '</b><br>' : '')
+      +   '🌍 Язык: <b>' + escHtml(u.language||'ru') + '</b>'
+      + '</div>'
+
+      // Действия
+      + '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">⚡ ДЕЙСТВИЯ</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
+      +   (u.is_premium ?
+          '<button onclick="admUserSetPremium(' + u.telegram_id + ',0)" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">❌ Снять Premium</button>'
+        :
+          '<button onclick="admUserSetPremium(' + u.telegram_id + ',30)" style="padding:11px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">⭐ Выдать 30д</button>')
+      +   '<button onclick="admUserSetPremium(' + u.telegram_id + ',365)" style="padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🎁 Выдать 365д</button>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
+      +   '<button onclick="admUserResetQuota(' + u.telegram_id + ')" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">🔄 Обнулить квоту</button>'
+      +   (u.is_banned ?
+          '<button onclick="admUserBan(' + u.telegram_id + ',false)" style="padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">✅ Разбанить</button>'
+        :
+          '<button onclick="admUserBan(' + u.telegram_id + ',true)" style="padding:11px;background:rgba(219,39,119,.15);color:var(--accent2);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🚫 Забанить</button>')
+      + '</div>'
+      + '<button onclick="admUserSendMessage(' + u.telegram_id + ')" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">💬 Отправить сообщение</button>';
+  } catch(e) {
+    var body = document.getElementById('adm-userprof-body');
+    if (body) body.innerHTML = '<div style="color:var(--accent2)">Ошибка</div>';
+  }
+}
+window.admUserProfile = admUserProfile;
+
+async function admUserSetPremium(userId, days) {
+  var msg = days > 0 ? 'Выдать Premium на ' + days + ' дней?' : 'Снять Premium?';
+  if (!confirm(msg)) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({action:'set_premium', user_id:userId, days:days})
+    });
+    var d = await r.json();
+    if (d.ok) { showToast(days>0?'⭐ Выдан':'❌ Снят', 'var(--green)'); admUserProfile(userId); }
+    else showToast('Ошибка', 'var(--accent2)');
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+window.admUserSetPremium = admUserSetPremium;
+
+async function admUserResetQuota(userId) {
+  if (!confirm('Обнулить квоту фото на сегодня?')) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({action:'reset_photo_quota', user_id:userId})
+    });
+    var d = await r.json();
+    if (d.ok) { showToast('Квота обнулена', 'var(--green)'); admUserProfile(userId); }
+    else showToast('Ошибка', 'var(--accent2)');
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+window.admUserResetQuota = admUserResetQuota;
+
+async function admUserBan(userId, ban) {
+  if (!confirm(ban ? 'Забанить юзера?' : 'Разбанить юзера?')) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({action:'ban', user_id:userId, ban:ban})
+    });
+    var d = await r.json();
+    if (d.ok) { showToast(ban?'Забанен':'Разбанен', 'var(--green)'); admUserProfile(userId); }
+    else showToast('Ошибка', 'var(--accent2)');
+  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+}
+window.admUserBan = admUserBan;
+
+async function admUserSendMessage(userId) {
+  var text = prompt('Текст сообщения для юзера (до 2000 символов):');
+  if (!text || !text.trim()) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({action:'send_message', user_id:userId, text:text.trim()})
+    });
+    var d = await r.json();
+    if (d.ok) showToast('✅ Отправлено', 'var(--green)');
+    else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
+  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+}
+window.admUserSendMessage = admUserSendMessage;
+
+// ════════════════════════════════════════════════════════
+// ПАКЕТ 2: ДАШБОРД с SVG-графиком регистраций
+// ════════════════════════════════════════════════════════
+var _admOriginalLoadDash = null;
+if (typeof admLoadDash === 'function') {
+  _admOriginalLoadDash = admLoadDash;
+}
+async function admLoadDashV2() {
+  // Запускаем оригинальный загрузчик KPI
+  if (_admOriginalLoadDash) {
+    try { await _admOriginalLoadDash(); } catch(e){}
+  }
+  // Догружаем график регистраций
+  try {
+    var r = await fetch('/api/proxy/api/admin?action=users_chart&days=14', {headers:_adminHeaders()});
+    var d = await r.json();
+    if (!d.ok || !d.buckets) return;
+    var chartEl = document.getElementById('adm-users-chart');
+    if (!chartEl) return;
+    var max = 1;
+    d.buckets.forEach(function(b){ if (b.new_users > max) max = b.new_users; });
+    var W = 320, H = 100, padL = 20, padR = 8, padT = 8, padB = 22;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var n = d.buckets.length;
+    var bw = innerW / n - 3;
+    var bars = d.buckets.map(function(b, i){
+      var h = Math.round((b.new_users / max) * innerH);
+      var x = padL + i * (bw + 3);
+      var y = padT + innerH - h;
+      var day = b.date.slice(8); // DD
+      return ''
+        + '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + h + '" rx="2" fill="var(--accent)" opacity="0.85"/>'
+        + (i % 2 === 0 ? '<text x="' + (x + bw/2) + '" y="' + (H - 6) + '" text-anchor="middle" fill="var(--text2)" font-size="9">' + day + '</text>' : '')
+        + (b.new_users > 0 ? '<text x="' + (x + bw/2) + '" y="' + (y - 2) + '" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="700">' + b.new_users + '</text>' : '');
+    }).join('');
+    chartEl.innerHTML =
+      '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:6px">📈 НОВЫЕ ЮЗЕРЫ — 14 ДНЕЙ</div>'
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">' + bars + '</svg>';
+  } catch(e){}
+}
+window.admLoadDashV2 = admLoadDashV2;
 
 // ── BROADCAST (рассылка) ────────────────────────────────
 function admBcPreview() {
@@ -1881,7 +2191,7 @@ async function admLoadUsers(page, q) {
         + (u.premium
            ? '<button class="adm-btn adm-btn-unprem" onclick="admSetPremium('+u.id+',false)">Снять Premium</button>'
            : '<button class="adm-btn adm-btn-prem" onclick="admSetPremium('+u.id+',true)">⭐ +30 дней</button>')
-        + '<button class="adm-btn" style="background:var(--bg2)" onclick="admUserDetail('+u.id+')">Подробнее</button>'
+        + '<button class="adm-btn" style="background:var(--bg2)" onclick="admUserProfile('+u.id+')">👤 Профиль</button>'
         + '</div></div>';
     }).join('');
     var pag = document.getElementById('adm-pagination');

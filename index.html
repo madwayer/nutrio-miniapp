@@ -1334,8 +1334,10 @@
     </div>
     <div class="adm-nav">
       <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
+      <button class="adm-nav-btn"        id="adm-btn-tickets"   onclick="admSection('tickets')">📩 Тикеты</button>
       <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
       <button class="adm-nav-btn"        id="adm-btn-payments"  onclick="admSection('payments')">💳 Оплаты</button>
+      <button class="adm-nav-btn"        id="adm-btn-revenue"   onclick="admSection('revenue')">💰 Финансы</button>
       <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
       <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
     </div>
@@ -1355,7 +1357,31 @@
         </div>
         <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
       </div>
-      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDash()">🔄 Обновить</button>
+
+      <!-- SVG chart of new users last 14 days -->
+      <div id="adm-users-chart" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:14px;margin-top:10px;min-height:140px"></div>
+
+      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDashV2()">🔄 Обновить</button>
+    </div>
+
+    <!-- Tickets -->
+    <div class="adm-section" id="adm-section-tickets">
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button onclick="admLoadTickets('')"        style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Все</button>
+        <button onclick="admLoadTickets('new')"     style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Новые</button>
+        <button onclick="admLoadTickets('replied')" style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Отвечены</button>
+        <button onclick="admLoadTickets('closed')"  style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Закрыты</button>
+      </div>
+      <div id="adm-tickets-list">
+        <div class="ai-loading">Загружаю...</div>
+      </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="adm-section" id="adm-section-revenue">
+      <div id="adm-revenue-content">
+        <div class="ai-loading">Загружаю финансовую сводку...</div>
+      </div>
     </div>
 
     <!-- Users -->
