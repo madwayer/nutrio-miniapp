@@ -1,4 +1,46 @@
 // ===== ДНЕВНИК =====
+// ────────────────────────────────────────────────────────────────
+// Photo quota UI (Free: 5 фото/день, Premium: безлимит)
+// ────────────────────────────────────────────────────────────────
+function updatePhotoQuotaUI(quota) {
+  if (!quota) return;
+  var el = document.getElementById('scan-quota');
+  if (!el) return;
+  if (quota.unlimited) {
+    el.textContent = '⭐ Безлимит фото (Premium)';
+    el.style.color = 'var(--green)';
+    el.style.display = 'block';
+    return;
+  }
+  var left = Math.max(0, (quota.limit || 5) - (quota.used || 0));
+  el.textContent = '📷 Сегодня: ' + (quota.used || 0) + '/' + (quota.limit || 5) +
+                   ' фото · осталось ' + left;
+  el.style.color = left <= 1 ? 'var(--accent2)' : 'var(--text2)';
+  el.style.display = 'block';
+}
+
+function showPhotoLimitModal() {
+  var existing = document.getElementById('nutrio-photolim-modal');
+  if (existing) document.body.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'nutrio-photolim-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px';
+  overlay.innerHTML =
+    '<div style="background:var(--surface);border-radius:18px;padding:24px;max-width:340px;text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.5)">' +
+      '<div style="font-size:48px;margin-bottom:10px">📸</div>' +
+      '<div style="font-weight:800;font-size:18px;margin-bottom:8px">Лимит на сегодня</div>' +
+      '<div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:20px">' +
+        'Ты использовал все 5 распознаваний фото на сегодня. Лимит обновится завтра.<br><br>' +
+        'С <b>Premium</b> распознавание без ограничений + другие бонусы.' +
+      '</div>' +
+      '<button onclick="switchTab(\'prempage\');document.body.removeChild(this.parentNode.parentNode)" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">⭐ Открыть Premium</button>' +
+      '<button onclick="document.body.removeChild(this.parentNode.parentNode)" style="width:100%;padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer">Понял</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+window.updatePhotoQuotaUI = updatePhotoQuotaUI;
+window.showPhotoLimitModal = showPhotoLimitModal;
+
 function getUserId() {
   var tg = window.Telegram && window.Telegram.WebApp;
   var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
@@ -121,6 +163,14 @@ async function checkOnboardingAndLoad() {
     if (data && data.ok && data.is_onboarded === false) {
       showOnboardingBlocker();
       return;
+    }
+    // Подтянем счётчик фото при загрузке (для UI на странице сканера)
+    if (data && data.ok && typeof data.photo_today_used === 'number') {
+      updatePhotoQuotaUI({
+        used: data.photo_today_used,
+        limit: data.photo_today_limit || 5,
+        unlimited: !!data.is_premium,
+      });
     }
   } catch(e) { /* при ошибке всё равно пробуем загрузить */ }
   loadDiary();

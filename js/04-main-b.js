@@ -3012,9 +3012,20 @@ function _scanCaptureSend(b64, video) {
   fetch(apiBase + '/api/photo', {
     method: 'POST', headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
     body: JSON.stringify({user_id: userId||0, image: b64, meal_type:'другое', save: false})
-  }).then(function(r){ return r.json(); })
+  }).then(function(r){ return r.json().then(function(j){ j._status = r.status; return j; }); })
     .then(function(d) {
       _scanSetStatus('');
+      // Лимит фото исчерпан (HTTP 402)
+      if (d.error === 'photo_limit' || d._status === 402) {
+        _scanCapturing = false;
+        try { video.play(); } catch(e) {}
+        if (captureBtn) captureBtn.style.display = 'block';
+        if (typeof showPhotoLimitModal === 'function') showPhotoLimitModal();
+        else showToast('На сегодня лимит фото исчерпан. Открой Premium для безлимита.', 'var(--accent2)');
+        return;
+      }
+      // Обновляем счётчик в UI если бэк прислал quota
+      if (d.quota && typeof updatePhotoQuotaUI === 'function') updatePhotoQuotaUI(d.quota);
       if (d.error || d.name === 'unknown') {
         showToast((typeof T==='function'?T('scan_unknown','❌ Не удалось распознать. Попробуй ещё раз'):'❌ Не удалось распознать. Попробуй ещё раз'), 'var(--accent2)');
         _scanCapturing = false;
