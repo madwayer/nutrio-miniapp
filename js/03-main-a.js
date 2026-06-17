@@ -573,12 +573,40 @@ async function loadMyFoods() {
   } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
 }
 
+// Сортировка для Моих продуктов
+var mfSortMode = 'recent';
+function mfSetSort(mode) {
+  mfSortMode = mode;
+  // Подсветка активной кнопки
+  ['recent','name','cal'].forEach(function(k){
+    var id = 'mf-sort-' + k;
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isActive = (k === mode) || (k === 'cal' && mode === 'calories');
+    el.style.background = isActive ? 'var(--accent)' : 'var(--surface)';
+    el.style.color = isActive ? '#fff' : 'var(--text)';
+    el.style.border = isActive ? 'none' : '1px solid var(--glass-border)';
+  });
+  var filter = (document.getElementById('mf-search') || {}).value || '';
+  mfRender(filter);
+}
+window.mfSetSort = mfSetSort;
+
 function mfRender(filter) {
   var list = document.getElementById('mf-list');
   if (!list) return;
   var items = filter ? mfData.filter(function(f) {
     return f.name.toLowerCase().includes(filter.toLowerCase());
-  }) : mfData;
+  }) : mfData.slice();
+
+  // Сортировка
+  if (mfSortMode === 'name') {
+    items.sort(function(a, b){ return (a.name||'').localeCompare(b.name||''); });
+  } else if (mfSortMode === 'calories') {
+    items.sort(function(a, b){ return (b.calories||0) - (a.calories||0); });
+  }
+  // 'recent' — по умолчанию (как в БД)
+
   if (!items.length) {
     list.innerHTML = '<div class="diary-empty"><div class="diary-empty-icon">⭐</div>'
       + '<div>' + (filter ? 'Ничего не найдено' : 'Нет продуктов') + '</div></div>';
@@ -586,25 +614,56 @@ function mfRender(filter) {
   }
   list.innerHTML = items.map(function(f) {
     var fname = (f.name||'').charAt(0).toUpperCase()+(f.name||'').slice(1);
-    return '<div style="background:var(--surface);border-radius:14px;padding:14px;margin-bottom:8px">'
-      + '<div style="display:flex;align-items:center;gap:10px">'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-weight:700;font-size:14px;margin-bottom:5px">' + escHtml(fname) + '</div>'
-      + '<div style="display:flex;gap:10px;font-size:12px">'
-      + '<span style="color:var(--accent)">🔥 ' + f.calories + '</span>'
-      + '<span style="color:#81c784">Б ' + f.protein + '</span>'
-      + '<span style="color:#ffb74d">Ж ' + f.fat + '</span>'
-      + '<span style="color:#64b5f6">У ' + f.carbs + '</span>'
-      + '<span style="color:var(--text2);font-size:10px">/100г</span>'
-      + '</div></div>'
-      + '<button onclick="mfUse(' + f.id + ')" style="padding:8px 12px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex-shrink:0">+ Добавить</button>'
-      + '</div>'
-      + '<div style="display:flex;gap:6px;margin-top:8px">'
-      + '<button onclick="mfShowForm(' + f.id + ')" style="flex:1;padding:7px;background:var(--bg2);color:var(--text2);border:none;border-radius:8px;font-size:12px;cursor:pointer;touch-action:manipulation">✏️ Изменить</button>'
-      + '<button onclick="mfDelete(' + f.id + ')" style="flex:1;padding:7px;background:rgba(255,80,80,.1);color:var(--accent2);border:none;border-radius:8px;font-size:12px;cursor:pointer;touch-action:manipulation">🗑 Удалить</button>'
-      + '</div></div>';
+    return ''
+      + '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:14px;margin-bottom:10px">'
+      +   '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:8px">' + escHtml(fname) + '</div>'
+      +   '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">'
+      +     '<div style="background:rgba(108,99,255,.10);border-radius:10px;padding:8px 4px;text-align:center">'
+      +       '<div style="font-size:16px;font-weight:800;color:var(--accent)">' + f.calories + '</div>'
+      +       '<div style="font-size:10px;color:var(--text2);font-weight:600">🔥 ккал</div>'
+      +     '</div>'
+      +     '<div style="background:rgba(34,197,94,.10);border-radius:10px;padding:8px 4px;text-align:center">'
+      +       '<div style="font-size:16px;font-weight:800;color:var(--green)">' + f.protein + '</div>'
+      +       '<div style="font-size:10px;color:var(--text2);font-weight:600">Белки</div>'
+      +     '</div>'
+      +     '<div style="background:rgba(234,88,12,.10);border-radius:10px;padding:8px 4px;text-align:center">'
+      +       '<div style="font-size:16px;font-weight:800;color:#ea580c">' + f.fat + '</div>'
+      +       '<div style="font-size:10px;color:var(--text2);font-weight:600">Жиры</div>'
+      +     '</div>'
+      +     '<div style="background:rgba(37,99,235,.10);border-radius:10px;padding:8px 4px;text-align:center">'
+      +       '<div style="font-size:16px;font-weight:800;color:#2563eb">' + f.carbs + '</div>'
+      +       '<div style="font-size:10px;color:var(--text2);font-weight:600">Углев.</div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div style="font-size:10px;color:var(--text2);text-align:center;margin-bottom:10px">указано на 100&nbsp;г</div>'
+      +   '<button onclick="mfUse(' + f.id + ')" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;min-height:44px;margin-bottom:6px">+ Добавить в дневник</button>'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">'
+      +     '<button onclick="mfShowForm(' + f.id + ')" style="padding:9px 4px;background:var(--surface2);color:var(--text);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;min-height:40px">✏️ Изменить</button>'
+      +     '<button onclick="mfDuplicate(' + f.id + ')" style="padding:9px 4px;background:var(--surface2);color:var(--text);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;min-height:40px">📋 Дубль</button>'
+      +     '<button onclick="mfDelete(' + f.id + ')" style="padding:9px 4px;background:rgba(219,39,119,.12);color:var(--accent2);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;min-height:40px">🗑 Удалить</button>'
+      +   '</div>'
+      + '</div>';
   }).join('');
 }
+
+// Дублирование продукта: открывает форму с заполненными полями (имя +" копия")
+function mfDuplicate(id) {
+  var f = mfData.find(function(x){ return x.id === id; });
+  if (!f) return;
+  mfEditId = null;  // создаём новый
+  var overlay = document.getElementById('mf-form-overlay');
+  var title   = document.getElementById('mf-form-title');
+  var hint    = document.getElementById('mf-form-hint');
+  if (title) title.textContent = '📋 Дублировать продукт';
+  if (hint)  hint.textContent  = 'Скопировано из «' + f.name + '». Поправь имя и значения если нужно.';
+  document.getElementById('mf-f-name').value = f.name + ' (копия)';
+  document.getElementById('mf-f-cal').value  = f.calories;
+  document.getElementById('mf-f-prot').value = f.protein;
+  document.getElementById('mf-f-fat').value  = f.fat;
+  document.getElementById('mf-f-carb').value = f.carbs;
+  if (overlay) overlay.style.display = 'flex';
+}
+window.mfDuplicate = mfDuplicate;
 
 function mfShowForm(id) {
   mfEditId = id;

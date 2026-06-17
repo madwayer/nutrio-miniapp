@@ -148,49 +148,16 @@ async function deditSave(id) {
   var fat  = parseFloat(document.getElementById('dedit-fat').value) || 0;
   var carb = parseFloat(document.getElementById('dedit-carb').value) || 0;
   if (!name) { showToast('Введи название', 'var(--accent2)'); return; }
-  var meal = document.getElementById('dedit-meal') ? document.getElementById('dedit-meal').value : 'другое';
-
-  // Атомарный апдейт через новый PATCH /api/diary/edit.
-  // Раньше тут был DELETE + INSERT, что приводило к потере записи если второй запрос падал.
-  // Если бэк ещё старый (нет ручки edit) — фоллбэк на старую логику.
-  var res;
-  try {
-    res = await fetch(API_BASE + '/api/diary/edit', {
-      method: 'PATCH',
-      headers: _authHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({
-        user_id:  parseInt(userId),
-        entry_id: id,
-        name:     name.charAt(0).toUpperCase()+name.slice(1),
-        calories: cal,
-        protein:  prot,
-        fat:      fat,
-        carbs:    carb,
-        meal_type: meal,
-      }),
-    });
-  } catch(e) { res = null; }
-
+  // Delete old + add new
+  var del = await apiPost('/api/diary/delete', {entry_id: id});
+  if (!del.ok) { showToast('Ошибка', 'var(--accent2)'); return; }
+  var add = await apiPost('/api/calculator/save', {
+    meal_type: (document.getElementById('dedit-meal') ? document.getElementById('dedit-meal').value : 'другое'),
+    items: [{name: name.charAt(0).toUpperCase()+name.slice(1), calories: cal, protein: prot, fat: fat, carbs: carb, weight: 0, he: carb/12}]
+  });
   var modal = document.getElementById('diary-edit-modal');
-  var ok = false;
-  if (res && (res.status === 200 || res.status === 304)) {
-    try { var d = await res.json(); ok = !!d.ok; } catch(e) { ok = false; }
-  }
-
-  // Фоллбэк на старую логику если ручка edit не отвечает (например, бэк ещё не обновлён)
-  if (!ok && res && (res.status === 404 || res.status === 405)) {
-    var del = await apiPost('/api/diary/delete', {entry_id: id});
-    if (del.ok) {
-      var add = await apiPost('/api/calculator/save', {
-        meal_type: meal,
-        items: [{name: name.charAt(0).toUpperCase()+name.slice(1), calories: cal, protein: prot, fat: fat, carbs: carb, weight: 0, he: carb/12}]
-      });
-      ok = !!add.ok;
-    }
-  }
-
   if (modal) document.body.removeChild(modal);
-  if (ok) { showToast('✅ Обновлено!', 'var(--green)'); loadDiary(); }
+  if (add.ok) { showToast('✅ Обновлено!', 'var(--green)'); loadDiary(); }
   else showToast('Ошибка сохранения', 'var(--accent2)');
 }
 
@@ -213,22 +180,103 @@ try { calcHistory = JSON.parse(localStorage.getItem('nutrio_calc_history')||'[]'
 
 function calcSaveHistory(name, data) {
   calcHistory = calcHistory.filter(function(h){ return h.name !== name; });
-  calcHistory.unshift({name:name, calories:data.calories, protein:data.protein, fat:data.fat, carbs:data.carbs, he:data.he, _base_cal: data._base_cal||data.calories});
-  if (calcHistory.length > 12) calcHistory = calcHistory.slice(0,12);
+  // Сохраняем флаг is_favorite из старой записи если был
+  var oldFav = JSON.parse(localStorage.getItem('nutrio_calc_favorites')||'[]')
+    .indexOf((name||'').toLowerCase()) >= 0;
+  calcHistory.unshift({
+    name: name, calories: data.calories, protein: data.protein, fat: data.fat, carbs: data.carbs,
+    he: data.he, _base_cal: data._base_cal || data.calories,
+    is_favorite: oldFav,
+  });
+  if (calcHistory.length > 20) calcHistory = calcHistory.slice(0, 20);
   try { localStorage.setItem('nutrio_calc_history', JSON.stringify(calcHistory)); } catch(e){}
   renderCalcHistory();
 }
 
+function calcToggleFavorite(name, btn) {
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('nutrio_calc_favorites') || '[]'); } catch(e){}
+  var lname = (name||'').toLowerCase();
+  var i = favs.indexOf(lname);
+  if (i >= 0) favs.splice(i, 1); else favs.push(lname);
+  try { localStorage.setItem('nutrio_calc_favorites', JSON.stringify(favs)); } catch(e){}
+  calcHistory.forEach(function(h){
+    if ((h.name||'').toLowerCase() === lname) h.is_favorite = (i < 0);
+  });
+  try { localStorage.setItem('nutrio_calc_history', JSON.stringify(calcHistory)); } catch(e){}
+  renderCalcHistory();
+}
+window.calcToggleFavorite = calcToggleFavorite;
+
+// Прямое добавление в дневник из истории — по конкретному приёму пищи
+async function calcQuickAddToMeal(hStr, meal) {
+  var h;
+  try { h = JSON.parse(hStr.replace(/&quot;/g, '"')); } catch(e){ return; }
+  var w = 100;
+  var payload = {
+    food_name: h.name, weight: w,
+    calories: Math.round(h._base_cal),
+    protein:  Math.round(h.protein * 10) / 10,
+    fat:      Math.round(h.fat     * 10) / 10,
+    carbs:    Math.round(h.carbs   * 10) / 10,
+    meal_type: meal,
+  };
+  try {
+    var d = await apiPost('/api/manual', payload);
+    if (d && d.ok) {
+      try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e){}
+      showToast('✅ Добавлено в ' + meal, 'var(--green)');
+    } else {
+      showToast('Ошибка: ' + ((d && d.error) || 'не удалось'), 'var(--accent2)');
+    }
+  } catch(e) {
+    showToast('Ошибка соединения', 'var(--accent2)');
+  }
+}
+window.calcQuickAddToMeal = calcQuickAddToMeal;
+
 function renderCalcHistory() {
   var el = document.getElementById('calc-history');
   if (!el || !calcHistory.length) return;
-  el.innerHTML = '<div style="font-size:11px;color:var(--text2);margin-bottom:5px">НЕДАВНИЕ</div>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:5px">'
-    + calcHistory.map(function(h) {
-      return '<button onclick="calcQuickAdd(' + JSON.stringify(h).replace(/"/g,"'") + ')" '
-        + 'style="padding:5px 10px;background:var(--surface);border:none;border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;touch-action:manipulation">'
-        + escHtml((h.name||'').split(' ').slice(0,2).join(' ')) + ' <span style="color:var(--accent)">' + h.calories + '</span></button>';
-    }).join('') + '</div>';
+  var sorted = calcHistory.slice().sort(function(a, b){
+    if (a.is_favorite && !b.is_favorite) return -1;
+    if (!a.is_favorite && b.is_favorite) return 1;
+    return 0;
+  });
+  el.innerHTML =
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;letter-spacing:.5px;font-weight:700">⭐ ИЗБРАННОЕ И НЕДАВНИЕ</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    sorted.map(function(h){
+      var hStr = JSON.stringify(h).replace(/"/g, '&quot;');
+      var fname = (h.name||'').charAt(0).toUpperCase() + (h.name||'').slice(1);
+      var star  = h.is_favorite ? '⭐' : '☆';
+      var color = h.is_favorite ? '#facc15' : 'var(--text2)';
+      var safeName = (h.name||'').replace(/'/g, "\\'");
+      return ''
+        + '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:12px 14px">'
+        +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+        +     '<button onclick="calcToggleFavorite(\'' + safeName + '\', this)" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:' + color + ';padding:4px;min-width:32px;min-height:32px">' + star + '</button>'
+        +     '<div style="flex:1;min-width:0">'
+        +       '<div style="font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(fname) + '</div>'
+        +       '<div style="font-size:12px;color:var(--text2);margin-top:2px">'
+        +         '🔥 <b style="color:var(--accent)">' + h.calories + '</b> ккал · '
+        +         'Б <b>' + h.protein + '</b> · Ж <b>' + h.fat + '</b> · У <b>' + h.carbs + '</b> <span style="opacity:.6">/100г</span>'
+        +       '</div>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+        +     '<button onclick="calcQuickAddToMeal(\'' + hStr + '\', \'завтрак\')" style="padding:10px 4px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;touch-action:manipulation;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'
+        +       '<span style="font-size:16px">🌅</span><span>Завтрак</span></button>'
+        +     '<button onclick="calcQuickAddToMeal(\'' + hStr + '\', \'обед\')" style="padding:10px 4px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;touch-action:manipulation;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'
+        +       '<span style="font-size:16px">🌞</span><span>Обед</span></button>'
+        +     '<button onclick="calcQuickAddToMeal(\'' + hStr + '\', \'ужин\')" style="padding:10px 4px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;touch-action:manipulation;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'
+        +       '<span style="font-size:16px">🌙</span><span>Ужин</span></button>'
+        +     '<button onclick="calcQuickAddToMeal(\'' + hStr + '\', \'перекус\')" style="padding:10px 4px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;touch-action:manipulation;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'
+        +       '<span style="font-size:16px">🍎</span><span>Перекус</span></button>'
+        +   '</div>'
+        + '</div>';
+    }).join('') +
+    '</div>';
 }
 
 function calcQuickAdd(h) {
