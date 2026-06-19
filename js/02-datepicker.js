@@ -379,21 +379,58 @@ window.wModalClose = function(){ var m=document.getElementById("weight-input-mod
 
 
 // ── Custom confirm dialog (replaces browser confirm) ─────────────
-function showConfirm(msg, onYes, onNo) {
+function showConfirm(msg, onYes, onNo, opts) {
+  // opts = { yes: 'Удалить', no: 'Отмена', yesColor: 'var(--accent2)' }
+  opts = opts || {};
+  var yesText  = opts.yes || 'Подтвердить';
+  var noText   = opts.no  || 'Отмена';
+  var yesColor = opts.yesColor || 'var(--accent)';
   var existing = document.getElementById('nutrio-confirm');
   if (existing) document.body.removeChild(existing);
   var overlay = document.createElement('div');
   overlay.id = 'nutrio-confirm';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:300px;text-align:center">'
+  overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:320px;text-align:center">'
     + '<div style="font-size:32px;margin-bottom:12px">⚠️</div>'
-    + '<div style="font-weight:700;font-size:16px;margin-bottom:20px">' + msg + '</div>'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:20px;line-height:1.4">' + msg + '</div>'
     + '<div style="display:flex;gap:10px">'
-    + '<button id="nc-no"  style="flex:1;padding:12px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:14px;cursor:pointer;touch-action:manipulation">Отмена</button>'
-    + '<button id="nc-yes" style="flex:1;padding:12px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">Удалить</button>'
+    + '<button id="nc-no"  style="flex:1;padding:12px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;min-height:44px">' + noText + '</button>'
+    + '<button id="nc-yes" style="flex:1;padding:12px;background:' + yesColor + ';color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;min-height:44px">' + yesText + '</button>'
     + '</div></div>';
   document.body.appendChild(overlay);
   document.getElementById('nc-yes').onclick = function(){ document.body.removeChild(overlay); if(onYes) onYes(); };
   document.getElementById('nc-no').onclick  = function(){ document.body.removeChild(overlay); if(onNo)  onNo();  };
 }
 window.showConfirm = showConfirm;
+
+// Кастомный prompt-модал — нативный prompt() в Telegram WebApp показывает домен
+// "nutrio-miniapp.vercel.app", который засоряет UI. Наш — чистый и красивый.
+function showPrompt(title, hint, placeholder, onOk) {
+  var existing = document.getElementById('nutrio-prompt');
+  if (existing) document.body.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'nutrio-prompt';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  overlay.innerHTML =
+    '<div style="background:var(--surface);border-radius:18px 18px 0 0;padding:20px 18px 24px;width:100%;max-width:520px;box-shadow:0 -8px 30px rgba(0,0,0,.4)">'
+    + '<div style="width:36px;height:4px;background:var(--text2);opacity:.35;border-radius:2px;margin:0 auto 14px"></div>'
+    + (title ? '<div style="font-weight:800;font-size:17px;margin-bottom:6px">' + title + '</div>' : '')
+    + (hint  ? '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.4">' + hint + '</div>' : '')
+    + '<textarea id="np-text" rows="4" placeholder="' + (placeholder||'').replace(/"/g,'&quot;') + '" '
+    + ' style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:12px;font:inherit;font-size:14px;resize:vertical;min-height:90px"></textarea>'
+    + '<div style="display:flex;gap:10px;margin-top:14px">'
+    +   '<button id="np-no"  style="flex:1;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:44px">Отмена</button>'
+    +   '<button id="np-yes" style="flex:2;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:11px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:44px">📤 Отправить</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  var ta = document.getElementById('np-text');
+  if (ta && placeholder) { ta.value = placeholder; ta.select(); }
+  document.getElementById('np-no').onclick = function(){ document.body.removeChild(overlay); };
+  document.getElementById('np-yes').onclick = function(){
+    var val = ta ? ta.value : '';
+    document.body.removeChild(overlay);
+    if (onOk) onOk(val);
+  };
+}
+window.showPrompt = showPrompt;

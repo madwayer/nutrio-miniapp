@@ -1823,22 +1823,7 @@ async function admLoadTickets(status) {
 }
 window.admLoadTickets = admLoadTickets;
 
-async function admTicketClose(ticketId) {
-  if (!confirm('Закрыть тикет #' + ticketId + '?')) return;
-  try {
-    var r = await fetch('/api/proxy/api/admin', {
-      method: 'POST',
-      headers: _adminHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({action:'ticket_close', ticket_id: ticketId})
-    });
-    var d = await r.json();
-    if (d.ok) { showToast('Закрыт', 'var(--green)'); admLoadTickets(); }
-    else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
-  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
-}
-window.admTicketClose = admTicketClose;
-
-function admTicketReply(userId, ticketId) {
+async function admTicketReply(userId, ticketId) {
   // Открываем чат с юзером в Telegram. Так как через Mini App нельзя написать
   // напрямую от имени бота — даём админу простую кнопку чтобы он использовал
   // /tickets или ответ через клавиатуру в чате.
@@ -1978,62 +1963,87 @@ async function admUserProfile(userId) {
 window.admUserProfile = admUserProfile;
 
 async function admUserSetPremium(userId, days) {
-  var msg = days > 0 ? 'Выдать Premium на ' + days + ' дней?' : 'Снять Premium?';
-  if (!confirm(msg)) return;
-  try {
-    var r = await fetch('/api/proxy/api/admin', {
-      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({action:'set_premium', user_id:userId, days:days})
-    });
-    var d = await r.json();
-    if (d.ok) { showToast(days>0?'⭐ Выдан':'❌ Снят', 'var(--green)'); admUserProfile(userId); }
-    else showToast('Ошибка', 'var(--accent2)');
-  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  var msg = days > 0 ? 'Выдать Premium на <b>' + days + ' дней</b>?' : 'Снять Premium?';
+  showConfirm(msg, async function() {
+    try {
+      var r = await fetch('/api/proxy/api/admin', {
+        method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({action:'set_premium', user_id:userId, days:days})
+      });
+      var d = await r.json();
+      if (d.ok) { showToast(days>0?'⭐ Выдан':'❌ Снят', 'var(--green)'); admUserProfile(userId); }
+      else showToast('Ошибка', 'var(--accent2)');
+    } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  }, null, days > 0 ? {yes:'⭐ Выдать', yesColor:'var(--accent)'} : {yes:'❌ Снять', yesColor:'var(--accent2)'});
 }
 window.admUserSetPremium = admUserSetPremium;
 
 async function admUserResetQuota(userId) {
-  if (!confirm('Обнулить квоту фото на сегодня?')) return;
-  try {
-    var r = await fetch('/api/proxy/api/admin', {
-      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({action:'reset_photo_quota', user_id:userId})
-    });
-    var d = await r.json();
-    if (d.ok) { showToast('Квота обнулена', 'var(--green)'); admUserProfile(userId); }
-    else showToast('Ошибка', 'var(--accent2)');
-  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  showConfirm('Обнулить квоту фото на сегодня?', async function() {
+    try {
+      var r = await fetch('/api/proxy/api/admin', {
+        method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({action:'reset_photo_quota', user_id:userId})
+      });
+      var d = await r.json();
+      if (d.ok) { showToast('Квота обнулена', 'var(--green)'); admUserProfile(userId); }
+      else showToast('Ошибка', 'var(--accent2)');
+    } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  }, null, {yes:'🔄 Обнулить', yesColor:'var(--accent)'});
 }
 window.admUserResetQuota = admUserResetQuota;
 
 async function admUserBan(userId, ban) {
-  if (!confirm(ban ? 'Забанить юзера?' : 'Разбанить юзера?')) return;
-  try {
-    var r = await fetch('/api/proxy/api/admin', {
-      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({action:'ban', user_id:userId, ban:ban})
-    });
-    var d = await r.json();
-    if (d.ok) { showToast(ban?'Забанен':'Разбанен', 'var(--green)'); admUserProfile(userId); }
-    else showToast('Ошибка', 'var(--accent2)');
-  } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  showConfirm(ban ? 'Забанить юзера?' : 'Разбанить юзера?', async function() {
+    try {
+      var r = await fetch('/api/proxy/api/admin', {
+        method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({action:'ban', user_id:userId, ban:ban})
+      });
+      var d = await r.json();
+      if (d.ok) { showToast(ban?'Забанен':'Разбанен', 'var(--green)'); admUserProfile(userId); }
+      else showToast('Ошибка', 'var(--accent2)');
+    } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+  }, null, ban ? {yes:'🚫 Забанить', yesColor:'var(--accent2)'} : {yes:'✅ Разбанить', yesColor:'var(--green)'});
 }
 window.admUserBan = admUserBan;
 
 async function admUserSendMessage(userId) {
-  var text = prompt('Текст сообщения для юзера (до 2000 символов):');
-  if (!text || !text.trim()) return;
-  try {
-    var r = await fetch('/api/proxy/api/admin', {
-      method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
-      body: JSON.stringify({action:'send_message', user_id:userId, text:text.trim()})
-    });
-    var d = await r.json();
-    if (d.ok) showToast('✅ Отправлено', 'var(--green)');
-    else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
-  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+  showPrompt(
+    '💬 Сообщение юзеру',
+    'Текст (до 2000 символов) уйдёт юзеру в чат с ботом:',
+    '',
+    async function(text) {
+      if (!text || !text.trim()) return;
+      try {
+        var r = await fetch('/api/proxy/api/admin', {
+          method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
+          body: JSON.stringify({action:'send_message', user_id:userId, text:text.trim()})
+        });
+        var d = await r.json();
+        if (d.ok) showToast('✅ Отправлено', 'var(--green)');
+        else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
+      } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+    }
+  );
 }
 window.admUserSendMessage = admUserSendMessage;
+
+async function admTicketClose(ticketId) {
+  showConfirm('Закрыть тикет #' + ticketId + '?', async function() {
+    try {
+      var r = await fetch('/api/proxy/api/admin', {
+        method: 'POST',
+        headers: _adminHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({action:'ticket_close', ticket_id: ticketId})
+      });
+      var d = await r.json();
+      if (d.ok) { showToast('Закрыт', 'var(--green)'); admLoadTickets(); }
+      else showToast('Ошибка: ' + (d.error||'?'), 'var(--accent2)');
+    } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+  }, null, {yes:'✅ Закрыть', yesColor:'var(--green)'});
+}
+window.admTicketClose = admTicketClose;
 
 // ════════════════════════════════════════════════════════
 // ПАКЕТ 2: ДАШБОРД с SVG-графиком регистраций
@@ -2105,7 +2115,7 @@ async function admLoadDashV2() {
     }).join('');
     chartEl.innerHTML =
       '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:6px">📈 НОВЫЕ ЮЗЕРЫ — 14 ДНЕЙ</div>'
-      + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">' + bars + '</svg>';
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:80px;max-height:90px;display:block">' + bars + '</svg>';
   } catch(e){}
 }
 window.admLoadDashV2 = admLoadDashV2;
@@ -2285,48 +2295,137 @@ async function admLoadPayments() {
       return;
     }
     var planNames = {'1m':'1 мес','3m':'3 мес','12m':'12 мес'};
-    var statusNames = {'pending':'⏳ Ожидает скриншота','screenshot_received':'📸 Скриншот получен'};
+    var statusBadge = {
+      'pending':              '<span style="background:rgba(234,88,12,.15);color:#ea580c;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">⏳ ОЖИДАЕТ СКРИНА</span>',
+      'screenshot_received':  '<span style="background:rgba(22,163,74,.15);color:var(--green);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">📸 СКРИН ПОЛУЧЕН</span>',
+    };
     list.innerHTML = data.payments.map(function(p) {
-      return '<div class="adm-pay-card" id="adm-pay-'+p.id+'">'
-        + '<div class="adm-pay-row">'
-        + '<div class="adm-pay-name">@' + escHtml(p.username||String(p.user_id)) + ' ' + (p.name||'') + '</div>'
-        + '<div style="font-size:12px;color:var(--muted)">' + p.created_at + '</div>'
+      var uname = p.username ? '@' + escHtml(p.username) : '';
+      var name  = p.name ? escHtml(p.name) : '';
+      var screenshotBlock = '';
+      if (p.screenshot) {
+        // Бэк хранит Telegram file_id. Прямо отрендерить нельзя — дёргаем
+        // новую ручку /api/admin/payment_screenshot которая скачивает картинку.
+        var imgSrc = '/api/proxy/api/admin/payment_screenshot?payment_id=' + p.id
+                   + '&_uid=' + getUserId();  // для X-Admin-Id через proxy
+        screenshotBlock =
+          '<div style="margin-top:10px">'
+          + '<img src="' + imgSrc + '" alt="скриншот"'
+          + ' style="width:100%;border-radius:10px;cursor:pointer;max-height:360px;object-fit:contain;background:#000"'
+          + ' onclick="admViewImage(this.src)"'
+          + ' onerror="this.parentNode.innerHTML=\'<div style=&quot;padding:12px;background:rgba(219,39,119,.08);border-radius:10px;font-size:12px;color:var(--accent2);text-align:center&quot;>⚠️ Не удалось загрузить скриншот. Попробуй обновить.</div>\'">'
+          + '</div>';
+      } else if (p.status === 'pending') {
+        screenshotBlock = '<div style="margin-top:10px;padding:12px;background:rgba(234,88,12,.08);border-radius:10px;font-size:12px;color:#ea580c;text-align:center">⏳ Юзер ещё не прислал скрин. Можешь напомнить ему кнопкой ниже.</div>';
+      }
+
+      return '<div class="adm-pay-card" id="adm-pay-'+p.id+'" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:14px;margin-bottom:10px">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+        +   '<div style="font-weight:800;font-size:15px">#' + p.id + '</div>'
+        +   statusBadge[p.status] || '<span style="background:var(--surface2);color:var(--text2);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">' + escHtml(p.status||'') + '</span>'
+        +   '<div style="margin-left:auto;font-size:11px;color:var(--text2)">' + escHtml(p.created_at||'') + '</div>'
         + '</div>'
-        + '<div style="font-size:13px;margin:4px 0">'
-        + '📦 ' + (planNames[p.plan]||p.plan) + ' · ' + p.amount + '₽ · ' + (statusNames[p.status]||p.status)
+        + '<div style="font-size:13px;color:var(--text2);margin-bottom:6px">'
+        +   '👤 ' + name + ' ' + uname + ' <span style="opacity:.7">· id=' + p.user_id + '</span>'
         + '</div>'
-        + (p.screenshot ? '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">📸 Скриншот есть</div>' : '')
-        + '<div class="adm-pay-btns">'
-        + '<button class="adm-btn adm-btn-confirm" onclick="admConfirmPay('+p.id+')">✅ Подтвердить</button>'
-        + '<button class="adm-btn adm-btn-reject"  onclick="admRejectPay('+p.id+')">❌ Отклонить</button>'
-        + '</div></div>';
+        + '<div style="display:flex;gap:10px;margin-bottom:6px;font-size:14px;font-weight:600">'
+        +   '<span>📦 ' + (planNames[p.plan]||p.plan) + '</span>'
+        +   '<span style="color:var(--green)">💰 ' + p.amount + ' ₽</span>'
+        + '</div>'
+        + '<button onclick="admTogglePayDetails('+p.id+')" id="adm-pay-toggle-'+p.id+'" style="width:100%;padding:9px;background:var(--surface2);color:var(--text);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:38px;margin-bottom:8px">📂 Показать детали</button>'
+        + '<div id="adm-pay-details-'+p.id+'" style="display:none">'
+        +   screenshotBlock
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'
+        +   '<button onclick="admConfirmPay('+p.id+')" style="padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">✅ Подтвердить</button>'
+        +   '<button onclick="admRejectPay('+p.id+')" style="padding:11px;background:rgba(219,39,119,.15);color:var(--accent2);border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">❌ Отклонить</button>'
+        + '</div>'
+        + '<button onclick="admMessagePayUser('+p.user_id+','+p.id+')" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px">💬 Написать юзеру</button>'
+        + '</div>';
     }).join('');
   } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>'; }
 }
+
+function admTogglePayDetails(payId) {
+  var d = document.getElementById('adm-pay-details-'+payId);
+  var b = document.getElementById('adm-pay-toggle-'+payId);
+  if (!d) return;
+  if (d.style.display === 'none' || !d.style.display) {
+    d.style.display = 'block';
+    if (b) b.textContent = '📁 Скрыть детали';
+  } else {
+    d.style.display = 'none';
+    if (b) b.textContent = '📂 Показать детали';
+  }
+}
+window.admTogglePayDetails = admTogglePayDetails;
+
+// Лайтбокс для скриншота
+function admViewImage(src) {
+  var existing = document.getElementById('adm-imgview');
+  if (existing) document.body.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'adm-imgview';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:10px;cursor:zoom-out';
+  overlay.onclick = function(){ document.body.removeChild(overlay); };
+  overlay.innerHTML = '<img src="' + src + '" style="max-width:100%;max-height:100%;border-radius:8px">';
+  document.body.appendChild(overlay);
+}
+window.admViewImage = admViewImage;
 
 async function admConfirmPay(payId) {
   showConfirm('Подтвердить оплату #'+payId+'?', async function() {
     try {
       var data = await _admFetch('confirm_payment', {payment_id:payId});
-      if (data.ok) {
-        showToast('✅ Оплата подтверждена, Premium выдан до '+data.until, 'var(--green)');
-        document.getElementById('adm-pay-'+payId).remove();
+      if (data && data.ok) {
+        showToast('✅ Оплата подтверждена, Premium выдан до '+(data.until||'?'), 'var(--green)');
+        var row = document.getElementById('adm-pay-'+payId);
+        if (row) row.remove();
+      } else {
+        showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
       }
-    } catch(e) {}
-  });
+    } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+  }, null, {yes:'✅ Подтвердить', yesColor:'var(--green)'});
 }
 
 async function admRejectPay(payId) {
-  showConfirm('Отклонить оплату #'+payId+'?', async function() {
-    try {
-      var data = await _admFetch('reject_payment', {payment_id:payId});
-      if (data.ok) {
-        showToast('❌ Отклонено', 'var(--accent2)');
-        document.getElementById('adm-pay-'+payId).remove();
-      }
-    } catch(e) {}
-  });
+  // Открываем модал с причиной отклонения
+  showPrompt(
+    'Отклонить заявку #'+payId,
+    'Опиши причину отклонения — она уйдёт юзеру:',
+    'Не вижу платежа на нашу карту',
+    async function(reason) {
+      if (!reason || !reason.trim()) return;
+      try {
+        var data = await _admFetch('reject_payment', {payment_id:payId, reason:reason.trim()});
+        if (data && data.ok) {
+          showToast('❌ Отклонено, юзеру отправлено сообщение', 'var(--accent2)');
+          var row = document.getElementById('adm-pay-'+payId);
+          if (row) row.remove();
+        } else {
+          showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
+        }
+      } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+    }
+  );
 }
+
+async function admMessagePayUser(userId, payId) {
+  showPrompt(
+    '💬 Сообщение юзеру',
+    'Что написать про заявку #'+payId+'?',
+    'Привет! Пришли пожалуйста скрин или чек об оплате — без него не смогу подтвердить заявку 🙏',
+    async function(text) {
+      if (!text || !text.trim()) return;
+      try {
+        var data = await _admFetch('send_message', {user_id:userId, text:text.trim()});
+        if (data && data.ok) showToast('✅ Сообщение отправлено', 'var(--green)');
+        else showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
+      } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
+    }
+  );
+}
+window.admMessagePayUser = admMessagePayUser;
 
 
 // Ripple effect on buttons
