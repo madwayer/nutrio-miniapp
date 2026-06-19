@@ -1092,7 +1092,8 @@ async function initMicroPage() {
         +     '<li><b>Штрихкоды</b> — большая часть товаров отдаёт состав через OpenFoodFacts</li>'
         +     '<li><b>Поиск в Калькуляторе</b> с английскими названиями — попадание в базу USDA</li>'
         +   '</ul>'
-        +   '<div style="margin-top:8px"><b>Российские продукты</b> в локальной базе сейчас имеют только КБЖУ. Мы постепенно расширяем покрытие — спасибо за терпение.</div>'
+        + (((typeof i18n !== 'undefined' && (i18n._lang === 'ru' || !i18n._lang)) || navigator.language.startsWith('ru'))
+            ? '<div style="margin-top:8px"><b>Российские продукты</b> в локальной базе сейчас имеют только КБЖУ. Мы постепенно расширяем покрытие — спасибо за терпение.</div>' : '')
         + '</div></div>';
       return;
     }
@@ -2053,39 +2054,6 @@ if (typeof admLoadDash === 'function') {
   _admOriginalLoadDash = admLoadDash;
 }
 async function admLoadDashV2() {
-  // Индикатор статуса аутентификации — наверху админки
-  try {
-    var authBox = document.getElementById('adm-auth-status');
-    if (authBox) {
-      var tg = window.Telegram && window.Telegram.WebApp;
-      var initData = (tg && tg.initData) ? tg.initData : '';
-      var platform = (tg && tg.platform) ? tg.platform : 'unknown';
-      var version  = (tg && tg.version)  ? tg.version  : '?';
-      if (initData) {
-        authBox.style.display = 'block';
-        authBox.style.background = 'rgba(22,163,74,.10)';
-        authBox.style.borderColor = 'var(--green)';
-        authBox.innerHTML = '✅ <b>Защищённый доступ</b><br><span style="font-size:11px;opacity:.8">Telegram WebApp v' + version + ' · ' + platform + ' · initData ' + initData.length + ' символов</span>';
-      } else {
-        authBox.style.display = 'block';
-        authBox.style.background = 'rgba(219,39,119,.10)';
-        authBox.style.borderColor = 'var(--accent2)';
-        authBox.innerHTML = '⚠️ <b>Незащищённый доступ</b><br><span style="font-size:11px;opacity:.85">initData пустой. Открой Mini App через <b>команду /admin в чате с ботом</b> для защищённого доступа. Сейчас Telegram WebApp v' + version + ' · ' + platform + '</span>';
-      }
-      // Также консольный лог для диагностики
-      try {
-        console.log('[NUTRIO admin auth]', {
-          hasInitData: !!initData,
-          initDataLen: initData.length,
-          initDataStart: initData.substring(0, 80),
-          platform: platform,
-          version: version,
-          tgUser: tg && tg.initDataUnsafe && tg.initDataUnsafe.user,
-        });
-      } catch(e){}
-    }
-  } catch(e){}
-
   // Запускаем оригинальный загрузчик KPI
   if (_admOriginalLoadDash) {
     try { await _admOriginalLoadDash(); } catch(e){}

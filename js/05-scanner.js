@@ -1054,16 +1054,26 @@ function initProgressPage(){
     if(saved){ progressData = JSON.parse(saved); renderProgress(); }
   }catch(e){}
 
-  // Heatmap-сетка и автозагрузка через API — чтобы юзеру не нужно было
-  // жать кнопку "Загрузить данные из бота". Это идемпотентно: если данные
-  // уже загружены, loadAll просто вернёт сразу.
+  // Heatmap — автозагрузка раз в день.
+  // Запоминаем дату последней загрузки в localStorage.
+  // При открытии вкладки: если сегодня ещё не грузили — загружаем автоматом,
+  // если уже грузили — юзер жмёт кнопку «Обновить» вручную.
   try {
+    var TODAY = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    var lastLoad = '';
+    try { lastLoad = localStorage.getItem('nutrio_heatmap_loaded_date') || ''; } catch(e){}
+
     if (window.NutrioHeatmap && typeof window.NutrioHeatmap.init === 'function') {
       window.NutrioHeatmap.init();
     }
-    if (window.NutrioHeatmap && typeof window.NutrioHeatmap.load === 'function') {
-      window.NutrioHeatmap.load();
+    if (lastLoad !== TODAY) {
+      // Первая загрузка за сегодня — грузим автоматически
+      if (window.NutrioHeatmap && typeof window.NutrioHeatmap.load === 'function') {
+        window.NutrioHeatmap.load();
+        try { localStorage.setItem('nutrio_heatmap_loaded_date', TODAY); } catch(e){}
+      }
     }
+    // Если уже грузили сегодня — ничего не делаем. Юзер жмёт «Обновить» сам.
   } catch(e){}
 }
 
