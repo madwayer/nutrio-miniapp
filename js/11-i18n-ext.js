@@ -11,6 +11,7 @@
       // bottom nav
       nav_diary:"Дневник", nav_progress:"Прогресс", nav_ai:"AI", nav_more:"Ещё",
       nav_add:"Добавить",
+      nav_healthsync:"Здоровье", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Пост",
       // add sheet
       add_sheet_title:"Добавить запись",
       add_barcode:"Штрихкод", add_barcode_sub:"Скан упаковки",
@@ -140,6 +141,7 @@
     en: {
       nav_diary:"Diary", nav_progress:"Progress", nav_ai:"AI", nav_more:"More",
       nav_add:"Add",
+      nav_healthsync:"Health", nav_aichat:"AI Chat", nav_exercise:"Exercise", nav_health:"Score", nav_fast:"Fasting",
       add_sheet_title:"Add entry",
       add_barcode:"Barcode", add_barcode_sub:"Scan package",
       add_photo:"Photo of food", add_photo_sub:"Recognize by photo",
@@ -257,6 +259,7 @@
     },
     uk: {
       nav_diary:"Щоденник", nav_progress:"Прогрес", nav_ai:"AI", nav_more:"Ще", nav_add:"Додати",
+      nav_healthsync:"Здоров'я", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Піст",
       add_sheet_title:"Додати запис",
       add_barcode:"Штрихкод", add_barcode_sub:"Скан пакування",
       add_photo:"Фото страви", add_photo_sub:"Розпізнати по фото",
@@ -365,6 +368,7 @@
     },
     de: {
       nav_diary:"Tagebuch", nav_progress:"Fortschritt", nav_ai:"AI", nav_more:"Mehr", nav_add:"Hinzufügen",
+      nav_healthsync:"Gesundheit", nav_aichat:"KI-Chat", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Fasten",
       add_sheet_title:"Eintrag hinzufügen",
       add_barcode:"Barcode", add_barcode_sub:"Verpackung scannen",
       add_photo:"Essensfoto", add_photo_sub:"Per Foto erkennen",
@@ -473,6 +477,7 @@
     },
     fr: {
       nav_diary:"Journal", nav_progress:"Progrès", nav_ai:"IA", nav_more:"Plus", nav_add:"Ajouter",
+      nav_healthsync:"Santé", nav_aichat:"Chat IA", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Jeûne",
       add_sheet_title:"Ajouter une entrée",
       add_barcode:"Code-barres", add_barcode_sub:"Scanner l'emballage",
       add_photo:"Photo du plat", add_photo_sub:"Reconnaître par photo",
@@ -581,6 +586,7 @@
     },
     es: {
       nav_diary:"Diario", nav_progress:"Progreso", nav_ai:"IA", nav_more:"Más", nav_add:"Añadir",
+      nav_healthsync:"Salud", nav_aichat:"Chat IA", nav_exercise:"Ejercicio", nav_health:"Score", nav_fast:"Ayuno",
       add_sheet_title:"Añadir entrada",
       add_barcode:"Código de barras", add_barcode_sub:"Escanear envase",
       add_photo:"Foto del plato", add_photo_sub:"Reconocer por foto",
@@ -750,10 +756,15 @@
 
     // Bottom nav labels
     var nav = {
-      'bnav-diary    .bnav-lbl': T('nav_diary'),
-      'bnav-progress .bnav-lbl': T('nav_progress'),
-      'bnav-ai       .bnav-lbl': T('nav_ai'),
-      'bnav-more     .bnav-lbl': T('nav_more'),
+      'bnav-diary        .bnav-lbl': T('nav_diary'),
+      'bnav-progress     .bnav-lbl': T('nav_progress'),
+      'bnav-ai           .bnav-lbl': T('nav_ai'),
+      'bnav-more         .bnav-lbl': T('nav_more'),
+      'bnav-healthsync   .bnav-lbl': T('nav_healthsync'),
+      'bnav-aichat       .bnav-lbl': T('nav_aichat'),
+      'bnav-exercise     .bnav-lbl': T('nav_exercise'),
+      'bnav-healthscore  .bnav-lbl': T('nav_health'),
+      'bnav-fast         .bnav-lbl': T('nav_fast'),
     };
     Object.keys(nav).forEach(function(idPath){
       var parts = idPath.trim().split(/\s+/);

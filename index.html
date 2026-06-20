@@ -532,6 +532,120 @@
 
 </div>
 
+<!-- ═══════════════ AI ЧАТ ═══════════════ -->
+<div class="page" id="page-aichat">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div class="section-title" style="margin:0">🥗 AI-нутрициолог</div>
+    <button onclick="chatReset()" style="background:transparent;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px">🗑 Очистить</button>
+  </div>
+  <div id="chat-messages" style="display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:calc(100vh - 260px);overflow-y:auto;padding:4px 2px;margin-bottom:12px"></div>
+  <div style="display:flex;gap:8px;align-items:flex-end">
+    <textarea id="chat-input" placeholder="Спроси о питании, калориях, диете..." rows="2"
+      style="flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--glass-border);background:var(--surface2);color:var(--text);font:inherit;font-size:14px;resize:none;outline:none;line-height:1.4"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
+    ></textarea>
+    <button onclick="chatSend()" style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:44px;min-width:60px;flex-shrink:0">➤</button>
+  </div>
+  <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:8px">AI может ошибаться — проверяй важное с врачом</div>
+</div>
+
+<!-- ═══════════════ УПРАЖНЕНИЯ ═══════════════ -->
+<div class="page" id="page-exercise">
+  <div class="section-title">🏃 Трекинг упражнений</div>
+  <div id="ex-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px"></div>
+  <div style="background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">➕ Добавить упражнение</div>
+    <input id="ex-search-input" type="text" placeholder="Поиск: бег, плавание, йога..."
+      style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box;outline:none;margin-bottom:8px"
+      oninput="exSearch(this.value)"
+    />
+    <div id="ex-search-results" style="max-height:160px;overflow-y:auto;border-radius:10px;margin-bottom:8px"></div>
+    <div id="ex-add-form" style="display:none;background:var(--surface);border-radius:10px;padding:10px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px" id="ex-selected-name">Выбранное упражнение</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--text2)">Минуты</label>
+          <input id="ex-minutes" type="number" value="30" min="1" max="999"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--glass-border);background:var(--surface2);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box;outline:none">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2)">Вес (кг)</label>
+          <input id="ex-weight" type="number" value="70" min="30" max="300"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--glass-border);background:var(--surface2);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box;outline:none">
+        </div>
+      </div>
+      <input id="ex-note" type="text" placeholder="Заметка (опционально)"
+        style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--glass-border);background:var(--surface2);color:var(--text);font:inherit;font-size:13px;box-sizing:border-box;outline:none;margin-bottom:8px">
+      <button id="ex-add-btn" onclick="exAdd()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">✅ Записать</button>
+    </div>
+  </div>
+  <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">📋 Сегодня</div>
+  <div id="ex-list"></div>
+</div>
+
+<!-- ═══════════════ ИНТЕРВАЛЬНОЕ ГОЛОДАНИЕ ═══════════════ -->
+<div class="page" id="page-fast">
+  <div class="section-title">⏱ Интервальное голодание</div>
+  <!-- Кольцо прогресса -->
+  <div id="fast-ring" style="display:none;text-align:center;margin-bottom:16px">
+    <div style="position:relative;display:inline-block">
+      <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
+        <circle cx="80" cy="80" r="68" fill="none" stroke="var(--surface2)" stroke-width="12"/>
+        <circle id="fast-ring-arc" cx="80" cy="80" r="68" fill="none" stroke="var(--accent)" stroke-width="12"
+          stroke-linecap="round" stroke-dasharray="427" stroke-dashoffset="427" style="transition:stroke-dashoffset 1s ease"/>
+      </svg>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+        <div id="fast-ring-emoji" style="font-size:28px">⏱</div>
+        <div id="fast-ring-time" style="font-size:20px;font-weight:800;color:var(--text)">0:00</div>
+        <div id="fast-ring-pct" style="font-size:12px;color:var(--text2)">0%</div>
+      </div>
+    </div>
+    <div id="fast-ring-label" style="font-size:14px;color:var(--text2);margin-top:6px"></div>
+  </div>
+  <!-- Статус активного голодания -->
+  <div id="fast-status-row" style="display:none;background:var(--surface2);border-radius:14px;padding:12px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div style="font-size:11px;color:var(--text2)">Начало</div><div id="fast-status-start" style="font-size:14px;font-weight:700;color:var(--text)">—</div></div>
+      <div><div style="font-size:11px;color:var(--text2)">Конец</div><div id="fast-status-end" style="font-size:14px;font-weight:700;color:var(--text)">—</div></div>
+    </div>
+  </div>
+  <!-- Кнопки управления -->
+  <div id="fast-btn-stop-wrap" style="display:none;margin-bottom:12px">
+    <button onclick="fastStop()" style="width:100%;padding:14px;background:var(--accent2);color:#fff;border:none;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer">⏹ Завершить голодание</button>
+  </div>
+  <!-- Выбор протокола -->
+  <div id="fast-btn-start-wrap">
+    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Выбери протокол:</div>
+    <div id="fast-protocols" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
+  </div>
+  <!-- Статистика -->
+  <div id="fast-stats-card" style="display:none;background:var(--surface2);border-radius:14px;padding:12px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📊 Статистика</div>
+    <div id="fast-stats-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+  </div>
+  <div id="fast-history-card" style="display:none;background:var(--surface2);border-radius:14px;padding:12px">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📋 История</div>
+    <div id="fast-history-list"></div>
+  </div>
+  <div id="fast-protocol-sheet" style="display:none"></div>
+</div>
+
+<!-- ═══════════════ HEALTH SCORE ═══════════════ -->
+<div class="page" id="page-healthscore">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="section-title" style="margin:0">🏅 Health Score</div>
+    <button onclick="_hsLoaded=false;initHealthScorePage()" style="background:transparent;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:8px">🔄</button>
+  </div>
+  <div id="hs-loading" style="text-align:center;padding:40px 20px;color:var(--text2)">⏳ Загрузка...</div>
+  <div id="hs-main" style="display:none">
+    <div id="hs-ring-wrap" style="text-align:center;margin-bottom:16px"></div>
+    <div id="hs-radar" style="margin-bottom:14px"></div>
+    <div id="hs-components" style="margin-bottom:12px"></div>
+    <div id="hs-tip" style="background:var(--surface2);border-radius:12px;padding:12px;font-size:13px;line-height:1.5;color:var(--text)"></div>
+  </div>
+</div>
+
+
 <div class="page" id="page-water">
     <div class="section-title" id="water-page-title">💧 <span id="lbl-water-title"></span></div>
     <div id="water-progress-block" style="margin-bottom:18px;">

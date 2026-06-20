@@ -1687,15 +1687,21 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   align-items: stretch;
-  justify-content: space-around;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: rgba(16,16,22,0.85);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-top: 1px solid rgba(255,255,255,0.06);
   z-index: 900;
 }
+.bnav::-webkit-scrollbar { display: none; }
 .bnav-item {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 56px;
   background: transparent;
   border: none;
   color: var(--text2);
