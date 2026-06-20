@@ -1,4 +1,40 @@
 // ===== ДНЕВНИК =====
+
+// ────────────────────────────────────────────────────────────────
+// XP-бар
+// ────────────────────────────────────────────────────────────────
+var LEVELS_XP = [0,0,200,500,1000,2000,3500,5500,8000,11000,15000,20000,26000,33000,41000,50000];
+var LEVELS_NAME = ['','🌱 Новичок','🥗 Любитель','🍎 Осознанный','💪 Дисциплинированный',
+  '🔥 Мотивированный','⚡ Продвинутый','🏃 Атлет','💎 Эксперт','🌟 Мастер',
+  '👑 Легенда','🏆 Чемпион','🦁 Воин здоровья','🚀 Суперчеловек','🌍 Посол NutriO','✨ Гуру питания'];
+
+function _renderXpBar(xp, level) {
+  xp = xp || 0; level = level || 1;
+  var container = document.getElementById('diary-xp-bar');
+  if (!container) return;
+  var maxLvl = 15;
+  var name = LEVELS_NAME[Math.min(level, maxLvl)] || '🌱 Новичок';
+  var pct = 0, xpNext = 0;
+  if (level < maxLvl) {
+    var curBase = LEVELS_XP[level] || 0;
+    xpNext = LEVELS_XP[level + 1] || curBase + 1000;
+    var xpNeeded = xpNext - curBase;
+    var xpInLevel = xp - curBase;
+    pct = xpNeeded > 0 ? Math.min(100, Math.round(xpInLevel / xpNeeded * 100)) : 100;
+  } else { pct = 100; }
+
+  container.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px">'
+    +  '<span style="font-size:13px;font-weight:700;color:var(--text);flex:1">' + name + '</span>'
+    +  '<span style="font-size:10px;color:var(--text2);white-space:nowrap">'
+    +    (level < maxLvl ? xp + ' / ' + xpNext + ' XP · ' + pct + '%' : '✨ MAX') + '</span>'
+    + '</div>'
+    + '<div style="height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:6px">'
+    +   '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--accent),#818cf8);border-radius:3px;transition:width .5s ease"></div>'
+    + '</div>';
+}
+window._renderXpBar = _renderXpBar;
+
 // ────────────────────────────────────────────────────────────────
 // Photo quota UI (Free: 5 фото/день, Premium: безлимит)
 // ────────────────────────────────────────────────────────────────
@@ -201,7 +237,13 @@ function _startOnboardingInBot() {
     if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/CaloriePilotAI_Bot');
   } catch(e){}
   setTimeout(function(){
-    try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
+    try { // minimize() сворачивает миниапп вместо закрытия (Bot API 8.0+);
+        // если недоступен — просто не закрываем, приложение остаётся открытым.
+        if (window.Telegram && Telegram.WebApp) {
+          var tgwa = Telegram.WebApp;
+          if (tgwa.minimize) tgwa.minimize();
+          // если minimize нет — не делаем ничего, юзер сам вернётся
+        } } catch(e){}
   }, 300);
 }
 
@@ -346,16 +388,128 @@ function initCalcPage() {
 
 function setCalcMode(mode) {
   calcMode = mode;
-  var kb = document.getElementById('calc-mode-kbzu');
-  var he = document.getElementById('calc-mode-he');
-  if (kb) { kb.style.background = mode==='kbzu'?'var(--accent)':'transparent'; kb.style.color = mode==='kbzu'?'#fff':'var(--text2)'; }
-  if (he) { he.style.background = mode==='he'  ?'var(--accent)':'transparent'; he.style.color = mode==='he'  ?'#fff':'var(--text2)'; }
+  var kb  = document.getElementById('calc-mode-kbzu');
+  var he  = document.getElementById('calc-mode-he');
+  var rst = document.getElementById('calc-mode-rest');
+  [['kbzu',kb],['he',he],['rest',rst]].forEach(function(p){
+    if (p[1]) {
+      var active = mode === p[0];
+      p[1].style.background = active ? 'var(--accent)' : 'transparent';
+      p[1].style.color      = active ? '#fff' : 'var(--text2)';
+    }
+  });
   var ks = document.getElementById('calc-kbzu-section');
   var hs = document.getElementById('calc-he-section');
-  if (ks) ks.style.display = mode==='kbzu'?'block':'none';
-  if (hs) hs.style.display = mode==='he'  ?'block':'none';
-  if (mode==='he') loadHeDailyData();
+  var rs = document.getElementById('calc-rest-section');
+  if (ks) ks.style.display = mode==='kbzu' ? 'block':'none';
+  if (hs) hs.style.display = mode==='he'   ? 'block':'none';
+  if (rs) rs.style.display = mode==='rest' ? 'block':'none';
+  if (mode==='he')   loadHeDailyData();
+  if (mode==='rest') restShowPopular();
 }
+
+// ════ РЕСТОРАННЫЙ ПОИСК ════
+var _restSearchTimeout = null;
+
+async function restSearch(q) {
+  clearTimeout(_restSearchTimeout);
+  q = (q||'').trim().toLowerCase();
+  if (q.length < 1) { restShowPopular(); return; }
+  _restSearchTimeout = setTimeout(async function(){
+    try {
+      var d = await apiGet('/api/restaurants/search', {q:q, limit:12});
+      _restRender(d && d.results || []);
+    } catch(e) { _restRender([]); }
+  }, 250);
+}
+window.restSearch = restSearch;
+
+async function restSearchBrand(brand) {
+  var inp = document.getElementById('rest-search-input');
+  if (inp) inp.value = brand;
+  try {
+    var d = await apiGet('/api/restaurants/search', {q:brand.toLowerCase(), limit:15});
+    _restRender(d && d.results || []);
+  } catch(e) { _restRender([]); }
+}
+window.restSearchBrand = restSearchBrand;
+
+function restShowPopular() {
+  // Показываем популярные без запроса
+  var popular = [
+    {name:'биг мак',    brand:"McDonald's",  calories:257, protein:13, fat:13, carbs:24},
+    {name:'кфс твистер',brand:'KFC',          calories:218, protein:11, fat:11, carbs:19},
+    {name:'воппер',     brand:'Burger King',  calories:247, protein:11, fat:14, carbs:22},
+    {name:'додо пепперони', brand:'Додо Пицца', calories:291, protein:13, fat:13, carbs:32},
+    {name:'ролл калифорния',brand:'Суши',     calories:125, protein:5,  fat:4,  carbs:17},
+    {name:'шаурма',     brand:'Шаурма',       calories:220, protein:12, fat:9,  carbs:23},
+  ];
+  _restRender(popular);
+}
+window.restShowPopular = restShowPopular;
+
+function _restRender(items) {
+  var el = document.getElementById('rest-results');
+  if (!el) return;
+  var ru = (navigator.language||'ru').startsWith('ru');
+  if (!items || !items.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">'
+      + '<div style="font-size:32px;margin-bottom:8px">🔍</div>'
+      + '<div>' + (ru ? 'Не найдено. Попробуй другой запрос.' : 'Not found. Try another query.') + '</div>'
+      + '</div>';
+    return;
+  }
+  el.innerHTML = items.map(function(r){
+    var name = (r.name||'').charAt(0).toUpperCase() + (r.name||'').slice(1);
+    var brand = r.brand || '';
+    // Для добавления — строим payload с весом порции (100г стандарт)
+    var payload = JSON.stringify({name:r.name,cal:r.calories,prot:r.protein,fat:r.fat,carbs:r.carbs}).replace(/"/g,'&quot;');
+    return '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:12px 14px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +   '<div style="flex:1;min-width:0">'
+      +     '<div style="font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(name) + '</div>'
+      +     (brand ? '<div style="font-size:11px;color:var(--accent);font-weight:600;margin-top:1px">' + escHtml(brand) + '</div>' : '')
+      +   '</div>'
+      +   '<div style="text-align:right;flex-shrink:0">'
+      +     '<div style="font-size:17px;font-weight:800;color:var(--accent)">' + r.calories + '</div>'
+      +     '<div style="font-size:10px;color:var(--text2)">ккал/100г</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;font-size:11px;color:var(--text2);margin-bottom:10px">'
+      +   '<span>Б <b>' + r.protein + '</b></span>'
+      +   '<span>Ж <b>' + r.fat + '</b></span>'
+      +   '<span>У <b>' + r.carbs + '</b></span>'
+      +   '<span style="opacity:.6">г/100г</span>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'
+      +   ['завтрак🌅','обед🌞','ужин🌙','перекус🍎'].map(function(meal){
+            var mname = meal.replace(/[🌅🌞🌙🍎]/g,'').trim();
+            return '<button onclick="restAddToMeal(' + payload.replace(/'/g,"&#39;") + ',\'' + mname + '\')" '
+              + 'style="padding:9px 2px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:10px;font-weight:600;color:var(--text);cursor:pointer;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">'
+              + meal.slice(-1) + '<br>' + mname
+              + '</button>';
+          }).join('')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+async function restAddToMeal(payloadStr, meal) {
+  var p;
+  try { p = typeof payloadStr === 'string' ? JSON.parse(payloadStr.replace(/&quot;/g,'"')) : payloadStr; } catch(e){ return; }
+  try {
+    var d = await apiPost('/api/manual', {
+      food_name: p.name, weight: 100,
+      calories: p.cal, protein: p.prot, fat: p.fat, carbs: p.carbs,
+      meal_type: meal,
+    });
+    if (d && d.ok) {
+      try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e){}
+      showToast('✅ Добавлено в ' + meal, 'var(--green)');
+    } else { showToast('Ошибка', 'var(--accent2)'); }
+  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+}
+window.restAddToMeal = restAddToMeal;
 
 // ---- КБЖУ калькулятор ----
 async function calcSearch() {
@@ -802,6 +956,7 @@ function renderStats(data) {
   // Стрик
   var el = document.getElementById('stat-streak');
   if (el) el.textContent = data.streak || 0;
+  if (data.xp !== undefined) _renderXpBar(data.xp, data.level || 1);
 
   // KPI
   var goal    = data.daily_goal || 2000;

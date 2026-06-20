@@ -290,6 +290,11 @@
       </div>
     </div>
 
+    <!-- XP-бар уровня — между калориями и кольцами -->
+    <div id="diary-xp-bar" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:10px 14px;margin-bottom:10px">
+      <div style="height:6px;background:var(--surface2);border-radius:3px"></div>
+    </div>
+
     <div class="gring-card" id="gring-card">
       <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
@@ -367,6 +372,165 @@
       <span data-i18n="share_day">Поделиться днём</span>
     </button>
   </div>
+
+<!-- ═══════════════ СИНХРОНИЗАЦИЯ ЗДОРОВЬЯ ═══════════════ -->
+<div class="page" id="page-healthsync">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="section-title" style="margin:0">💪 <span data-i18n="hsync_title">Здоровье</span></div>
+    <button onclick="_hsyncLoaded=false;initHealthSyncPage()" style="background:transparent;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:8px">🔄</button>
+  </div>
+
+  <!-- KPI карточки -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">👟 ШАГИ</div>
+      <div id="hsync-steps"><span style="color:var(--text2);font-size:22px">—</span></div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">😴 СОН</div>
+      <div id="hsync-sleep"><span style="color:var(--text2);font-size:22px">—</span></div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">❤️ ПУЛЬС</div>
+      <div id="hsync-hr"><span style="color:var(--text2);font-size:22px">—</span></div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px">🔥 АКТИВНОСТЬ</div>
+      <div id="hsync-activity"><span style="color:var(--text2);font-size:22px">—</span></div>
+    </div>
+  </div>
+
+  <!-- График шагов 7 дней -->
+  <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:14px;margin-bottom:14px">
+    <div id="hsync-history">
+      <div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">
+        <div style="font-size:32px;margin-bottom:8px">📊</div>
+        <div data-i18n="hsync_no_data">Данных пока нет. Добавь первую запись!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Форма ввода -->
+  <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:12px" data-i18n="hsync_add">➕ ДОБАВИТЬ ДАННЫЕ СЕГОДНЯ</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">👟 <span data-i18n="hsync_steps_lbl">Шаги</span></label>
+        <input id="hsync-inp-steps" type="number" placeholder="8500" min="0" max="100000"
+          style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;color:var(--text);font:inherit;font-size:15px;text-align:center">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">😴 <span data-i18n="hsync_sleep_lbl">Сон (ч)</span></label>
+        <input id="hsync-inp-sleep" type="number" placeholder="7.5" min="0" max="24" step="0.5"
+          style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;color:var(--text);font:inherit;font-size:15px;text-align:center">
+      </div>
+    </div>
+
+    <!-- Качество сна -->
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px" data-i18n="hsync_sleep_q">Качество сна:</div>
+      <div style="display:flex;gap:6px">
+        <button class="hsync-quality-btn" data-q="1" onclick="hsyncQuality(this,1)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px">😴<br><span style="font-size:10px">Плохо</span></button>
+        <button class="hsync-quality-btn" data-q="2" onclick="hsyncQuality(this,2)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px">😐<br><span style="font-size:10px">Слабо</span></button>
+        <button class="hsync-quality-btn" data-q="3" onclick="hsyncQuality(this,3)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px">😊<br><span style="font-size:10px">Норм</span></button>
+        <button class="hsync-quality-btn" data-q="4" onclick="hsyncQuality(this,4)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px">😄<br><span style="font-size:10px">Хорошо</span></button>
+        <button class="hsync-quality-btn" data-q="5" onclick="hsyncQuality(this,5)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px">🌟<br><span style="font-size:10px">Отлично</span></button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">❤️ <span data-i18n="hsync_hr_lbl">Пульс (уд/мин)</span></label>
+      <input id="hsync-inp-hr" type="number" placeholder="72" min="30" max="250"
+        style="width:100%;box-sizing:border-box;padding:12px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:10px;color:var(--text);font:inherit;font-size:15px;text-align:center">
+    </div>
+
+    <button id="hsync-save-btn" onclick="hsyncSave()"
+      style="width:100%;padding:15px;background:linear-gradient(135deg,#6366f1,#a78bfa);color:#fff;border:none;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;min-height:48px;box-shadow:0 4px 16px rgba(99,102,241,.3)">
+      💾 <span data-i18n="hsync_save">Сохранить</span>
+    </button>
+  </div>
+
+  <!-- Как подключить трекер — полный гайд -->
+  <div id="hsync-connect-section" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px;margin-bottom:14px">
+
+    <div style="font-weight:800;font-size:15px;margin-bottom:14px">🔗 Автосинхронизация с трекером</div>
+
+    <!-- Табы платформ -->
+    <div style="display:flex;background:var(--surface2);border-radius:12px;padding:3px;margin-bottom:14px;gap:3px">
+      <button id="hsync-tab-ios" onclick="hsyncShowTab('ios')"
+        style="flex:1;padding:9px;border:none;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;transition:all .2s">
+        🍎 iOS
+      </button>
+      <button id="hsync-tab-android" onclick="hsyncShowTab('android')"
+        style="flex:1;padding:9px;border:none;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s">
+        🤖 Android
+      </button>
+      <button id="hsync-tab-manual" onclick="hsyncShowTab('manual')"
+        style="flex:1;padding:9px;border:none;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s">
+        ✏️ Вручную
+      </button>
+    </div>
+
+    <!-- iOS -->
+    <div id="hsync-content-ios">
+      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--text)">
+        <b style="color:var(--accent)">Через Apple Shortcuts (бесплатно):</b><br>
+        1. Открой <b>Shortcuts</b> на iPhone<br>
+        2. Создай <b>Автоматизацию</b> → каждый день в 23:00<br>
+        3. Действие: <b>«Получить шаги»</b> из Здоровья<br>
+        4. Действие: <b>«Получить содержимое URL»</b> → POST<br>
+        &nbsp;&nbsp;• Заголовок <code>X-Health-Token</code> = твой токен<br>
+        &nbsp;&nbsp;• Тело: <code>{"steps": [Шаги], "source": "apple_health"}</code>
+      </div>
+      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--text);line-height:1.7">
+        <b style="color:var(--green)">Поля:</b>
+        <code>steps</code> · <code>sleep_minutes</code> · <code>heart_rate_avg</code> · <code>distance_m</code> · <code>calories_active</code> · <code>spo2</code>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Твой токен:</div>
+        <div id="hsync-token-ios" style="font-family:monospace;font-size:12px;color:var(--accent);word-break:break-all">загрузка...</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="hsyncCopyToken()" style="padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">📋 Копировать токен</button>
+        <button onclick="hsyncCopyWebhook()" style="padding:11px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px">🔗 Копировать URL</button>
+      </div>
+    </div>
+
+    <!-- Android -->
+    <div id="hsync-content-android" style="display:none">
+      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--text)">
+        <b style="color:var(--accent)">Через Tasker + HTTP Request:</b><br>
+        1. Установи <b>Tasker</b> + плагин <b>HTTP Request</b><br>
+        2. Создай задачу → HTTP POST:<br>
+        &nbsp;&nbsp;• URL: <span id="hsync-webhook-android" style="font-size:11px;word-break:break-all">загрузка...</span><br>
+        &nbsp;&nbsp;• Header <code>X-Health-Token</code>: <span id="hsync-token-android" style="font-family:monospace;font-size:11px;color:var(--accent)">загрузка...</span><br>
+        3. Запускай каждый вечер по расписанию
+      </div>
+      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--text);line-height:1.7">
+        <b style="color:var(--green)">Альтернатива — Google Fit + IFTTT:</b><br>
+        Google Fit «Daily steps» → IFTTT Webhooks → наш URL
+      </div>
+      <button onclick="hsyncCopyToken()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">📋 Копировать токен</button>
+    </div>
+
+    <!-- Вручную -->
+    <div id="hsync-content-manual" style="display:none">
+      <div style="text-align:center;padding:20px;color:var(--text2)">
+        <div style="font-size:48px;margin-bottom:12px">✏️</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px">Ввод вручную</div>
+        <div style="font-size:13px;line-height:1.6">Прокрути вверх — там форма для ввода шагов, сна и пульса. Данные сохранятся и попадут в Health Score и графики.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Агрегаты за 7 дней -->
+  <div id="hsync-aggregates" style="display:none;background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;padding:16px">
+    <div style="font-weight:700;font-size:13px;color:var(--text2);letter-spacing:.5px;margin-bottom:10px">📊 СРЕДНИЕ ЗА 7 ДНЕЙ</div>
+    <div id="hsync-agg-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
+  </div>
+
+</div>
 
 <div class="page" id="page-water">
     <div class="section-title" id="water-page-title">💧 <span id="lbl-water-title"></span></div>
@@ -503,13 +667,46 @@
     <!-- Mode toggle -->
     <div style="display:flex;background:var(--surface);border-radius:14px;padding:4px;margin-bottom:16px">
       <button id="calc-mode-kbzu" onclick="setCalcMode('kbzu')"
-        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:var(--accent);color:#fff;transition:all .2s">
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;background:var(--accent);color:#fff;transition:all .2s">
         <span data-i18n="calc_title">🧮 Калории</span>
       </button>
-      <button id="calc-mode-he" onclick="setCalcMode('he')"
-        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;background:transparent;color:var(--text2);transition:all .2s">
-        💉 ХЕ / Сахар
+      <button id="calc-mode-rest" onclick="setCalcMode('rest')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;background:transparent;color:var(--text2);transition:all .2s">
+        🍔 Рестораны
       </button>
+      <button id="calc-mode-he" onclick="setCalcMode('he')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;background:transparent;color:var(--text2);transition:all .2s">
+        💉 ХЕ
+      </button>
+    </div>
+
+    <!-- ══ Ресторан режим ══ -->
+    <div id="calc-rest-section" style="display:none">
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:8px">ПОИСК ПО РЕСТОРАНАМ РФ/СНГ</div>
+        <div style="position:relative">
+          <input type="text" id="rest-search-input"
+            oninput="restSearch(this.value)"
+            onkeydown="if(event.key==='Enter')restSearch(this.value)"
+            placeholder="🍔 Биг Мак, Твистер КФС, Шаурма, Ролл..."
+            style="width:100%;box-sizing:border-box;padding:14px 16px;background:var(--surface);border:2px solid transparent;border-radius:14px;color:var(--text);font:inherit;font-size:15px;outline:none;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
+        </div>
+      </div>
+
+      <!-- Быстрые фильтры по сетям -->
+      <div id="rest-brand-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <button onclick="restSearchBrand('KFC')"    class="rest-chip">🍗 KFC</button>
+        <button onclick="restSearchBrand('McDonald')" class="rest-chip">🍟 McDonald's</button>
+        <button onclick="restSearchBrand('Burger King')" class="rest-chip">👑 BK</button>
+        <button onclick="restSearchBrand('Додо')"   class="rest-chip">🍕 Додо</button>
+        <button onclick="restSearchBrand('Subway')" class="rest-chip">🥖 Subway</button>
+        <button onclick="restSearchBrand('Суши')"   class="rest-chip">🍣 Суши</button>
+        <button onclick="restSearchBrand('Шаурма')" class="rest-chip">🌯 Шаверма</button>
+        <button onclick="restSearchBrand('Кофейня')" class="rest-chip">☕ Кофе</button>
+      </div>
+
+      <div id="rest-results" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
     <!-- ══ КБЖУ режим ══ -->
@@ -816,6 +1013,7 @@
       <div class="stat-streak-val" id="stat-streak">0</div>
       <div class="stat-streak-lbl" data-i18n="stat_streak_lbl">🔥 дней подряд</div>
     </div>
+
     <!-- KPI -->
     <div class="stat-card">
       <div class="stat-card-title">📈 Неделя</div>
@@ -1431,6 +1629,21 @@
   <button class="bnav-item active" data-tab="diary"    onclick="switchTab('diary')"    id="bnav-diary">
     <span class="bnav-ic">📔</span><span class="bnav-lbl" data-i18n="nav_diary">Дневник</span>
   </button>
+  <button class="bnav-item" data-tab="healthsync" onclick="switchTab('healthsync')" id="bnav-healthsync">
+    <span class="bnav-ic">💪</span><span class="bnav-lbl" data-i18n="nav_healthsync">Здоровье</span>
+  </button>
+  <button class="bnav-item" data-tab="aichat" onclick="switchTab('aichat')" id="bnav-aichat">
+    <span class="bnav-ic">🥗</span><span class="bnav-lbl" data-i18n="nav_aichat">Чат</span>
+  </button>
+  <button class="bnav-item" data-tab="exercise" onclick="switchTab('exercise')" id="bnav-exercise">
+    <span class="bnav-ic">🏃</span><span class="bnav-lbl" data-i18n="nav_exercise">Спорт</span>
+  </button>
+  <button class="bnav-item" data-tab="healthscore" onclick="switchTab('healthscore')" id="bnav-healthscore">
+    <span class="bnav-ic">🏅</span><span class="bnav-lbl" data-i18n="nav_health">Score</span>
+  </button>
+  <button class="bnav-item" data-tab="fast" onclick="switchTab('fast')" id="bnav-fast">
+    <span class="bnav-ic">⏱</span><span class="bnav-lbl" data-i18n="nav_fast">Голодание</span>
+  </button>
   <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
     <span class="bnav-ic">📈</span><span class="bnav-lbl" data-i18n="nav_progress">Прогресс</span>
   </button>
@@ -1576,6 +1789,11 @@
 
 
 <script src="/js/10-charts-archive.js?v=3x"></script>
+<script src="/js/11-fasting.js?v=1a"></script>
+<script src="/js/12-health-score.js?v=1a"></script>
+<script src="/js/13-exercise.js?v=1a"></script>
+<script src="/js/14-ai-chat.js?v=1a"></script>
+<script src="/js/15-health-sync.js?v=1a"></script>
 <script src="/js/11-i18n-ext.js?v=3x"></script>
 <script src="/js/12-share-card.js?v=3x"></script>
 

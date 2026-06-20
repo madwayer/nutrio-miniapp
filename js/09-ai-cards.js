@@ -309,7 +309,13 @@ window.cleanAiText = cleanAiText;
     // Даём Telegram время начать переход — потом закрываемся.
     setTimeout(function(){
       try {
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close();
+        // minimize() сворачивает миниапп вместо закрытия (Bot API 8.0+);
+        // если недоступен — просто не закрываем, приложение остаётся открытым.
+        if (window.Telegram && Telegram.WebApp) {
+          var tgwa = Telegram.WebApp;
+          if (tgwa.minimize) tgwa.minimize();
+          // если minimize нет — не делаем ничего, юзер сам вернётся
+        }
       } catch(e){}
     }, 250);
   };
@@ -322,7 +328,13 @@ window.cleanAiText = cleanAiText;
           if (typeof showToast === 'function') showToast(toastOk, 'var(--green)');
           // Даём Telegram время доставить пуш — потом закрываем Mini App
           setTimeout(function(){
-            try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.close) Telegram.WebApp.close(); } catch(e){}
+            try { // minimize() сворачивает миниапп вместо закрытия (Bot API 8.0+);
+        // если недоступен — просто не закрываем, приложение остаётся открытым.
+        if (window.Telegram && Telegram.WebApp) {
+          var tgwa = Telegram.WebApp;
+          if (tgwa.minimize) tgwa.minimize();
+          // если minimize нет — не делаем ничего, юзер сам вернётся
+        } } catch(e){}
           }, 400);
           return;
         }

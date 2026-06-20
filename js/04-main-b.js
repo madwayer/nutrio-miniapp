@@ -2538,6 +2538,11 @@ function switchTab(tab) {
   if (tab === 'settingspage') initSettingsPage();
   if (tab === 'prempage')     initPremPage();
   if (tab === 'helppage')     initHelpPage();
+  if (tab === 'healthsync'){ if (typeof initHealthSyncPage === 'function') initHealthSyncPage(); }
+  if (tab === 'aichat')     { if (typeof initAiChatPage === 'function') initAiChatPage(); }
+  if (tab === 'exercise')   { if (typeof initExercisePage === 'function') initExercisePage(); }
+  if (tab === 'fast')       { if (typeof initFastPage === 'function') initFastPage(); }
+  if (tab === 'healthscore'){ if (typeof initHealthScorePage === 'function') initHealthScorePage(); }
   if (tab === 'adminpage')   initAdminPage();
   // Применяем переводы после инициализации страницы
   applyTranslations();
