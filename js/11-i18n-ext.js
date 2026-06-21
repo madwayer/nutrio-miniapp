@@ -11,7 +11,22 @@
       // bottom nav
       nav_diary:"Дневник", nav_progress:"Прогресс", nav_ai:"AI", nav_more:"Ещё",
       nav_add:"Добавить",
-      nav_healthsync:"Здоровье", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Пост",
+      nav_healthsync:"Здоровье", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Интервал",
+      // healthsync tab
+      hsync_title:"Здоровье", hsync_no_data:"Данных пока нет. Добавь первую запись!",
+      hsync_add:"➕ ДОБАВИТЬ ДАННЫЕ СЕГОДНЯ",
+      hsync_steps_lbl:"Шаги", hsync_sleep_lbl:"Сон (часы)", hsync_hr_lbl:"Пульс (уд/мин)",
+      // exercise tab  
+      ex_title:"Тренировки", ex_search_ph:"Поиск: бег, плавание, йога...",
+      ex_minutes_lbl:"Минуты", ex_note_ph:"Заметка (опционально)",
+      // health score tab
+      hs_title:"Health Score",
+      // fasting tab
+      fast_title:"Интервал питания", fast_choose:"Выбери протокол:",
+      fast_stop:"⏹ Завершить период", fast_stats:"📊 Статистика", fast_history:"📋 История",
+      // ai chat tab
+      aichat_title:"AI-нутрициолог", aichat_ph:"Спроси о питании, калориях, диете...",
+      aichat_clear:"🗑 Очистить", aichat_disclaimer:"AI может ошибаться — проверяй важное с врачом",
       // add sheet
       add_sheet_title:"Добавить запись",
       add_barcode:"Штрихкод", add_barcode_sub:"Скан упаковки",
@@ -141,7 +156,17 @@
     en: {
       nav_diary:"Diary", nav_progress:"Progress", nav_ai:"AI", nav_more:"More",
       nav_add:"Add",
-      nav_healthsync:"Health", nav_aichat:"AI Chat", nav_exercise:"Exercise", nav_health:"Score", nav_fast:"Fasting",
+      nav_healthsync:"Health", nav_aichat:"AI Chat", nav_exercise:"Exercise", nav_health:"Score", nav_fast:"Interval",
+      hsync_title:"Health", hsync_no_data:"No data yet. Add your first entry!",
+      hsync_add:"➕ ADD TODAY'S DATA",
+      hsync_steps_lbl:"Steps", hsync_sleep_lbl:"Sleep (hours)", hsync_hr_lbl:"Heart rate (bpm)",
+      ex_title:"Workouts", ex_search_ph:"Search: running, swimming, yoga...",
+      ex_minutes_lbl:"Minutes", ex_note_ph:"Note (optional)",
+      hs_title:"Health Score",
+      fast_title:"Eating window", fast_choose:"Choose protocol:",
+      fast_stop:"⏹ Stop period", fast_stats:"📊 Statistics", fast_history:"📋 History",
+      aichat_title:"AI nutritionist", aichat_ph:"Ask about nutrition, calories, diet...",
+      aichat_clear:"🗑 Clear", aichat_disclaimer:"AI can make mistakes — verify with a doctor",
       add_sheet_title:"Add entry",
       add_barcode:"Barcode", add_barcode_sub:"Scan package",
       add_photo:"Photo of food", add_photo_sub:"Recognize by photo",
@@ -259,7 +284,7 @@
     },
     uk: {
       nav_diary:"Щоденник", nav_progress:"Прогрес", nav_ai:"AI", nav_more:"Ще", nav_add:"Додати",
-      nav_healthsync:"Здоров'я", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Піст",
+      nav_healthsync:"Здоров'я", nav_aichat:"AI-чат", nav_exercise:"Спорт", nav_health:"Score", nav_fast:"Інтервал",
       add_sheet_title:"Додати запис",
       add_barcode:"Штрихкод", add_barcode_sub:"Скан пакування",
       add_photo:"Фото страви", add_photo_sub:"Розпізнати по фото",
@@ -368,7 +393,7 @@
     },
     de: {
       nav_diary:"Tagebuch", nav_progress:"Fortschritt", nav_ai:"AI", nav_more:"Mehr", nav_add:"Hinzufügen",
-      nav_healthsync:"Gesundheit", nav_aichat:"KI-Chat", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Fasten",
+      nav_healthsync:"Gesundheit", nav_aichat:"KI-Chat", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Intervall",
       add_sheet_title:"Eintrag hinzufügen",
       add_barcode:"Barcode", add_barcode_sub:"Verpackung scannen",
       add_photo:"Essensfoto", add_photo_sub:"Per Foto erkennen",
@@ -477,7 +502,7 @@
     },
     fr: {
       nav_diary:"Journal", nav_progress:"Progrès", nav_ai:"IA", nav_more:"Plus", nav_add:"Ajouter",
-      nav_healthsync:"Santé", nav_aichat:"Chat IA", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Jeûne",
+      nav_healthsync:"Santé", nav_aichat:"Chat IA", nav_exercise:"Sport", nav_health:"Score", nav_fast:"Intervalle",
       add_sheet_title:"Ajouter une entrée",
       add_barcode:"Code-barres", add_barcode_sub:"Scanner l'emballage",
       add_photo:"Photo du plat", add_photo_sub:"Reconnaître par photo",
@@ -586,7 +611,7 @@
     },
     es: {
       nav_diary:"Diario", nav_progress:"Progreso", nav_ai:"IA", nav_more:"Más", nav_add:"Añadir",
-      nav_healthsync:"Salud", nav_aichat:"Chat IA", nav_exercise:"Ejercicio", nav_health:"Score", nav_fast:"Ayuno",
+      nav_healthsync:"Salud", nav_aichat:"Chat IA", nav_exercise:"Ejercicio", nav_health:"Score", nav_fast:"Intervalo",
       add_sheet_title:"Añadir entrada",
       add_barcode:"Código de barras", add_barcode_sub:"Escanear envase",
       add_photo:"Foto del plato", add_photo_sub:"Reconocer por foto",

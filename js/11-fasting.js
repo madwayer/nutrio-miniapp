@@ -41,13 +41,13 @@ function _fmtDate(isoStr) {
 }
 
 // ───── Кольцо прогресса ─────────────────────────────────────────
-var RING_CIRC = 553; // 2π×88
+var RING_CIRC = 427; // 2π×68 (r=68 in SVG)
 
 function _setRing(pct) {
-  var ring = document.getElementById('fast-ring');
-  if (!ring) return;
+  var arc = document.getElementById('fast-ring-arc');
+  if (!arc) return;
   var offset = RING_CIRC - (pct / 100) * RING_CIRC;
-  ring.style.strokeDashoffset = offset;
+  arc.style.strokeDashoffset = String(offset);
 }
 
 function _setRingState(active) {
@@ -61,12 +61,16 @@ function _setRingState(active) {
   var btnStart = document.getElementById('fast-btn-start-wrap');
   var btnStop  = document.getElementById('fast-btn-stop-wrap');
 
+  // Всегда показываем кольцо
+  var ringWrap = document.getElementById('fast-ring');
+  if (ringWrap) ringWrap.style.display = 'block';
+
   if (!active) {
     _setRing(0);
     if (emoji)  emoji.textContent  = '⏱';
     if (time)   time.textContent   = '--:--:--';
-    if (label)  label.textContent  = _isRu() ? 'Нет голодания' : 'No active fast';
-    if (pctEl)  pctEl.textContent  = '';
+    if (label)  label.textContent  = _isRu() ? 'Нет активного периода' : 'No active period';
+    if (pctEl)  pctEl.textContent  = '0%';
     if (status) status.style.display = 'none';
     if (btnStart) btnStart.style.display = 'block';
     if (btnStop)  btnStop.style.display  = 'none';
@@ -179,10 +183,10 @@ async function fastStart(protocol, hours) {
   try {
     var d = await apiPost('/api/fast', {action:'start', protocol:protocol, target_hours:hours});
     if (d && d.ok) {
-      showToast('⏱ ' + (protocol) + ' — ' + (_isRu() ? 'голодание начато!' : 'fast started!'), 'var(--accent)');
+      showToast('⏱ ' + (protocol) + ' — ' + (_isRu() ? 'интервал начат!' : 'period started!'), 'var(--accent)');
       await fastLoad();
     } else if (d && d.error === 'already_active') {
-      showToast(_isRu() ? 'Уже есть активное голодание' : 'Already fasting', 'var(--accent2)');
+      showToast(_isRu() ? 'Уже есть активный период' : 'Already active', 'var(--accent2)');
     } else {
       showToast(_isRu() ? 'Ошибка, попробуй снова' : 'Error, try again', 'var(--accent2)');
     }
@@ -195,7 +199,7 @@ window.fastStart = fastStart;
 // ───── Стоп сессии ───────────────────────────────────────────────
 async function fastStop() {
   showConfirm(
-    _isRu() ? 'Завершить голодание?' : 'Stop fast?',
+    _isRu() ? 'Завершить период питания?' : 'Stop period?',
     async function() {
       try {
         var d = await apiPost('/api/fast', {action:'stop'});

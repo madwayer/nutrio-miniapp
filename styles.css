@@ -1701,7 +1701,7 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 .bnav::-webkit-scrollbar { display: none; }
 .bnav-item {
   flex: 0 0 auto;
-  min-width: 56px;
+  min-width: 60px;
   background: transparent;
   border: none;
   color: var(--text2);
@@ -1734,10 +1734,11 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 
 /* ── FAB (centre) ─────────────────────────────────────────────── */
 .bnav-fab {
-  flex: 0 0 64px;
+  flex: 0 0 68px;
   align-self: center;
-  width: 60px; height: 60px;
-  margin-top: -22px;
+  width: 56px; height: 56px;
+  margin: 0 4px;
+  margin-top: -20px;
   border: none;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent2));

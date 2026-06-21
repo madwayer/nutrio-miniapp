@@ -536,7 +536,7 @@
 <div class="page" id="page-aichat">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div class="section-title" style="margin:0">🥗 AI-нутрициолог</div>
-    <button onclick="chatReset()" style="background:transparent;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px">🗑 Очистить</button>
+    <button onclick="chatClear()" style="background:transparent;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px">🗑 Очистить</button>
   </div>
   <div id="chat-messages" style="display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:calc(100vh - 260px);overflow-y:auto;padding:4px 2px;margin-bottom:12px"></div>
   <div style="display:flex;gap:8px;align-items:flex-end">
@@ -557,7 +557,7 @@
     <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">➕ Добавить упражнение</div>
     <input id="ex-search-input" type="text" placeholder="Поиск: бег, плавание, йога..."
       style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box;outline:none;margin-bottom:8px"
-      oninput="exSearch(this.value)"
+      oninput="exSearchInput(this.value)"
     />
     <div id="ex-search-results" style="max-height:160px;overflow-y:auto;border-radius:10px;margin-bottom:8px"></div>
     <div id="ex-add-form" style="display:none;background:var(--surface);border-radius:10px;padding:10px;margin-bottom:8px">
@@ -585,9 +585,9 @@
 
 <!-- ═══════════════ ИНТЕРВАЛЬНОЕ ГОЛОДАНИЕ ═══════════════ -->
 <div class="page" id="page-fast">
-  <div class="section-title">⏱ Интервальное голодание</div>
+  <div class="section-title">⏱ Интервал питания</div>
   <!-- Кольцо прогресса -->
-  <div id="fast-ring" style="display:none;text-align:center;margin-bottom:16px">
+  <div id="fast-ring" style="text-align:center;margin-bottom:16px">
     <div style="position:relative;display:inline-block">
       <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
         <circle cx="80" cy="80" r="68" fill="none" stroke="var(--surface2)" stroke-width="12"/>
@@ -636,8 +636,8 @@
     <div class="section-title" style="margin:0">🏅 Health Score</div>
     <button onclick="_hsLoaded=false;initHealthScorePage()" style="background:transparent;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:8px">🔄</button>
   </div>
-  <div id="hs-loading" style="text-align:center;padding:40px 20px;color:var(--text2)">⏳ Загрузка...</div>
-  <div id="hs-main" style="display:none">
+  <div id="hs-loading" style="display:none;text-align:center;padding:40px 20px;color:var(--text2)">⏳ Загрузка...</div>
+  <div id="hs-main" style="min-height:200px">
     <div id="hs-ring-wrap" style="text-align:center;margin-bottom:16px"></div>
     <div id="hs-radar" style="margin-bottom:14px"></div>
     <div id="hs-components" style="margin-bottom:12px"></div>
@@ -1756,7 +1756,7 @@
     <span class="bnav-ic">🏅</span><span class="bnav-lbl" data-i18n="nav_health">Score</span>
   </button>
   <button class="bnav-item" data-tab="fast" onclick="switchTab('fast')" id="bnav-fast">
-    <span class="bnav-ic">⏱</span><span class="bnav-lbl" data-i18n="nav_fast">Голодание</span>
+    <span class="bnav-ic">⏱</span><span class="bnav-lbl" data-i18n="nav_fast">Интервал</span>
   </button>
   <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
     <span class="bnav-ic">📈</span><span class="bnav-lbl" data-i18n="nav_progress">Прогресс</span>

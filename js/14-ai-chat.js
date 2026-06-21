@@ -265,3 +265,7 @@ function _chatIsRu() {
 })();
 
 })();
+
+// Алиас: HTML кнопка "Очистить" вызывает chatReset()
+window.chatReset = window.chatClear;
+

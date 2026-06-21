@@ -43,6 +43,8 @@ function _renderExSummary(d) {
   var net    = d.net_goal    || 0;
   var ru     = _exIsRu();
 
+  // Показываем карточки даже при нулях
+  el.style.display = 'grid';
   el.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
     + '<div style="background:rgba(219,39,119,.10);border-radius:12px;padding:12px;text-align:center">'
@@ -269,3 +271,7 @@ if (_origPost) {
 }
 
 })();
+
+// Алиас для совместимости с HTML (oninput="exSearch()")
+window.exSearch = window.exSearchInput;
+

@@ -39,12 +39,16 @@ function _setHsLoading(on) {
   var el = document.getElementById('hs-loading');
   if (el) el.style.display = on ? 'flex' : 'none';
   var main = document.getElementById('hs-main');
-  if (main) main.style.opacity = on ? '0.4' : '1';
+  if (main) {
+    main.style.display  = on ? 'none' : 'block';
+    main.style.opacity  = on ? '0' : '1';
+  }
 }
 
 function _setHsEmpty() {
   var main = document.getElementById('hs-main');
   if (!main) return;
+  main.style.display = 'block';
   main.innerHTML = '<div style="text-align:center;padding:40px 20px">'
     + '<div style="font-size:60px;margin-bottom:16px">📝</div>'
     + '<div style="font-weight:700;font-size:18px;color:var(--text);margin-bottom:8px">Нет данных за этот день</div>'
@@ -71,9 +75,10 @@ function _renderTotalRing(total, grade, color, emoji) {
   var offset = RING2_CIRC - (pct / 100) * RING2_CIRC;
 
   // Описание оценки
-  var gradeDescs = {
-    A: 'Превосходно', B: 'Хорошо', C: 'Средне', D: 'Слабо', F: 'Плохо'
-  };
+  var isRuG = _hsIsRu();
+  var gradeDescs = isRuG
+    ? { A: 'Превосходно', B: 'Хорошо', C: 'Средне', D: 'Слабо', F: 'Плохо' }
+    : { A: 'Excellent',   B: 'Good',   C: 'Fair',   D: 'Poor',  F: 'Low'   };
 
   wrap.innerHTML =
     '<svg width="180" height="180" viewBox="0 0 180 180" style="display:block;margin:0 auto;transform:rotate(-90deg)">'
