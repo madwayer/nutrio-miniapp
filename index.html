@@ -1206,10 +1206,13 @@
       <span style="font-size:20px;opacity:.7">›</span>
     </button>
 
-    <div class="ai-mode-row">
-      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')" data-i18n="ai_mode_nutri">🤖 Нутрициолог</button>
-      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')" data-i18n="ai_mode_plan">📅 Планировщик</button>
-      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')" data-i18n="ai_mode_recipe">👨‍🍳 Рецепты</button>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')" data-i18n="ai_mode_nutri"
+        style="width:100%;padding:14px;font-size:15px;border-radius:13px">🤖 Нутрициолог</button>
+      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')" data-i18n="ai_mode_plan"
+        style="width:100%;padding:14px;font-size:15px;border-radius:13px">📅 Планировщик</button>
+      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')" data-i18n="ai_mode_recipe"
+        style="width:100%;padding:14px;font-size:15px;border-radius:13px">👨‍🍳 Рецепты</button>
     </div>
 
     <!-- Нутрициолог -->
@@ -1767,9 +1770,6 @@
   </button>
   <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
     <span class="bnav-ic">📈</span><span class="bnav-lbl">Прогресс</span>
-  </button>
-  <button class="bnav-item" data-tab="healthscore" onclick="switchTab('healthscore')" id="bnav-healthscore">
-    <span class="bnav-ic">🏅</span><span class="bnav-lbl">Индекс</span>
   </button>
   <button class="bnav-item" onclick="openMoreSheet()" id="bnav-more">
     <span class="bnav-ic">⋯</span><span class="bnav-lbl">Ещё</span>

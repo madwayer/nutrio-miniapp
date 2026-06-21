@@ -2,7 +2,7 @@
 (function(){
   // Pages that map to the 4 bottom nav slots (diary, progress, ai, scanner via FAB).
   // Anything else opens via FAB or 'Ещё', no nav highlight.
-  var BNAV_TABS = { diary:'bnav-diary', healthsync:'bnav-healthsync', statpage:'bnav-statpage', aipage:'bnav-aipage', progress:'bnav-progress', healthscore:'bnav-healthscore' };
+  var BNAV_TABS = { diary:'bnav-diary', healthsync:'bnav-healthsync', statpage:'bnav-statpage', aipage:'bnav-aipage', progress:'bnav-progress' };
 
   function setActive(tab){
     document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active');});
