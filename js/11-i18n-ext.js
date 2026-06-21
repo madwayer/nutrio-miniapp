@@ -39,6 +39,8 @@
       cancel:"Отмена", close:"Закрыть",
       // more sheet
       more_sheet_title:"Ещё",
+      more_sport:"Спорт", more_score:"Индекс здоровья", more_fast:"Интервал питания",
+      more_progress:"Прогресс", more_ai:"AI-рецепты",
       more_lb:"Рейтинг", more_micro:"Микронутриенты", more_stats:"Статистика",
       more_game:"Мини-игра", more_pdf:"PDF отчёт", more_import:"Импорт",
       more_premium:"Premium", more_settings:"Настройки", more_lang:"Язык",
@@ -178,6 +180,8 @@
       add_water_t:"Water", add_water_sub:"+ a glass",
       cancel:"Cancel", close:"Close",
       more_sheet_title:"More",
+      more_sport:"Sports", more_score:"Health Score", more_fast:"Eating window",
+      more_progress:"Progress", more_ai:"AI recipes",
       more_lb:"Leaderboard", more_micro:"Micronutrients", more_stats:"Stats",
       more_game:"Mini-game", more_pdf:"PDF report", more_import:"Import",
       more_premium:"Premium", more_settings:"Settings", more_lang:"Language",
@@ -296,6 +300,8 @@
       add_water_t:"Вода", add_water_sub:"+ склянка",
       cancel:"Скасувати", close:"Закрити",
       more_sheet_title:"Ще",
+      more_sport:"Спорт", more_score:"Індекс здоров'я", more_fast:"Інтервал харчування",
+      more_progress:"Прогрес", more_ai:"AI-рецепти",
       more_lb:"Рейтинг", more_micro:"Мікроелементи", more_stats:"Статистика",
       more_game:"Міні-гра", more_pdf:"PDF звіт", more_import:"Імпорт",
       more_premium:"Premium", more_settings:"Налаштування", more_lang:"Мова",
@@ -405,6 +411,8 @@
       add_water_t:"Wasser", add_water_sub:"+ ein Glas",
       cancel:"Abbrechen", close:"Schließen",
       more_sheet_title:"Mehr",
+      more_sport:"Sport", more_score:"Gesundheits-Score", more_fast:"Essens-Intervall",
+      more_progress:"Fortschritt", more_ai:"KI-Rezepte",
       more_lb:"Rangliste", more_micro:"Mikronährstoffe", more_stats:"Statistik",
       more_game:"Mini-Spiel", more_pdf:"PDF-Bericht", more_import:"Import",
       more_premium:"Premium", more_settings:"Einstellungen", more_lang:"Sprache",
@@ -514,6 +522,8 @@
       add_water_t:"Eau", add_water_sub:"+ un verre",
       cancel:"Annuler", close:"Fermer",
       more_sheet_title:"Plus",
+      more_sport:"Sport", more_score:"Score santé", more_fast:"Intervalle alimentaire",
+      more_progress:"Progrès", more_ai:"Recettes IA",
       more_lb:"Classement", more_micro:"Micronutriments", more_stats:"Stats",
       more_game:"Mini-jeu", more_pdf:"Rapport PDF", more_import:"Import",
       more_premium:"Premium", more_settings:"Paramètres", more_lang:"Langue",
@@ -830,8 +840,12 @@
       var titleEl = m.querySelector('.sheet-title');
       if (titleEl) titleEl.textContent = T('more_sheet_title');
       var rows = m.querySelectorAll('.sheet-row');
-      var rowKeys = ['more_lb','more_micro','more_stats','more_game','more_pdf','more_import',
-                     'more_premium','more_settings','more_help','more_admin'];
+      var rowKeys = [
+        'more_sport','more_score','more_fast','more_progress',
+        'more_lb','more_stats','more_micro','more_ai','more_game',
+        'more_pdf','more_import',
+        'more_premium','more_settings','more_help','more_admin'
+      ];
       rows.forEach(function(r, i){
         var t = r.querySelector('.sheet-row-t');
         if (t && rowKeys[i]) t.textContent = T(rowKeys[i]);
