@@ -1196,6 +1196,16 @@
     </button>
     <div style="height:1px;background:var(--glass-border);margin:0 0 14px"></div>
 
+    <!-- AI-чат главная кнопка -->
+    <button onclick="switchTab('aichat')" style="width:100%;padding:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:16px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;touch-action:manipulation;box-shadow:0 6px 24px rgba(99,102,241,.4);display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:26px">🥗</span>
+      <div style="text-align:left">
+        <div>AI-чат с нутрициологом</div>
+        <div style="font-size:12px;font-weight:400;opacity:.85;margin-top:2px">Задай вопрос о питании, диете, весе</div>
+      </div>
+      <span style="font-size:20px;opacity:.7">›</span>
+    </button>
+
     <div class="ai-mode-row">
       <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')" data-i18n="ai_mode_nutri">🤖 Нутрициолог</button>
       <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')" data-i18n="ai_mode_plan">📅 Планировщик</button>
@@ -1741,19 +1751,28 @@
 ═══════════════════════════════════════════════════════════════ -->
 <nav class="bnav" id="bnav" role="navigation" aria-label="Main">
   <button class="bnav-item active" data-tab="diary" onclick="switchTab('diary')" id="bnav-diary">
-    <span class="bnav-ic">📔</span><span class="bnav-lbl" data-i18n="nav_diary">Дневник</span>
+    <span class="bnav-ic">📔</span><span class="bnav-lbl">Дневник</span>
   </button>
   <button class="bnav-item" data-tab="healthsync" onclick="switchTab('healthsync')" id="bnav-healthsync">
-    <span class="bnav-ic">💪</span><span class="bnav-lbl" data-i18n="nav_healthsync">Здоровье</span>
+    <span class="bnav-ic">💪</span><span class="bnav-lbl">Здоровье</span>
+  </button>
+  <button class="bnav-item" data-tab="statpage" onclick="switchTab('statpage')" id="bnav-statpage">
+    <span class="bnav-ic">📊</span><span class="bnav-lbl">Статистика</span>
   </button>
   <button class="bnav-fab" onclick="openAddSheet()" id="bnav-fab" aria-label="Добавить">
     <span class="bnav-fab-inner">+</span>
   </button>
-  <button class="bnav-item" data-tab="aichat" onclick="switchTab('aichat')" id="bnav-aichat">
-    <span class="bnav-ic">🥗</span><span class="bnav-lbl" data-i18n="nav_aichat">AI-чат</span>
+  <button class="bnav-item" data-tab="aipage" onclick="switchTab('aipage')" id="bnav-aipage">
+    <span class="bnav-ic">🤖</span><span class="bnav-lbl">AI</span>
+  </button>
+  <button class="bnav-item" data-tab="progress" onclick="switchTab('progress')" id="bnav-progress">
+    <span class="bnav-ic">📈</span><span class="bnav-lbl">Прогресс</span>
+  </button>
+  <button class="bnav-item" data-tab="healthscore" onclick="switchTab('healthscore')" id="bnav-healthscore">
+    <span class="bnav-ic">🏅</span><span class="bnav-lbl">Индекс</span>
   </button>
   <button class="bnav-item" onclick="openMoreSheet()" id="bnav-more">
-    <span class="bnav-ic">⋯</span><span class="bnav-lbl" data-i18n="nav_more">Ещё</span>
+    <span class="bnav-ic">⋯</span><span class="bnav-lbl">Ещё</span>
   </button>
 </nav>
 
@@ -1826,7 +1845,7 @@
         <span class="sheet-row-ic">🔬</span><span class="sheet-row-t" data-i18n="more_micro">Микронутриенты</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('aipage')">
-        <span class="sheet-row-ic">🤖</span><span class="sheet-row-t">AI-рецепты</span><span class="sheet-row-arr">›</span>
+        <span class="sheet-row-ic">🤖</span><span class="sheet-row-t">AI-ассистент</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('game')">
         <span class="sheet-row-ic">🎮</span><span class="sheet-row-t" data-i18n="more_game">Мини-игра</span><span class="sheet-row-arr">›</span>

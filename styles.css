@@ -1724,7 +1724,7 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   box-shadow: 0 0 12px rgba(108,99,255,.6);
 }
 .bnav-ic  { font-size: 22px; line-height: 1; }
-.bnav-lbl { font-size: 10px; font-weight: 600; letter-spacing: .2px; opacity: .9; }
+.bnav-lbl { font-size: 9px; font-weight: 600; letter-spacing: .1px; opacity: .9; }
 .bnav-item.active .bnav-lbl { font-weight: 700; }
 
 /* ── FAB (centre) ─────────────────────────────────────────────── */
