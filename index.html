@@ -1206,13 +1206,10 @@
       <span style="font-size:20px;opacity:.7">›</span>
     </button>
 
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')" data-i18n="ai_mode_nutri"
-        style="width:100%;padding:14px;font-size:15px;border-radius:13px">🤖 Нутрициолог</button>
-      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')" data-i18n="ai_mode_plan"
-        style="width:100%;padding:14px;font-size:15px;border-radius:13px">📅 Планировщик</button>
-      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')" data-i18n="ai_mode_recipe"
-        style="width:100%;padding:14px;font-size:15px;border-radius:13px">👨‍🍳 Рецепты</button>
+    <div class="ai-mode-row">
+      <button class="ai-mode-btn active" id="ai-btn-nutri"  onclick="setAiMode('nutri')" data-i18n="ai_mode_nutri">🤖 Нутрициолог</button>
+      <button class="ai-mode-btn"        id="ai-btn-plan"   onclick="setAiMode('plan')" data-i18n="ai_mode_plan">📅 Планировщик</button>
+      <button class="ai-mode-btn"        id="ai-btn-recipe" onclick="setAiMode('recipe')" data-i18n="ai_mode_recipe">👨‍🍳 Рецепты</button>
     </div>
 
     <!-- Нутрициолог -->
@@ -1832,10 +1829,7 @@
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('fast')">
         <span class="sheet-row-ic">⏱</span><span class="sheet-row-t">Интервал питания</span><span class="sheet-row-arr">›</span>
       </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('progress')">
-        <span class="sheet-row-ic">📈</span><span class="sheet-row-t">Прогресс</span><span class="sheet-row-arr">›</span>
-      </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('lbpage')">
+<button class="sheet-row" onclick="closeMoreSheet();switchTab('lbpage')">
         <span class="sheet-row-ic">🏆</span><span class="sheet-row-t">Рейтинг</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('statpage')">
@@ -1844,10 +1838,7 @@
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('micropage')">
         <span class="sheet-row-ic">🔬</span><span class="sheet-row-t" data-i18n="more_micro">Микронутриенты</span><span class="sheet-row-arr">›</span>
       </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('aipage')">
-        <span class="sheet-row-ic">🤖</span><span class="sheet-row-t">AI-ассистент</span><span class="sheet-row-arr">›</span>
-      </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('game')">
+<button class="sheet-row" onclick="closeMoreSheet();switchTab('game')">
         <span class="sheet-row-ic">🎮</span><span class="sheet-row-t" data-i18n="more_game">Мини-игра</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('pdfpage')">

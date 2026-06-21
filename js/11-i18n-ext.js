@@ -841,8 +841,8 @@
       if (titleEl) titleEl.textContent = T('more_sheet_title');
       var rows = m.querySelectorAll('.sheet-row');
       var rowKeys = [
-        'more_sport','more_score','more_fast','more_progress',
-        'more_lb','more_stats','more_micro','more_ai','more_game',
+        'more_sport','more_score','more_fast',
+        'more_lb','more_stats','more_micro','more_game',
         'more_pdf','more_import',
         'more_premium','more_settings','more_help','more_admin'
       ];
