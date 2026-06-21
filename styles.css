@@ -1687,21 +1687,16 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   align-items: stretch;
-  justify-content: flex-start;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  justify-content: space-around;
   background: rgba(16,16,22,0.85);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-top: 1px solid rgba(255,255,255,0.06);
   z-index: 900;
 }
-.bnav::-webkit-scrollbar { display: none; }
 .bnav-item {
-  flex: 0 0 auto;
-  min-width: 60px;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--text2);
@@ -1734,11 +1729,11 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 
 /* ── FAB (centre) ─────────────────────────────────────────────── */
 .bnav-fab {
-  flex: 0 0 68px;
+  flex: 0 0 64px;
   align-self: center;
-  width: 56px; height: 56px;
-  margin: 0 4px;
-  margin-top: -20px;
+  width: 58px; height: 58px;
+  margin: 0 2px;
+  margin-top: -22px;
   border: none;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
