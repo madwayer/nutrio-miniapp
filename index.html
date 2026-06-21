@@ -432,7 +432,7 @@
       <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px" data-i18n="hsync_sleep_q">Качество сна:</div>
       <div style="display:flex;gap:6px">
         <button class="hsync-quality-btn" data-q="1" onclick="hsyncQuality(this,1)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">😴<br><span style="font-size:10px">Плохо</span></button>
-        <button class="hsync-quality-btn" data-q="2" onclick="hsyncQuality(this,2)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">😐<br><span style="font-size:10px">Средне</span></button>
+        <button class="hsync-quality-btn" data-q="2" onclick="hsyncQuality(this,2)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">😐<br><span style="font-size:10px">Слабо</span></button>
         <button class="hsync-quality-btn" data-q="3" onclick="hsyncQuality(this,3)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">😊<br><span style="font-size:10px">Нормально</span></button>
         <button class="hsync-quality-btn" data-q="4" onclick="hsyncQuality(this,4)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">😄<br><span style="font-size:10px">Хорошо</span></button>
         <button class="hsync-quality-btn" data-q="5" onclick="hsyncQuality(this,5)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:13px;cursor:pointer;min-height:40px;color:var(--text)">🌟<br><span style="font-size:10px">Отлично</span></button>
@@ -474,27 +474,18 @@
 
     <!-- iOS -->
     <div id="hsync-content-ios">
-      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:14px;margin-bottom:10px;font-size:13px;line-height:1.9;color:var(--text)">
-        <b style="color:var(--accent);font-size:14px">🍎 Автоматизация через Shortcuts</b><br><br>
-        <b>1.</b> Открой приложение <b>«Быстрые команды»</b> на iPhone<br>
-        <b>2.</b> Нажми <b>«Автоматизация»</b> → <b>«Новая автоматизация»</b><br>
-        <b>3.</b> Выбери <b>«Время суток»</b> → поставь 23:00, ежедневно<br>
-        <b>4.</b> Добавь действие <b>«Получить шаги»</b> (из приложения Здоровье)<br>
-        <b>5.</b> Добавь действие <b>«Получить содержимое URL»</b>:<br>
-        &nbsp;&nbsp;→ Метод: <b>POST</b><br>
-        &nbsp;&nbsp;→ URL: скопируй кнопкой ниже<br>
-        &nbsp;&nbsp;→ В заголовках добавь: <b>X-Health-Token</b> = скопируй токен<br>
-        &nbsp;&nbsp;→ Тело запроса (JSON):<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<code>{"steps": [результат шага 4]}</code><br>
-        <b>6.</b> Сохрани — данные будут отправляться автоматически каждую ночь
+      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--text)">
+        <b style="color:var(--accent)">Через Apple Shortcuts (бесплатно):</b><br>
+        1. Открой <b>Shortcuts</b> на iPhone<br>
+        2. Создай <b>Автоматизацию</b> → каждый день в 23:00<br>
+        3. Действие: <b>«Получить шаги»</b> из Здоровья<br>
+        4. Действие: <b>«Получить содержимое URL»</b> → POST<br>
+        &nbsp;&nbsp;• Заголовок <code>X-Health-Token</code> = твой токен<br>
+        &nbsp;&nbsp;• Тело: <code>{"steps": [Шаги], "source": "apple_health"}</code>
       </div>
-      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.7">
-        <b style="color:var(--green)">Что ещё можно передавать:</b><br>
-        👟 <b>steps</b> — шаги за день<br>
-        😴 <b>sleep_minutes</b> — минуты сна (например, 420 = 7 часов)<br>
-        ❤️ <b>heart_rate_avg</b> — средний пульс<br>
-        📏 <b>distance_m</b> — дистанция в метрах<br>
-        🔥 <b>calories_active</b> — активные калории
+      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--text);line-height:1.7">
+        <b style="color:var(--green)">Поля:</b>
+        <code>steps</code> · <code>sleep_minutes</code> · <code>heart_rate_avg</code> · <code>distance_m</code> · <code>calories_active</code> · <code>spo2</code>
       </div>
       <div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:12px">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Твой токен:</div>
@@ -508,27 +499,17 @@
 
     <!-- Android -->
     <div id="hsync-content-android" style="display:none">
-      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:14px;margin-bottom:10px;font-size:13px;line-height:1.9;color:var(--text)">
-        <b style="color:var(--accent);font-size:14px">🤖 Способ 1: Tasker (продвинутый)</b><br><br>
-        <b>1.</b> Установи <b>Tasker</b> из Google Play (платный, ~280₽)<br>
-        <b>2.</b> Создай новый профиль → <b>Время</b> → 23:00 ежедневно<br>
-        <b>3.</b> В задаче добавь действие <b>HTTP Post</b>:<br>
-        &nbsp;&nbsp;→ URL: <span id="hsync-webhook-android" style="font-size:11px;word-break:break-all;color:var(--accent)">загрузка...</span><br>
-        &nbsp;&nbsp;→ Заголовок: <b>X-Health-Token</b> = <span id="hsync-token-android" style="font-family:monospace;font-size:11px;color:var(--accent)">загрузка...</span><br>
-        &nbsp;&nbsp;→ Тело: <code>{"steps": %Steps}</code> (Tasker подставит шаги)
+      <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--text)">
+        <b style="color:var(--accent)">Через Tasker + HTTP Request:</b><br>
+        1. Установи <b>Tasker</b> + плагин <b>HTTP Request</b><br>
+        2. Создай задачу → HTTP POST:<br>
+        &nbsp;&nbsp;• URL: <span id="hsync-webhook-android" style="font-size:11px;word-break:break-all">загрузка...</span><br>
+        &nbsp;&nbsp;• Header <code>X-Health-Token</code>: <span id="hsync-token-android" style="font-family:monospace;font-size:11px;color:var(--accent)">загрузка...</span><br>
+        3. Запускай каждый вечер по расписанию
       </div>
-      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.9">
-        <b style="color:var(--green);font-size:14px">✅ Способ 2: Google Fit + IFTTT (проще)</b><br><br>
-        <b>1.</b> Установи <b>Google Fit</b> и <b>IFTTT</b> из Google Play (оба бесплатны)<br>
-        <b>2.</b> В IFTTT создай апплет: <b>Google Fit → Webhooks</b><br>
-        <b>3.</b> Триггер: <b>«Daily steps goal reached»</b> или <b>«Every day at»</b> 23:00<br>
-        <b>4.</b> Действие: <b>Webhooks → Make a web request</b>:<br>
-        &nbsp;&nbsp;→ URL: нажми «Копировать URL» ниже<br>
-        &nbsp;&nbsp;→ Метод: POST<br>
-        &nbsp;&nbsp;→ Content Type: application/json<br>
-        &nbsp;&nbsp;→ Body: <code>{"steps": "{{StepCount}}", "heart_rate_avg": "{{HeartRate}}"}</code><br>
-        &nbsp;&nbsp;→ В заголовки добавь X-Health-Token из кнопки ниже<br>
-        <b>5.</b> Сохрани — IFTTT будет отправлять данные автоматически
+      <div style="background:rgba(22,163,74,.08);border-radius:12px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--text);line-height:1.7">
+        <b style="color:var(--green)">Альтернатива — Google Fit + IFTTT:</b><br>
+        Google Fit «Daily steps» → IFTTT Webhooks → наш URL
       </div>
       <button onclick="hsyncCopyToken()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">📋 Копировать токен</button>
     </div>
@@ -551,7 +532,7 @@
 
 </div>
 
-<!-- ═══════════════ AI ЧАТ ═══════════════ -->
+<!-- page-aichat -->
 <div class="page" id="page-aichat">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div class="section-title" style="margin:0">🥗 AI-нутрициолог</div>
@@ -568,7 +549,7 @@
   <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:8px">AI может ошибаться — проверяй важное с врачом</div>
 </div>
 
-<!-- ═══════════════ УПРАЖНЕНИЯ ═══════════════ -->
+<!-- page-exercise -->
 <div class="page" id="page-exercise">
   <div class="section-title">🏃 Трекинг упражнений</div>
   <div id="ex-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px"></div>
@@ -602,7 +583,7 @@
   <div id="ex-list"></div>
 </div>
 
-<!-- ═══════════════ ИНТЕРВАЛЬНОЕ ГОЛОДАНИЕ ═══════════════ -->
+<!-- page-fast -->
 <div class="page" id="page-fast">
   <div class="section-title">⏱ Интервал питания</div>
   <!-- Кольцо прогресса -->
@@ -649,7 +630,7 @@
   <div id="fast-protocol-sheet" style="display:none"></div>
 </div>
 
-<!-- ═══════════════ HEALTH SCORE ═══════════════ -->
+<!-- page-healthscore -->
 <div class="page" id="page-healthscore">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div class="section-title" style="margin:0">🏅 Индекс здоровья</div>
@@ -1827,7 +1808,7 @@
         <span class="sheet-row-ic">🏃</span><span class="sheet-row-t">Спорт</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('healthscore')">
-        <span class="sheet-row-ic">🏅</span><span class="sheet-row-t">Health Score</span><span class="sheet-row-arr">›</span>
+        <span class="sheet-row-ic">🏅</span><span class="sheet-row-t">Индекс здоровья</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('fast')">
         <span class="sheet-row-ic">⏱</span><span class="sheet-row-t">Интервал питания</span><span class="sheet-row-arr">›</span>
@@ -1835,17 +1816,17 @@
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('progress')">
         <span class="sheet-row-ic">📈</span><span class="sheet-row-t">Прогресс</span><span class="sheet-row-arr">›</span>
       </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('aipage')">
-        <span class="sheet-row-ic">🤖</span><span class="sheet-row-t">AI-рецепты</span><span class="sheet-row-arr">›</span>
-      </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('lbpage')">
         <span class="sheet-row-ic">🏆</span><span class="sheet-row-t">Рейтинг</span><span class="sheet-row-arr">›</span>
+      </button>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('statpage')">
+        <span class="sheet-row-ic">📊</span><span class="sheet-row-t">Статистика</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('micropage')">
         <span class="sheet-row-ic">🔬</span><span class="sheet-row-t" data-i18n="more_micro">Микронутриенты</span><span class="sheet-row-arr">›</span>
       </button>
-      <button class="sheet-row" onclick="closeMoreSheet();switchTab('statpage')">
-        <span class="sheet-row-ic">📊</span><span class="sheet-row-t">Статистика</span><span class="sheet-row-arr">›</span>
+      <button class="sheet-row" onclick="closeMoreSheet();switchTab('aipage')">
+        <span class="sheet-row-ic">🤖</span><span class="sheet-row-t">AI-рецепты</span><span class="sheet-row-arr">›</span>
       </button>
       <button class="sheet-row" onclick="closeMoreSheet();switchTab('game')">
         <span class="sheet-row-ic">🎮</span><span class="sheet-row-t" data-i18n="more_game">Мини-игра</span><span class="sheet-row-arr">›</span>
