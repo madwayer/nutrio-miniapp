@@ -25,7 +25,8 @@ async function _hsyncLoad() {
     var d = await apiGet('/api/health_sync', {date: _hsyncDate, range: 7});
     if (d && d.ok) {
       // today
-      _hsyncData = (d.days && d.days[0]) || d.data || {};
+      // days массив: [6 дней назад ... сегодня], берём последний элемент = сегодня
+      _hsyncData = (d.days && d.days[d.days.length - 1]) || d.data || {};
       _hsyncRenderToday(_hsyncData);
       // history
       if (d.days) _hsyncRenderHistory(d.days);
@@ -299,17 +300,11 @@ function _hsyncRenderAggregates(agg) {
   }).join('');
 }
 
-// Перехватываем initHealthSyncPage чтобы добавить загрузку агрегатов
+// Перехватываем initHealthSyncPage чтобы добавить загрузку агрегатов и токена
 var _origInitHealthSync = window.initHealthSyncPage;
 window.initHealthSyncPage = async function() {
   if (_origInitHealthSync) await _origInitHealthSync();
-  // Подгружаем агрегаты через расширенный GET с range=7
-  try {
-    var d = await apiGet('/api/health_sync', {range: 7});
-    if (d && d.ok && d.aggregates) {
-      _hsyncRenderAggregates(d.aggregates);
-    }
-  } catch(e) {}
+  // Агрегаты уже приходят в _hsyncLoad через range:7 ответ
   // Загружаем токен в фоне
   if (!_hsyncToken) _hsyncLoadToken();
 };

@@ -16,6 +16,7 @@
       hsync_title:"Здоровье", hsync_no_data:"Данных пока нет. Добавь первую запись!",
       hsync_add:"➕ ДОБАВИТЬ ДАННЫЕ СЕГОДНЯ",
       hsync_steps_lbl:"Шаги", hsync_sleep_lbl:"Сон (часы)", hsync_hr_lbl:"Пульс (уд/мин)",
+      hsync_sleep_q:"Качество сна:", hsync_save:"Сохранить",
       // exercise tab  
       ex_title:"Тренировки", ex_search_ph:"Поиск: бег, плавание, йога...",
       ex_minutes_lbl:"Минуты", ex_note_ph:"Заметка (опционально)",
@@ -160,6 +161,7 @@
       hsync_title:"Health", hsync_no_data:"No data yet. Add your first entry!",
       hsync_add:"➕ ADD TODAY'S DATA",
       hsync_steps_lbl:"Steps", hsync_sleep_lbl:"Sleep (hours)", hsync_hr_lbl:"Heart rate (bpm)",
+      hsync_sleep_q:"Sleep quality:", hsync_save:"Save",
       ex_title:"Workouts", ex_search_ph:"Search: running, swimming, yoga...",
       ex_minutes_lbl:"Minutes", ex_note_ph:"Note (optional)",
       hs_title:"Health Score",
