@@ -2357,7 +2357,7 @@ async function admLoadUsers(page, q) {
         + (u.premium
            ? '<button class="adm-btn adm-btn-unprem" onclick="admSetPremium('+u.id+',false)">Снять Premium</button>'
            : '<button class="adm-btn adm-btn-prem" onclick="admSetPremium('+u.id+',true)">⭐ +30 дней</button>')
-        + '<button class="adm-btn" style="background:var(--bg2)" onclick="admUserProfile('+u.id+')">👤 Профиль</button>'
+        + '<button class="adm-btn" style="background:var(--surface2);color:var(--text)" onclick="admUserProfile('+u.id+')">👤 Профиль</button>'
         + '</div></div>';
     }).join('');
     var pag = document.getElementById('adm-pagination');
