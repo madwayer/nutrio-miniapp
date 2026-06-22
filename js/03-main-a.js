@@ -460,7 +460,13 @@ function _restRender(items) {
     return;
   }
   el.innerHTML = items.map(function(r){
-    var name = (r.name||'').charAt(0).toUpperCase() + (r.name||'').slice(1);
+    var rawName = (r.name||'');
+    // Правим известные бренды в названии
+    var name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    name = name.replace(/\bкфс\b/gi,'KFC').replace(/\bkfc\b/gi,'KFC')
+               .replace(/\bмакдоналдс\b/gi,"McDonald's").replace(/\bmcd\b/gi,"McDonald's")
+               .replace(/\bбк\b/gi,'BK').replace(/\bбургер кинг\b/gi,'Burger King')
+               .replace(/\bдодо\b/gi,'Додо');
     var brand = r.brand || '';
     // Для добавления — строим payload с весом порции (100г стандарт)
     var payload = JSON.stringify({name:r.name,cal:r.calories,prot:r.protein,fat:r.fat,carbs:r.carbs}).replace(/"/g,'&quot;');
@@ -482,11 +488,11 @@ function _restRender(items) {
       +   '<span style="opacity:.6">г/100г</span>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'
-      +   ['завтрак🌅','обед🌞','ужин🌙','перекус🍎'].map(function(meal){
-            var mname = meal.replace(/[🌅🌞🌙🍎]/g,'').trim();
+      +   [['завтрак','🌅'],['обед','🌞'],['ужин','🌙'],['перекус','🍎']].map(function(pair){
+            var mname = pair[0]; var icon = pair[1];
             return '<button onclick="restAddToMeal(' + payload.replace(/'/g,"&#39;") + ',\'' + mname + '\')" '
               + 'style="padding:9px 2px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:10px;font-weight:600;color:var(--text);cursor:pointer;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">'
-              + meal.slice(-1) + '<br>' + mname
+              + icon + '<br>' + mname
               + '</button>';
           }).join('')
       + '</div>'
@@ -1674,6 +1680,7 @@ async function saveSettings() {
   var goalSel2 = document.getElementById('sett-goal');
   var langSel2 = document.getElementById('sett-lang');
   var tzSel2   = document.getElementById('sett-tz');
+  var heightEl = document.getElementById('sett-height');
   var body = {
     user_id:            parseInt(userId),
     daily_goal:         parseInt(document.getElementById('sett-kcal').value)  || 2000,
@@ -1686,6 +1693,7 @@ async function saveSettings() {
   };
   var w = document.getElementById('sett-weight').value;
   if (w) body.weight = parseFloat(w);
+  if (heightEl && heightEl.value) body.height = parseInt(heightEl.value);
 
   var btn = document.querySelector('.sett-save-btn');
   btn.disabled = true; btn.textContent = '⏳ Сохраняю...';
@@ -1765,7 +1773,17 @@ async function initPremPage() {
   if (!userId) return;
   try {
     var data = await apiGet('/api/settings');
-    if (!data.ok) { showToast('Настройки не загружены', 'var(--accent2)'); return; }
+    if (!data || !data.ok) {
+      // Попробуем ещё раз через 1 секунду
+      setTimeout(async function(){
+        try {
+          var data2 = await apiGet('/api/settings');
+          if (data2 && data2.ok) { initPremPage(); }
+          else { showToast('Не удалось загрузить. Перезайди в раздел.', 'var(--accent2)'); }
+        } catch(e) {}
+      }, 1000);
+      return;
+    }
 
     var card  = document.getElementById('prem-status-card');
     var icon  = document.getElementById('prem-icon');
@@ -1856,9 +1874,18 @@ function helpOpenSupport() {
 function openTgLink(url) {
   try {
     var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.openLink) tg.openLink(url, {try_instant_view: false});
-    else if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
-    else window.open(url, '_blank');
+    if (tg) {
+      // Для t.me ссылок используем openTelegramLink (закрывает WebApp)
+      if (url.includes('t.me') && tg.openTelegramLink) {
+        tg.openTelegramLink(url);
+      } else if (tg.openLink) {
+        tg.openLink(url, {try_instant_view: false});
+      } else {
+        window.open(url, '_blank');
+      }
+    } else {
+      window.open(url, '_blank');
+    }
   } catch(e) { window.open(url, '_blank'); }
 }
 
