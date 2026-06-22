@@ -585,48 +585,74 @@
 
 <!-- page-fast -->
 <div class="page" id="page-fast">
-  <div class="section-title">⏱ Интервал питания</div>
-  <!-- Кольцо прогресса -->
-  <div id="fast-ring" style="text-align:center;margin-bottom:16px">
-    <div style="position:relative;display:inline-block">
-      <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
-        <circle cx="80" cy="80" r="68" fill="none" stroke="var(--surface2)" stroke-width="12"/>
-        <circle id="fast-ring-arc" cx="80" cy="80" r="68" fill="none" stroke="var(--accent)" stroke-width="12"
-          stroke-linecap="round" stroke-dasharray="427" stroke-dashoffset="427" style="transition:stroke-dashoffset 1s ease"/>
+  <!-- Заголовок -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div class="section-title" style="margin:0">⏱ Интервал питания</div>
+    <button onclick="_fastLoaded=false;initFastPage()" style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--text);cursor:pointer">↻ Обновить</button>
+  </div>
+
+  <!-- Кольцо прогресса - большое и красивое -->
+  <div id="fast-ring" style="text-align:center;margin-bottom:20px">
+    <div style="position:relative;display:inline-block;filter:drop-shadow(0 0 18px rgba(108,99,255,.35))">
+      <svg width="200" height="200" viewBox="0 0 200 200" style="transform:rotate(-90deg)">
+        <circle cx="100" cy="100" r="85" fill="none" stroke="var(--surface2)" stroke-width="14"/>
+        <circle id="fast-ring-arc" cx="100" cy="100" r="85" fill="none" stroke="url(#fastGrad)" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="534" stroke-dashoffset="534" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+        <defs>
+          <linearGradient id="fastGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:var(--accent)"/>
+            <stop offset="100%" style="stop-color:var(--accent2)"/>
+          </linearGradient>
+        </defs>
       </svg>
       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
-        <div id="fast-ring-emoji" style="font-size:28px">⏱</div>
-        <div id="fast-ring-time" style="font-size:20px;font-weight:800;color:var(--text)">0:00</div>
-        <div id="fast-ring-pct" style="font-size:12px;color:var(--text2)">0%</div>
+        <div id="fast-ring-emoji" style="font-size:36px;line-height:1">⏱</div>
+        <div id="fast-ring-time" style="font-size:26px;font-weight:900;color:var(--text);margin-top:4px;letter-spacing:-1px">0:00:00</div>
+        <div id="fast-ring-pct" style="font-size:13px;color:var(--accent);font-weight:700;margin-top:2px">0%</div>
       </div>
     </div>
-    <div id="fast-ring-label" style="font-size:14px;color:var(--text2);margin-top:6px"></div>
+    <div id="fast-ring-label" style="font-size:14px;color:var(--text2);margin-top:10px;font-weight:600"></div>
   </div>
-  <!-- Статус активного голодания -->
-  <div id="fast-status-row" style="display:none;background:var(--surface2);border-radius:14px;padding:12px;margin-bottom:12px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><div style="font-size:11px;color:var(--text2)">Начало</div><div id="fast-status-start" style="font-size:14px;font-weight:700;color:var(--text)">—</div></div>
-      <div><div style="font-size:11px;color:var(--text2)">Конец</div><div id="fast-status-end" style="font-size:14px;font-weight:700;color:var(--text)">—</div></div>
+
+  <!-- Статус активного периода -->
+  <div id="fast-status-row" style="display:none;background:linear-gradient(135deg,rgba(108,99,255,.12),rgba(168,85,247,.08));border:1px solid rgba(108,99,255,.2);border-radius:16px;padding:14px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Начало</div>
+        <div id="fast-status-start" style="font-size:15px;font-weight:800;color:var(--text)">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Цель</div>
+        <div id="fast-status-end" style="font-size:15px;font-weight:800;color:var(--accent)">—</div>
+      </div>
     </div>
   </div>
-  <!-- Кнопки управления -->
-  <div id="fast-btn-stop-wrap" style="display:none;margin-bottom:12px">
-    <button onclick="fastStop()" style="width:100%;padding:14px;background:var(--accent2);color:#fff;border:none;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer">⏹ Завершить период</button>
+
+  <!-- Кнопка завершить -->
+  <div id="fast-btn-stop-wrap" style="display:none;margin-bottom:14px">
+    <button onclick="fastStop()" style="width:100%;padding:16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:14px;font:inherit;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(239,68,68,.35);touch-action:manipulation">
+      ⏹ Завершить период
+    </button>
   </div>
+
   <!-- Выбор протокола -->
   <div id="fast-btn-start-wrap">
-    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">Выбери протокол:</div>
-    <div id="fast-protocols" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.8px">Выбери режим:</div>
+    <div id="fast-protocols" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"></div>
   </div>
+
   <!-- Статистика -->
-  <div id="fast-stats-card" style="display:none;background:var(--surface2);border-radius:14px;padding:12px;margin-bottom:12px">
-    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📊 Статистика</div>
+  <div id="fast-stats-card" style="display:none;background:var(--surface2);border:1px solid var(--glass-border);border-radius:16px;padding:14px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">📊 Моя статистика</div>
     <div id="fast-stats-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
   </div>
-  <div id="fast-history-card" style="display:none;background:var(--surface2);border-radius:14px;padding:12px">
-    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📋 История</div>
+
+  <!-- История -->
+  <div id="fast-history-card" style="display:none;background:var(--surface2);border:1px solid var(--glass-border);border-radius:16px;padding:14px">
+    <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">📋 История периодов</div>
     <div id="fast-history-list"></div>
   </div>
+
   <div id="fast-protocol-sheet" style="display:none"></div>
 </div>
 
@@ -682,7 +708,7 @@
     <div class="hm-card">
       <div class="hm-head">
         <div class="hm-title">Соблюдение нормы · 35 дней</div>
-        <button class="hm-load-btn" id="hm-load-btn">Загрузить</button>
+        <button class="hm-load-btn" id="hm-load-btn">↻ Обновить</button>
       </div>
       <div class="hm-grid" id="hm-grid"></div>
       <div class="hm-progress"><div class="hm-progress-fill" id="hm-progress-fill"></div></div>

@@ -1,3 +1,4 @@
+var _fastLoaded = false;
 // ═══════════════════════════════════════════════════════════════
 // ФАСТИНГ — Mini App  (11-fasting.js)
 // Анимированный SVG-круг прогресса, выбор протокола, история.
@@ -41,7 +42,7 @@ function _fmtDate(isoStr) {
 }
 
 // ───── Кольцо прогресса ─────────────────────────────────────────
-var RING_CIRC = 427; // 2π×68 (r=68 in SVG)
+var RING_CIRC = 534; // 2π×85 (r=85 in SVG)
 
 function _setRing(pct) {
   var arc = document.getElementById('fast-ring-arc');
@@ -145,17 +146,26 @@ function _renderProtocols() {
   var cont = document.getElementById('fast-protocols');
   if (!cont || cont.children.length > 0) return;
   var ru = _isRu();
-  cont.innerHTML = PROTOCOLS.map(function(p){
+  var protoColors = ['rgba(99,102,241,.1)','rgba(168,85,247,.1)','rgba(239,68,68,.1)','rgba(16,185,129,.1)'];
+  var protoBorders = ['rgba(99,102,241,.25)','rgba(168,85,247,.25)','rgba(239,68,68,.25)','rgba(16,185,129,.25)'];
+  var protoAccents = ['#6366f1','#a855f7','#ef4444','#10b981'];
+  cont.innerHTML = PROTOCOLS.map(function(p, i){
+    var bg  = protoColors[i]  || 'rgba(99,102,241,.1)';
+    var brd = protoBorders[i] || 'rgba(99,102,241,.25)';
+    var acc = protoAccents[i] || 'var(--accent)';
     return '<button onclick="fastStart(\'' + p.key + '\',' + p.hours + ')" style="'
-      + 'display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);'
-      + 'border:1px solid var(--glass-border);border-radius:14px;font:inherit;cursor:pointer;'
-      + 'touch-action:manipulation;text-align:left;width:100%">'
-      + '<span style="font-size:24px">' + p.emoji + '</span>'
+      + 'display:flex;align-items:center;gap:12px;padding:15px;background:'+bg+';'
+      + 'border:1px solid '+brd+';border-radius:16px;font:inherit;cursor:pointer;'
+      + 'touch-action:manipulation;text-align:left;width:100%;position:relative;overflow:hidden">'
+      + '<div style="position:absolute;top:-10px;right:-10px;width:50px;height:50px;background:radial-gradient(circle,'+acc+'33,transparent);pointer-events:none"></div>'
+      + '<span style="font-size:28px;filter:drop-shadow(0 0 8px '+acc+'66)">' + p.emoji + '</span>'
       + '<div style="flex:1">'
-      +   '<div style="font-weight:700;font-size:14px;color:var(--text)">' + (ru ? p.name_ru : p.name_en) + '</div>'
-      +   '<div style="font-size:12px;color:var(--text2);margin-top:2px">' + (ru ? p.desc_ru : p.desc_en) + '</div>'
+      +   '<div style="font-weight:800;font-size:14px;color:var(--text)">' + (ru ? p.name_ru : p.name_en) + '</div>'
+      +   '<div style="font-size:12px;color:var(--text2);margin-top:3px">' + (ru ? p.desc_ru : p.desc_en) + '</div>'
       + '</div>'
-      + '<span style="font-size:18px;color:var(--accent)">→</span>'
+      + '<div style="width:28px;height:28px;border-radius:50%;background:'+acc+'22;border:1.5px solid '+acc+'66;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +   '<span style="font-size:13px;color:'+acc+'">›</span>'
+      + '</div>'
       + '</button>';
   }).join('');
 }
@@ -186,7 +196,7 @@ async function fastStart(protocol, hours) {
       showToast('⏱ ' + (protocol) + ' — ' + (_isRu() ? 'интервал начат!' : 'period started!'), 'var(--accent)');
       await fastLoad();
     } else if (d && d.error === 'already_active') {
-      showToast(_isRu() ? 'Уже есть активный период' : 'Already active', 'var(--accent2)');
+      showToast(_isRu() ? 'Период уже активен' : 'Already active', 'var(--accent2)');
     } else {
       showToast(_isRu() ? 'Ошибка, попробуй снова' : 'Error, try again', 'var(--accent2)');
     }
@@ -199,7 +209,7 @@ window.fastStart = fastStart;
 // ───── Стоп сессии ───────────────────────────────────────────────
 async function fastStop() {
   showConfirm(
-    _isRu() ? 'Завершить период питания?' : 'Stop period?',
+    _isRu() ? 'Завершить текущий период?' : 'Stop period?',
     async function() {
       try {
         var d = await apiPost('/api/fast', {action:'stop'});
