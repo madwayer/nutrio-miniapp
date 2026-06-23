@@ -1950,7 +1950,7 @@ async function initAdminPage() {
 })();
 
 function admSection(name) {
-  ['dash','tickets','users','payments','revenue','broadcast','admstats'].forEach(function(s) {
+  ['dash','tickets','users','payments','revenue','broadcast','notif','admstats'].forEach(function(s) {
     var btn = document.getElementById('adm-btn-' + s);
     var sec = document.getElementById('adm-section-' + s);
     if (btn) btn.className = 'adm-nav-btn' + (s===name?' active':'');
@@ -1961,7 +1961,9 @@ function admSection(name) {
   if (name==='users')    admLoadUsers(0,'');
   if (name==='payments') admLoadPayments();
   if (name==='revenue')  admLoadRevenue();
-  if (name==='admstats') admLoadStats();
+  if (name==='broadcast') { /* уже есть UI */ }
+  if (name==='notif')     admLoadNotifSettings();
+  if (name==='admstats')  admLoadStats();
 }
 
 // ════════════════════════════════════════════════════════
