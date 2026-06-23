@@ -76,11 +76,12 @@ function _renderHs(sc) {
     var a = (i / n) * 2 * Math.PI;
     var dx = (RR + 18) * Math.cos(a);
     var dy = (RR + 18) * Math.sin(a);
-    var ok = i < fc, edge = ok && i === fc - 1;
+    var ok = i < fc;
     if (ok) {
-      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="'+(edge?4.5:3)+'" fill="'+c+'" filter="url(#dg)" opacity="'+(edge?1:0.8)+'"/>';
+      // Заполненные — цвет акцента с равномерным glow
+      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="3" fill="var(--accent)" filter="url(#dg)" opacity="0.9"/>';
     } else {
-      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="2.5" fill="rgba(255,255,255,.06)"/>';
+      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="2.5" fill="rgba(255,255,255,.07)"/>';
     }
   }
 
@@ -117,11 +118,13 @@ function _renderHs(sc) {
     var p   = pt(i, c2.pct);
     var col = c2.pct>=80?'#10b981':c2.pct>=50?'#6366f1':c2.pct>=30?'#f59e0b':'#ef4444';
     var lbl = isRu ? c2.label_ru : c2.label_en;
-    var tip = c2.pct + '% — ' + (isRu ? c2.detail_ru : c2.detail_en);
-    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="6" fill="'+col+'" stroke="rgba(255,255,255,.2)" stroke-width="1.5"'
+    var detail = isRu ? c2.detail_ru : c2.detail_en;
+    var tipTitle = escTip(lbl);
+    var tipBody  = escTip(c2.pct + '% — ' + detail);
+    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+col+'" stroke="#111" stroke-width="1"'
       + ' filter="url(#pg)" style="cursor:pointer"'
-      + ' onmouseover="hsShowTip(this,\''+escTip(lbl)+'\',\''+escTip(tip)+'\')"'
-      + ' ontouchstart="hsShowTip(this,\''+escTip(lbl)+'\',\''+escTip(tip)+'\')"'
+      + ' onmouseover="hsShowTip(this,&apos;'+tipTitle+'&apos;,&apos;'+tipBody+'&apos;)"'
+      + ' ontouchstart="hsShowTip(this,&apos;'+tipTitle+'&apos;,&apos;'+tipBody+'&apos;)"'
       + ' onmouseout="hsHideTip()">'
       + '<title>'+lbl+': '+c2.pct+'%</title>'
       + '</circle>';
@@ -137,11 +140,11 @@ function _renderHs(sc) {
   // Итоговый SVG
   var svgH = PCY + PR + 40; // высота под содержимое
   wrap.innerHTML =
-    '<svg width="100%" viewBox="0 0 390 '+(svgH)+'" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:390px;margin:0 auto;overflow:visible">'
+    '<svg width="100%" viewBox="-15 -10 420 '+(svgH+20)+'" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:400px;margin:0 auto;overflow:visible">'
     + '<defs>'
-    +   '<filter id="rg"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    +   '<filter id="dg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    +   '<filter id="pg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +   '<filter id="rg" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +   '<filter id="dg" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +   '<filter id="pg" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     +   '<linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="'+c+'"/><stop offset="100%" stop-color="'+c+'88"/></linearGradient>'
     +   '<radialGradient id="bg" cx="50%" cy="33%" r="35%"><stop offset="0%" stop-color="'+c+'" stop-opacity=".12"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0"/></radialGradient>'
     +   '<radialGradient id="rg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity=".35"/><stop offset="100%" stop-color="#a78bfa" stop-opacity=".06"/></radialGradient>'
