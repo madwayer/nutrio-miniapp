@@ -79,6 +79,8 @@ function _renderTotalRing(total, grade, color, emoji) {
     + '</defs>'
     // Фоновый трек
     + '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface2)" stroke-width="14"/>'
+    // Декоративные точки по кругу
+    + _dotRing(100, 100, 70, total)
     // Основной прогресс
     + '<circle cx="100" cy="100" r="70" fill="none" stroke="url(#hs-grad)" stroke-width="14"'
     + ' stroke-linecap="round" filter="url(#hs-glow)"'
@@ -184,6 +186,7 @@ function _renderRadar(components) {
 function _renderComponents(components) {
   var el = document.getElementById('hs-components');
   if (!el || !components) return;
+  el.innerHTML = '';
   var isRu = _hsIsRu();
 
   el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
