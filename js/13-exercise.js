@@ -48,7 +48,7 @@ function _renderExSummary(d) {
   el.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
     + '<div style="background:rgba(219,39,119,.10);border-radius:12px;padding:12px;text-align:center">'
-    +   '<div style="font-size:22px;font-weight:800;color:var(--accent2)">-' + Math.round(burned) + '</div>'
+    +   '<div style="font-size:22px;font-weight:800;color:' + (burned > 0 ? 'var(--green)' : 'var(--text2)') + '">' + (burned > 0 ? '-' : '') + Math.round(burned) + '</div>'
     +   '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + (ru ? 'ккал сожжено' : 'kcal burned') + '</div>'
     + '</div>'
     + '<div style="background:rgba(22,163,74,.10);border-radius:12px;padding:12px;text-align:center">'
