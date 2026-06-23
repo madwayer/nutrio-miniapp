@@ -12,9 +12,9 @@ var _fastLoaded  = false; // уже загрузили
 
 // ───── Протоколы ────────────────────────────────────────────────
 var PROTOCOLS = [
-  { key:"16:8",  hours:16, emoji:"⏱", name_ru:"16:8 — Классика",     desc_ru:"16ч голодание / 8ч еда",  name_en:"16:8 — Classic",   desc_en:"16h fast / 8h eating" },
-  { key:"18:6",  hours:18, emoji:"🔥", name_ru:"18:6 — Продвинутый", desc_ru:"18ч голодание / 6ч еда",  name_en:"18:6 — Advanced",  desc_en:"18h fast / 6h eating" },
-  { key:"20:4",  hours:20, emoji:"⚡", name_ru:"20:4 — Воин",        desc_ru:"20ч голодание / 4ч еда",  name_en:"20:4 — Warrior",   desc_en:"20h fast / 4h eating" },
+  { key:"16:8",  hours:16, emoji:"⏱", name_ru:"16:8 — Классика",     desc_ru:"16ч без еды / 8ч питания",  name_en:"16:8 — Classic",   desc_en:"16h fast / 8h eating" },
+  { key:"18:6",  hours:18, emoji:"🔥", name_ru:"18:6 — Продвинутый", desc_ru:"18ч без еды / 6ч питания",  name_en:"18:6 — Advanced",  desc_en:"18h fast / 6h eating" },
+  { key:"20:4",  hours:20, emoji:"⚡", name_ru:"20:4 — Воин",        desc_ru:"20ч без еды / 4ч питания",  name_en:"20:4 — Warrior",   desc_en:"20h fast / 4h eating" },
   { key:"24",    hours:24, emoji:"💎", name_ru:"24ч — OMAD",          desc_ru:"Один приём пищи в день",  name_en:"24h — OMAD",       desc_en:"One meal a day" },
 ];
 
@@ -265,28 +265,60 @@ function _renderHistory(history) {
   card.style.display = 'block';
   var ru = _isRu();
   list.innerHTML = history.slice(0, 10).map(function(s){
-    var icon  = s.completed ? '✅' : '⏸';
+    var icon  = s.completed ? '✅' : '⏹';
+    var iconLabel = s.completed ? (ru ? 'выполнено' : 'done') : (ru ? 'прервано' : 'stopped');
     var color = s.completed ? 'var(--green)' : 'var(--text2)';
-    var date  = _fmtDate(s.ended_at).split(' ')[0];
+    var date  = _fmtDate(s.ended_at || s.started_at);
     var prot  = PROTOCOLS.find(function(p){ return p.key === s.protocol; });
     var emoji = prot ? prot.emoji : '⏱';
     var pct   = s.target_hours > 0 ? Math.min(100, Math.round(s.actual_hours / s.target_hours * 100)) : 0;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;'
-      + 'background:var(--surface2);border-radius:12px">'
-      + '<span style="font-size:20px">' + emoji + '</span>'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+      + 'background:var(--surface2);border-radius:10px;margin-bottom:6px">'
+      + '<span style="font-size:18px;flex-shrink:0">' + emoji + '</span>'
       + '<div style="flex:1;min-width:0">'
-      +   '<div style="font-weight:700;font-size:13px;color:var(--text)">' + s.protocol + ' · ' + s.actual_hours + (ru ? ' ч' : ' h') + '</div>'
-      +   '<div style="height:4px;background:var(--surface);border-radius:2px;margin-top:4px;overflow:hidden">'
+      +   '<div style="display:flex;align-items:center;gap:6px">'
+      +     '<span style="font-weight:700;font-size:13px;color:var(--text)">' + s.protocol + '</span>'
+      +     '<span style="font-size:11px;color:var(--text2)">· ' + s.actual_hours + (ru ? ' ч' : ' h') + '</span>'
+      +     '<span style="font-size:10px;color:' + color + ';margin-left:2px">' + icon + ' ' + iconLabel + '</span>'
+      +   '</div>'
+      +   '<div style="height:3px;background:var(--surface);border-radius:2px;margin-top:4px;overflow:hidden">'
       +     '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:2px"></div>'
       +   '</div>'
       + '</div>'
-      + '<div style="text-align:right">'
-      +   '<div style="font-size:11px;color:var(--text2)">' + date + '</div>'
-      +   '<div style="font-size:13px;color:' + color + ';font-weight:700">' + icon + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">'
+      +   '<div style="font-size:10px;color:var(--text2)">' + date + '</div>'
+      +   '<button onclick="fastDeleteHistory(' + s.id + ',this)" style="background:rgba(239,68,68,.12);border:none;border-radius:6px;padding:2px 7px;font-size:10px;color:#ef4444;cursor:pointer;touch-action:manipulation">✕</button>'
       + '</div>'
       + '</div>';
   }).join('');
 }
+
+// ───── Удаление из истории ───────────────────────────────────────
+async function fastDeleteHistory(id, btn) {
+  var ru = _isRu();
+  try {
+    btn.disabled = true;
+    btn.textContent = '...';
+    var d = await apiPost('/api/fast', {action: 'delete', id: id});
+    if (d && d.ok) {
+      // Удаляем строку из DOM
+      var row = btn.closest('div[style*="border-radius:10px"]');
+      if (row) {
+        row.style.transition = 'opacity .25s';
+        row.style.opacity = '0';
+        setTimeout(function(){ row.remove(); }, 260);
+      }
+    } else {
+      btn.disabled = false;
+      btn.textContent = '✕';
+      showToast(ru ? 'Ошибка удаления' : 'Delete error', 'var(--accent2)');
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✕';
+  }
+}
+window.fastDeleteHistory = fastDeleteHistory;
 
 // ───── Подключение к switchTab ────────────────────────────────────
 (function(){

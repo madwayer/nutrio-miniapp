@@ -594,7 +594,7 @@
   <!-- Заголовок -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
     <div class="section-title" style="margin:0">⏱ Интервал питания</div>
-    <button onclick="_fastLoaded=false;initFastPage()" style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--text);cursor:pointer">↻ Обновить</button>
+    <button class="hm-load-btn" onclick="_fastLoaded=false;initFastPage()">Обновить</button>
   </div>
 
   <!-- Кольцо прогресса - большое и красивое -->
@@ -667,7 +667,7 @@
   <!-- Заголовок -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div class="section-title" style="margin:0">🏅 Индекс здоровья</div>
-    <button onclick="_hsForceRefresh()" style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;padding:6px 14px;font:inherit;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;touch-action:manipulation;z-index:10;position:relative">↻ Обновить</button>
+    <button class="hm-load-btn" onclick="_hsForceRefresh()" style="touch-action:manipulation;z-index:10;position:relative">Обновить</button>
   </div>
 
   <!-- Загрузка -->
@@ -722,7 +722,7 @@
     <div class="hm-card">
       <div class="hm-head">
         <div class="hm-title">Соблюдение нормы · 35 дней</div>
-        <button class="hm-load-btn" id="hm-load-btn">↻ Обновить</button>
+        <button class="hm-load-btn" id="hm-load-btn">Обновить</button>
       </div>
       <div class="hm-grid" id="hm-grid"></div>
       <div class="hm-progress"><div class="hm-progress-fill" id="hm-progress-fill"></div></div>
