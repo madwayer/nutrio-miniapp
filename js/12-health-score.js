@@ -60,6 +60,7 @@ function _getGradeColor(grade) {
 function _renderTotalRing(total, grade, color, emoji) {
   var wrap = document.getElementById('hs-ring-wrap');
   if (!wrap) return;
+  wrap.innerHTML = ''; // очищаем перед ререндером
   var offset = RING2_CIRC - (total / 100) * RING2_CIRC;
   var c = _getGradeColor(grade);
   var isRu = _hsIsRu();
@@ -78,8 +79,6 @@ function _renderTotalRing(total, grade, color, emoji) {
     + '</defs>'
     // Фоновый трек
     + '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface2)" stroke-width="14"/>'
-    // Декоративные точки по кругу
-    + _dotRing(100, 100, 70, total)
     // Основной прогресс
     + '<circle cx="100" cy="100" r="70" fill="none" stroke="url(#hs-grad)" stroke-width="14"'
     + ' stroke-linecap="round" filter="url(#hs-glow)"'
@@ -121,6 +120,7 @@ function _dotRing(cx, cy, r, total) {
 function _renderRadar(components) {
   var el = document.getElementById('hs-radar');
   if (!el || !components || !components.length) return;
+  el.innerHTML = ''; // очищаем перед ререндером
   var n = components.length, cx = 150, cy = 150, r = 105;
   var step = (2 * Math.PI) / n;
 
@@ -238,7 +238,7 @@ function _hsIsRu() {
   if (typeof _orig === 'function') {
     window.switchTab = function(name) {
       _orig(name);
-      if (name === 'healthscore') initHealthScorePage();
+      if (name === 'healthscore') { _hsLoaded = false; initHealthScorePage(); }
     };
   }
 })();
