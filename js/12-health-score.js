@@ -1,11 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
 // HEALTH SCORE UI  (12-health-score.js)
+// Кольцо + паутина в одном SVG — никакого разрыва и overflow
 // ═══════════════════════════════════════════════════════════════
 (function(){
 
 var _hsData   = null;
 var _hsDate   = null;
 var _hsLoaded = false;
+var RING_CIRC = 440; // 2π×70
 
 async function hsLoad(dateStr) {
   _hsLoaded = true;
@@ -27,7 +29,7 @@ function _setHsLoading(on) {
   var ld = document.getElementById('hs-loading');
   var mn = document.getElementById('hs-main');
   if (ld) ld.style.display = on ? 'block' : 'none';
-  if (mn) mn.style.display = on ? 'none'  : 'block';
+  if (mn) mn.style.display = on ? 'none' : 'block';
 }
 
 function _setHsEmpty() {
@@ -36,166 +38,201 @@ function _setHsEmpty() {
   mn.style.display = 'block';
   mn.innerHTML =
     '<div style="text-align:center;padding:48px 20px">'
-    + '<div style="font-size:72px;margin-bottom:16px">🏅</div>'
-    + '<div style="font-weight:800;font-size:20px;color:var(--text);margin-bottom:10px">Нет данных за сегодня</div>'
-    + '<div style="font-size:14px;color:var(--text2);line-height:1.6">Запиши еду и воду — индекс рассчитается автоматически</div>'
+    + '<div style="font-size:64px;margin-bottom:12px">🏅</div>'
+    + '<div style="font-weight:800;font-size:18px;color:var(--text);margin-bottom:8px">Нет данных за сегодня</div>'
+    + '<div style="font-size:13px;color:var(--text2);line-height:1.5">Запиши еду и воду — индекс рассчитается автоматически</div>'
     + '</div>';
 }
-
-function _renderHs(sc) {
-  _renderTotalRing(sc.total, sc.grade, sc.color, sc.emoji);
-  _renderRadar(sc.components);
-  _renderComponents(sc.components);
-  _renderTip(sc.tip_ru, sc.tip_en);
-}
-
-// ── Цвет по оценке ───────────────────────────────────────────────
-var RING_CIRC = 440; // 2π×70
 
 function _gradeColor(grade) {
   return {A:'#10b981',B:'#6366f1',C:'#f59e0b',D:'#f97316',F:'#ef4444'}[grade] || '#6366f1';
 }
 
-// ── Кольцо — чистый SVG в фиксированном контейнере ──────────────
-function _renderTotalRing(total, grade, color, emoji) {
+function _hsIsRu() {
+  try {
+    var l = (typeof i18n!=='undefined' && i18n._lang) || navigator.language || 'ru';
+    return l.startsWith('ru')||l.startsWith('uk')||l.startsWith('be');
+  } catch(e){ return true; }
+}
+
+// ── ГЛАВНЫЙ РЕНДЕР — всё в одном большом SVG ────────────────────
+function _renderHs(sc) {
   var wrap = document.getElementById('hs-ring-wrap');
   if (!wrap) return;
-  var c      = _gradeColor(grade);
-  var offset = RING_CIRC - (total / 100) * RING_CIRC;
+
+  var c      = _gradeColor(sc.grade);
+  var offset = RING_CIRC - (sc.total / 100) * RING_CIRC;
   var isRu   = _hsIsRu();
   var gDesc  = isRu
     ? {A:'Превосходно',B:'Хорошо',C:'Средне',D:'Слабо',F:'Плохо'}
     : {A:'Excellent',  B:'Good',  C:'Fair',  D:'Poor', F:'Low'  };
 
-  // Точки по дуге — внутри g rotate(-90) совпадают с кольцом
-  var n = 12, fc = Math.round(n * total / 100), dotsSvg = '';
+  // ── Кольцо: центр (195, 130), r=70 ──────────────────────────
+  var RCX = 195, RCY = 130, RR = 70;
+
+  // Точки вдоль дуги (внутри g rotate(-90) → angle=0 = верх экрана)
+  var n = 12, fc = Math.round(n * sc.total / 100), dotsSvg = '';
   for (var i = 0; i < n; i++) {
-    var a  = (i / n) * 2 * Math.PI;
-    var dx = (70 + 18) * Math.cos(a);
-    var dy = (70 + 18) * Math.sin(a);
-    var ok = i < fc;
-    var edge = ok && i === fc - 1;
+    var a = (i / n) * 2 * Math.PI;
+    var dx = (RR + 18) * Math.cos(a);
+    var dy = (RR + 18) * Math.sin(a);
+    var ok = i < fc, edge = ok && i === fc - 1;
     if (ok) {
-      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="'+(edge?4.5:3)+'" fill="'+c+'" filter="url(#dg)" opacity="'+(edge?1:0.75)+'"/>';
+      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="'+(edge?4.5:3)+'" fill="'+c+'" filter="url(#dg)" opacity="'+(edge?1:0.8)+'"/>';
     } else {
-      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="2.5" fill="rgba(255,255,255,.07)"/>';
+      dotsSvg += '<circle cx="'+dx+'" cy="'+dy+'" r="2.5" fill="rgba(255,255,255,.06)"/>';
     }
   }
 
+  // ── Паутина: центр (195, 370), r=100 ────────────────────────
+  var PCX = 195, PCY = 380, PR = 100;
+  var comps = sc.components || [];
+  var NC = comps.length;
+  var PSTEP = NC > 0 ? (2 * Math.PI) / NC : 0;
+
+  function pt(i, pct, rr) {
+    var a = i * PSTEP - Math.PI / 2;
+    var d = (rr !== undefined ? rr : PR) * pct / 100;
+    return { x: PCX + d * Math.cos(a), y: PCY + d * Math.sin(a) };
+  }
+
+  // Сетка паутины
+  var grid = [20,40,60,80,100].map(function(g){
+    var pts = comps.map(function(_,i){ var p=pt(i,g); return p.x+','+p.y; }).join(' ');
+    var op = g === 100 ? 0.18 : 0.07;
+    return '<polygon points="'+pts+'" fill="none" stroke="rgba(255,255,255,'+op+')" stroke-width="'+(g===100?0.9:0.6)+'"/>';
+  }).join('');
+
+  // Оси
+  var axes = comps.map(function(_,i){
+    var p = pt(i,100);
+    return '<line x1="'+PCX+'" y1="'+PCY+'" x2="'+p.x+'" y2="'+p.y+'" stroke="rgba(255,255,255,.07)" stroke-width="0.7"/>';
+  }).join('');
+
+  // Заливка данных
+  var dataPts = comps.map(function(c2,i){ var p=pt(i,c2.pct); return p.x+','+p.y; }).join(' ');
+
+  // Точки со свечением + интерактивность
+  var radarDots = comps.map(function(c2,i){
+    var p   = pt(i, c2.pct);
+    var col = c2.pct>=80?'#10b981':c2.pct>=50?'#6366f1':c2.pct>=30?'#f59e0b':'#ef4444';
+    var lbl = isRu ? c2.label_ru : c2.label_en;
+    var tip = c2.pct + '% — ' + (isRu ? c2.detail_ru : c2.detail_en);
+    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="6" fill="'+col+'" stroke="rgba(255,255,255,.2)" stroke-width="1.5"'
+      + ' filter="url(#pg)" style="cursor:pointer"'
+      + ' onmouseover="hsShowTip(this,\''+escTip(lbl)+'\',\''+escTip(tip)+'\')"'
+      + ' ontouchstart="hsShowTip(this,\''+escTip(lbl)+'\',\''+escTip(tip)+'\')"'
+      + ' onmouseout="hsHideTip()">'
+      + '<title>'+lbl+': '+c2.pct+'%</title>'
+      + '</circle>';
+  }).join('');
+
+  // Лейблы эмодзи паутины
+  var labels = comps.map(function(c2,i){
+    var p  = pt(i, 100, PR + 26);
+    var ta = p.x < PCX-10 ? 'end' : p.x > PCX+10 ? 'start' : 'middle';
+    return '<text x="'+p.x+'" y="'+(p.y+5)+'" text-anchor="'+ta+'" font-size="15" font-family="inherit">'+c2.emoji+'</text>';
+  }).join('');
+
+  // Итоговый SVG
+  var svgH = PCY + PR + 40; // высота под содержимое
   wrap.innerHTML =
-    '<svg width="220" height="260" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">'
+    '<svg width="100%" viewBox="0 0 390 '+(svgH)+'" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:390px;margin:0 auto;overflow:visible">'
     + '<defs>'
     +   '<filter id="rg"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     +   '<filter id="dg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    +   '<filter id="pg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     +   '<linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="'+c+'"/><stop offset="100%" stop-color="'+c+'88"/></linearGradient>'
-    +   '<radialGradient id="bg" cx="50%" cy="45%" r="45%"><stop offset="0%" stop-color="'+c+'" stop-opacity=".15"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0"/></radialGradient>'
+    +   '<radialGradient id="bg" cx="50%" cy="33%" r="35%"><stop offset="0%" stop-color="'+c+'" stop-opacity=".12"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0"/></radialGradient>'
+    +   '<radialGradient id="rg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity=".35"/><stop offset="100%" stop-color="#a78bfa" stop-opacity=".06"/></radialGradient>'
     + '</defs>'
-    // Фоновое свечение
-    + '<ellipse cx="110" cy="108" rx="85" ry="85" fill="url(#bg)"/>'
-    // Кольцо + точки (всё повёрнуто -90°)
-    + '<g transform="translate(110,108) rotate(-90)">'
-    +   '<circle cx="0" cy="0" r="70" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>'
+    // Фоновое свечение кольца
+    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="90" ry="90" fill="url(#bg)"/>'
+    // Кольцо (вращаем группу -90°)
+    + '<g transform="translate('+RCX+','+RCY+') rotate(-90)">'
+    +   '<circle cx="0" cy="0" r="'+RR+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14"/>'
     +   dotsSvg
-    +   '<circle cx="0" cy="0" r="70" fill="none" stroke="url(#hg)" stroke-width="14"'
+    +   '<circle cx="0" cy="0" r="'+RR+'" fill="none" stroke="url(#hg)" stroke-width="14"'
     +   ' stroke-linecap="round" filter="url(#rg)"'
     +   ' stroke-dasharray="'+RING_CIRC+'" stroke-dashoffset="'+RING_CIRC+'"'
     +   ' id="hs-ring-arc" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>'
     + '</g>'
-    // Эмодзи
-    + '<text x="110" y="88" text-anchor="middle" font-size="32" font-family="inherit">'+emoji+'</text>'
-    // Число
-    + '<text x="110" y="130" text-anchor="middle" font-size="44" font-weight="900" fill="'+c+'" filter="url(#rg)">'+total+'</text>'
-    // / 100
-    + '<text x="110" y="148" text-anchor="middle" font-size="12" fill="rgba(255,255,255,.4)">/ 100</text>'
-    // Бейдж
-    + '<rect x="76" y="158" width="68" height="26" rx="13" fill="'+c+'22" stroke="'+c+'55" stroke-width="1.5"/>'
-    + '<text x="91" y="176" text-anchor="middle" font-size="14" font-weight="900" fill="'+c+'">'+grade+'</text>'
-    + '<text x="117" y="176" text-anchor="start" font-size="11" fill="rgba(255,255,255,.55)">'+(gDesc[grade]||'')+'</text>'
+    // Контент кольца (не повёрнут)
+    + '<text x="'+RCX+'" y="'+(RCY-26)+'" text-anchor="middle" font-size="30" font-family="inherit">'+sc.emoji+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+16)+'" text-anchor="middle" font-size="44" font-weight="900" fill="'+c+'" filter="url(#rg)">'+sc.total+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+34)+'" text-anchor="middle" font-size="12" fill="rgba(255,255,255,.38)">/ 100</text>'
+    + '<rect x="'+(RCX-36)+'" y="'+(RCY+44)+'" width="72" height="24" rx="12" fill="'+c+'22" stroke="'+c+'44" stroke-width="1.2"/>'
+    + '<text x="'+(RCX-14)+'" y="'+(RCY+60)+'" text-anchor="middle" font-size="13" font-weight="900" fill="'+c+'">'+sc.grade+'</text>'
+    + '<text x="'+(RCX+4)+'" y="'+(RCY+60)+'" text-anchor="start" font-size="11" fill="rgba(255,255,255,.5)">'+(gDesc[sc.grade]||'')+'</text>'
+    // Паутина
+    + grid + axes
+    + '<polygon points="'+dataPts+'" fill="url(#rg2)" stroke="#6366f1" stroke-width="2" filter="url(#pg)"/>'
+    + radarDots + labels
+    // Tooltip overlay
+    + '<g id="hs-svgtip" style="display:none">'
+    +   '<rect id="hs-tip-bg" x="0" y="0" width="160" height="48" rx="10" fill="rgba(20,20,35,.9)" stroke="rgba(255,255,255,.12)" stroke-width="1"/>'
+    +   '<text id="hs-tip-title" x="10" y="18" font-size="11" font-weight="800" fill="white" font-family="inherit"></text>'
+    +   '<text id="hs-tip-body"  x="10" y="36" font-size="10" fill="rgba(255,255,255,.65)" font-family="inherit"></text>'
+    + '</g>'
     + '</svg>';
 
+  // Запуск анимации кольца
   setTimeout(function(){
     var arc = document.getElementById('hs-ring-arc');
     if (arc) arc.style.strokeDashoffset = String(offset);
   }, 150);
+
+  // Карточки и совет рендерим отдельно
+  _renderComponents(comps, isRu);
+  _renderTip(sc.tip_ru, sc.tip_en, isRu);
 }
 
-// ── Паутина ───────────────────────────────────────────────────────
-function _renderRadar(components) {
-  var el = document.getElementById('hs-radar');
-  if (!el || !components || !components.length) return;
-  el.innerHTML = '';
-  var n = components.length;
-  var cx = 150, cy = 150, r = 100;
-  var step = (2 * Math.PI) / n;
-
-  function pt(i, pct, rr) {
-    var a = i * step - Math.PI / 2;
-    var d = (rr !== undefined ? rr : r) * pct / 100;
-    return { x: cx + d * Math.cos(a), y: cy + d * Math.sin(a) };
-  }
-
-  // Сетка
-  var grid = [20,40,60,80,100].map(function(g) {
-    var pts = components.map(function(_,i){ var p=pt(i,g); return p.x+','+p.y; }).join(' ');
-    return '<polygon points="'+pts+'" fill="none" stroke="rgba(255,255,255,'+(g===100?.15:.06)+')" stroke-width="'+(g===100?.8:.5)+'"/>';
-  }).join('');
-
-  // Оси
-  var axes = components.map(function(_,i){
-    var p = pt(i,100);
-    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x+'" y2="'+p.y+'" stroke="rgba(255,255,255,.08)" stroke-width="0.8"/>';
-  }).join('');
-
-  // Данные
-  var dataPts = components.map(function(c,i){ var p=pt(i,c.pct); return p.x+','+p.y; }).join(' ');
-
-  // Цветные точки на вершинах
-  var dots = components.map(function(c,i){
-    var p   = pt(i, c.pct);
-    var col = c.pct>=80?'#10b981':c.pct>=50?'#6366f1':c.pct>=30?'#f59e0b':'#ef4444';
-    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+col+'" stroke="#111" stroke-width="1.5"/>';
-  }).join('');
-
-  // Лейблы эмодзи — с достаточным отступом
-  var labels = components.map(function(c,i){
-    var p  = pt(i, 100, r + 28);
-    var ta = p.x < cx-10 ? 'end' : p.x > cx+10 ? 'start' : 'middle';
-    return '<text x="'+p.x+'" y="'+(p.y+5)+'" text-anchor="'+ta+'" font-size="14" font-family="inherit">'+c.emoji+'</text>';
-  }).join('');
-
-  el.innerHTML =
-    '<svg viewBox="0 0 300 300" style="width:100%;max-width:280px;display:block;margin:0 auto;overflow:visible" xmlns="http://www.w3.org/2000/svg">'
-    + '<defs>'
-    +   '<radialGradient id="rg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity=".4"/><stop offset="100%" stop-color="#a78bfa" stop-opacity=".08"/></radialGradient>'
-    +   '<filter id="pg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    + '</defs>'
-    + grid + axes
-    + '<polygon points="'+dataPts+'" fill="url(#rg2)" stroke="#6366f1" stroke-width="2" filter="url(#pg)"/>'
-    + dots + labels
-    + '</svg>';
+function escTip(s) {
+  return String(s).replace(/'/g,'&apos;').replace(/"/g,'&quot;').slice(0,80);
 }
 
-// ── Карточки компонентов ─────────────────────────────────────────
-function _renderComponents(components) {
+// Tooltip для точек паутины
+window.hsShowTip = function(el, title, body) {
+  var tip = document.getElementById('hs-svgtip');
+  var tbg = document.getElementById('hs-tip-bg');
+  var tt  = document.getElementById('hs-tip-title');
+  var tb  = document.getElementById('hs-tip-body');
+  if (!tip || !tt || !tb) return;
+  tt.textContent = title;
+  tb.textContent = body;
+  var cx = parseFloat(el.getAttribute('cx'));
+  var cy = parseFloat(el.getAttribute('cy'));
+  var tx = Math.min(cx - 80, 220);
+  var ty = cy - 58;
+  if (ty < 5) ty = cy + 14;
+  tip.setAttribute('transform','translate('+tx+','+ty+')');
+  tip.style.display = 'block';
+};
+window.hsHideTip = function() {
+  var tip = document.getElementById('hs-svgtip');
+  if (tip) tip.style.display = 'none';
+};
+
+// ── Карточки ─────────────────────────────────────────────────────
+function _renderComponents(comps, isRu) {
   var el = document.getElementById('hs-components');
-  if (!el || !components) return;
-  var isRu = _hsIsRu();
+  if (!el || !comps) return;
   el.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    + components.map(function(c){
-        var lbl    = isRu ? c.label_ru : c.label_en;
-        var detail = isRu ? c.detail_ru : c.detail_en;
-        var pct    = c.pct;
+    + comps.map(function(c2){
+        var lbl    = isRu ? c2.label_ru : c2.label_en;
+        var detail = isRu ? c2.detail_ru : c2.detail_en;
+        var pct    = c2.pct;
         var col    = pct>=80?'#10b981':pct>=50?'#6366f1':pct>=30?'#f59e0b':'#ef4444';
         var bg     = pct>=80?'rgba(16,185,129,.07)':pct>=50?'rgba(99,102,241,.07)':pct>=30?'rgba(245,158,11,.07)':'rgba(239,68,68,.07)';
         return '<div style="background:'+bg+';border:1px solid '+col+'33;border-radius:14px;padding:12px">'
           + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'
-          +   '<span style="font-size:20px">'+c.emoji+'</span>'
+          +   '<span style="font-size:20px">'+c2.emoji+'</span>'
           +   '<span style="font-weight:700;font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+lbl+'</span>'
           +   '<span style="font-size:13px;font-weight:900;color:'+col+'">'+pct+'%</span>'
           + '</div>'
-          + '<div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:5px">'
-          +   '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:2px;transition:width 1s ease"></div>'
+          + '<div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:5px">'
+          +   '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:2px;transition:width 1s ease;box-shadow:0 0 6px '+col+'66"></div>'
           + '</div>'
           + '<div style="font-size:10px;color:var(--text2);line-height:1.4">'+detail+'</div>'
           + '</div>';
@@ -204,35 +241,21 @@ function _renderComponents(components) {
 }
 
 // ── Совет дня ────────────────────────────────────────────────────
-function _renderTip(tipRu, tipEn) {
+function _renderTip(tipRu, tipEn, isRu) {
   var el = document.getElementById('hs-tip');
   if (!el) return;
-  var isRu = _hsIsRu();
-  var tip  = isRu ? tipRu : tipEn;
+  var tip = isRu ? tipRu : tipEn;
   el.innerHTML =
     '<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(167,139,250,.06));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;margin-top:4px">'
     + '<div style="display:flex;align-items:flex-start;gap:10px">'
-    +   '<span style="font-size:24px">💡</span>'
-    +   '<div>'
-    +     '<div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:1.2px;margin-bottom:4px">'+(isRu?'СОВЕТ ДНЯ':'TIP')+'</div>'
-    +     '<div style="font-size:13px;color:var(--text);line-height:1.55">'+tip+'</div>'
-    +   '</div>'
-    + '</div>'
-    + '</div>';
+    +   '<span style="font-size:22px">💡</span>'
+    +   '<div><div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:1.2px;margin-bottom:4px">'+(isRu?'СОВЕТ ДНЯ':'TIP')+'</div>'
+    +   '<div style="font-size:13px;color:var(--text);line-height:1.55">'+tip+'</div></div>'
+    + '</div></div>';
 }
 
-function _hsIsRu() {
-  try {
-    var l = (typeof i18n!=='undefined' && i18n._lang) || navigator.language || 'ru';
-    return l.startsWith('ru') || l.startsWith('uk') || l.startsWith('be');
-  } catch(e) { return true; }
-}
-
-// Кнопка Обновить
-window._hsForceRefresh = function() {
-  _hsLoaded = false;
-  hsLoad();
-};
+// ── Экспорты ─────────────────────────────────────────────────────
+window._hsForceRefresh = function() { _hsLoaded = false; hsLoad(); };
 
 (function(){
   var _orig = window.switchTab;
