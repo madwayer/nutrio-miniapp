@@ -60,7 +60,7 @@ function _getGradeColor(grade) {
 function _renderTotalRing(total, grade, color, emoji) {
   var wrap = document.getElementById('hs-ring-wrap');
   if (!wrap) return;
-  wrap.innerHTML = ''; // очищаем перед ререндером
+  wrap.innerHTML = '';
   var offset = RING2_CIRC - (total / 100) * RING2_CIRC;
   var c = _getGradeColor(grade);
   var isRu = _hsIsRu();
@@ -68,35 +68,36 @@ function _renderTotalRing(total, grade, color, emoji) {
     ? { A:'Превосходно', B:'Хорошо', C:'Средне', D:'Слабо', F:'Плохо' }
     : { A:'Excellent',   B:'Good',   C:'Fair',   D:'Poor',  F:'Low'   };
 
+  // Всё в одном SVG — никаких position:absolute
+  wrap.style.cssText = 'text-align:center;margin-bottom:16px';
   wrap.innerHTML =
-    // Внешнее свечение
-    '<div style="position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,'+c+'22 0%,transparent 70%);pointer-events:none"></div>'
-    // SVG кольцо
-    + '<svg width="200" height="200" viewBox="0 0 200 200" style="display:block;margin:0 auto;transform:rotate(-90deg);position:relative;z-index:1">'
+    '<svg width="220" height="260" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">'
     + '<defs>'
     + '<filter id="hs-glow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    + '<filter id="dot-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     + '<linearGradient id="hs-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="'+c+'"/><stop offset="100%" stop-color="'+c+'88"/></linearGradient>'
+    + '<radialGradient id="hs-glow-bg" cx="50%" cy="45%" r="40%"><stop offset="0%" stop-color="'+c+'" stop-opacity="0.15"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0"/></radialGradient>'
     + '</defs>'
-    // Фоновый трек
-    + '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface2)" stroke-width="14"/>'
-    // Декоративные точки по кругу
-    + _dotRing(100, 100, 70, total)
-    // Основной прогресс
-    + '<circle cx="100" cy="100" r="70" fill="none" stroke="url(#hs-grad)" stroke-width="14"'
-    + ' stroke-linecap="round" filter="url(#hs-glow)"'
-    + ' stroke-dasharray="'+RING2_CIRC+'" stroke-dashoffset="'+RING2_CIRC+'"'
-    + ' id="hs-ring-arc" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>'
-    + '</svg>'
-    // Контент в центре
-    + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2">'
-    +   '<div style="font-size:32px;line-height:1;filter:drop-shadow(0 0 8px '+c+'88)">'+emoji+'</div>'
-    +   '<div style="font-size:38px;font-weight:900;color:'+c+';line-height:1.1;margin-top:6px;text-shadow:0 0 20px '+c+'66">'+total+'</div>'
-    +   '<div style="font-size:11px;color:var(--text2);margin-top:1px">/ 100</div>'
-    +   '<div style="margin-top:6px;background:'+c+'22;border:1px solid '+c+'44;border-radius:20px;padding:3px 12px">'
-    +     '<span style="font-size:15px;font-weight:900;color:'+c+'">'+grade+'</span>'
-    +     '<span style="font-size:11px;color:var(--text2);margin-left:5px">'+(gradeDescs[grade]||'')+'</span>'
-    +   '</div>'
-    + '</div>';
+    // Фоновое свечение
+    + '<ellipse cx="110" cy="110" rx="90" ry="90" fill="url(#hs-glow-bg)"/>'
+    // Кольцо - рисуем прямо без rotate на SVG, управляем через transform на элементе
+    + '<g transform="translate(110,110) rotate(-90)">'
+    +   '<circle cx="0" cy="0" r="70" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"/>'
+    +   _dotRingInline(70, total)
+    +   '<circle cx="0" cy="0" r="70" fill="none" stroke="url(#hs-grad)" stroke-width="14"'
+    +   ' stroke-linecap="round" filter="url(#hs-glow)"'
+    +   ' stroke-dasharray="'+RING2_CIRC+'" stroke-dashoffset="'+RING2_CIRC+'"'
+    +   ' id="hs-ring-arc" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>'
+    + '</g>'
+    // Текст в центре кольца
+    + '<text x="110" y="90" text-anchor="middle" font-size="30" font-family="inherit">'+emoji+'</text>'
+    + '<text x="110" y="130" text-anchor="middle" font-size="42" font-weight="900" fill="'+c+'" filter="url(#hs-glow)" style="text-shadow:none">'+total+'</text>'
+    + '<text x="110" y="148" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.4)">/ 100</text>'
+    // Бейдж оценки
+    + '<rect x="85" y="158" width="50" height="24" rx="12" fill="'+c+'22" stroke="'+c+'44" stroke-width="1"/>'
+    + '<text x="100" y="174" text-anchor="middle" font-size="15" font-weight="900" fill="'+c+'">'+grade+'</text>'
+    + '<text x="133" y="174" text-anchor="start" font-size="11" fill="rgba(255,255,255,0.5)">'+(gradeDescs[grade]||'')+'</text>'
+    + '</svg>';
 
   setTimeout(function(){
     var arc = document.getElementById('hs-ring-arc');
@@ -104,20 +105,15 @@ function _renderTotalRing(total, grade, color, emoji) {
   }, 200);
 }
 
-function _dotRing(cx, cy, r, total) {
-  // Светящиеся точки по направлению дуги кольца
-  // SVG повёрнут на -90deg, поэтому начало дуги (верх экрана) = правая сторона math coords
-  // Чтобы точки совпадали с дугой: начинаем с angle = 0 (правая сторона в math = верх на экране)
+function _dotRingInline(r, total) {
+  // Точки внутри g с rotate(-90), значит angle=0 = верх экрана ✓
   var dots = '';
   var n = 12;
   var filled_count = Math.round(n * total / 100);
-  dots += '<defs><filter id="dot-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   for (var i = 0; i < n; i++) {
-    // angle=0 = правая сторона в SVG coords = верх экрана после rotate(-90deg)
-    // идём по часовой = увеличиваем angle
     var angle = (i / n) * 2 * Math.PI;
-    var x = cx + (r + 22) * Math.cos(angle);
-    var y = cy + (r + 22) * Math.sin(angle);
+    var x = (r + 20) * Math.cos(angle);
+    var y = (r + 20) * Math.sin(angle);
     var filled = i < filled_count;
     var isEdge = (i === filled_count - 1) && filled_count > 0;
     if (filled) {
@@ -128,6 +124,7 @@ function _dotRing(cx, cy, r, total) {
   }
   return dots;
 }
+
 
 // ── Радарная диаграмма — улучшенная ─────────────────────────────
 function _renderRadar(components) {
