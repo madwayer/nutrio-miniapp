@@ -1614,6 +1614,11 @@ var settData = {};
 async function initSettingsPage() {
   var userId = getUserId();
   if (!userId) return;
+  // Показываем загрузку, прячем контент
+  var loadEl = document.getElementById('sett-loading');
+  var contEl = document.getElementById('sett-content');
+  if (loadEl) loadEl.style.display = 'block';
+  if (contEl) contEl.style.display = 'none';
   try {
     var data = await apiGet('/api/settings');
     if (!data.ok) { showToast('Настройки не загружены', 'var(--accent2)'); return; }
@@ -1651,7 +1656,13 @@ async function initSettingsPage() {
         toggle.className = 'sett-toggle on';
       }
     });
-  } catch(e) {}
+    // Данные загружены — показываем контент
+    if (loadEl) loadEl.style.display = 'none';
+    if (contEl) contEl.style.display = 'block';
+  } catch(e) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (contEl) contEl.style.display = 'block';
+  }
 }
 
 function toggleReminder(type) {
@@ -2616,6 +2627,63 @@ window.initMicroPage    = initMicroPage;
 window.initLbPage       = initLbPage;
 window.initPdfPage      = initPdfPage;
 window.initImportPage   = initImportPage;
+
+// ── Управление рассылками (Admin) ─────────────────────────────────
+var _notifSettings = null;
+
+async function admLoadNotifSettings() {
+  var list = document.getElementById('adm-notif-list');
+  var status = document.getElementById('adm-notif-status');
+  if (!list) return;
+  list.innerHTML = '<div class="ai-loading">Загружаю...</div>';
+  try {
+    var d = await apiGet('/api/admin/notif_settings');
+    if (!d || !d.ok) { list.innerHTML = '<div style="color:var(--accent2)">Ошибка загрузки</div>'; return; }
+    _notifSettings = d.settings;
+    list.innerHTML = d.settings.map(function(s) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:12px;padding:12px 14px">'
+        + '<div>'
+        +   '<div style="font-weight:700;font-size:13px;color:var(--text)">' + s.icon + ' ' + s.label + '</div>'
+        +   '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + s.desc + '</div>'
+        + '</div>'
+        + '<div onclick="admToggleNotif(&quot;' + s.key + '&quot;,this)" style="cursor:pointer;width:44px;height:24px;border-radius:12px;background:' + (s.enabled ? 'var(--accent)' : 'var(--surface)') + ';position:relative;border:1px solid var(--glass-border);transition:background .2s" data-key="' + s.key + '" data-on="' + s.enabled + '">'
+        +   '<div style="position:absolute;top:3px;left:' + (s.enabled ? '21px' : '3px') + ';width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+async function admToggleNotif(key, toggleEl) {
+  var isOn = toggleEl.dataset.on === 'true';
+  var newVal = !isOn;
+  // Анимация
+  toggleEl.style.background = newVal ? 'var(--accent)' : 'var(--surface)';
+  toggleEl.querySelector('div').style.left = newVal ? '21px' : '3px';
+  toggleEl.dataset.on = String(newVal);
+  try {
+    var d = await apiPost('/api/admin/notif_settings', {key: key, enabled: newVal});
+    var status = document.getElementById('adm-notif-status');
+    if (d && d.ok) {
+      if (status) status.textContent = '✅ ' + key + ' ' + (newVal ? 'включено' : 'выключено');
+    } else {
+      // Откатим
+      toggleEl.style.background = isOn ? 'var(--accent)' : 'var(--surface)';
+      toggleEl.querySelector('div').style.left = isOn ? '21px' : '3px';
+      toggleEl.dataset.on = String(isOn);
+      if (status) status.textContent = '❌ Ошибка сохранения';
+    }
+  } catch(e) {
+    toggleEl.style.background = isOn ? 'var(--accent)' : 'var(--surface)';
+    toggleEl.querySelector('div').style.left = isOn ? '21px' : '3px';
+    toggleEl.dataset.on = String(isOn);
+  }
+}
+window.admLoadNotifSettings = admLoadNotifSettings;
+window.admToggleNotif = admToggleNotif;
+
 window.initSettingsPage = initSettingsPage;
 window.initPremPage     = initPremPage;
 window.initHelpPage     = initHelpPage;
