@@ -2685,6 +2685,9 @@ async function admToggleNotif(key, toggleEl) {
 }
 window.admLoadNotifSettings = admLoadNotifSettings;
 window.admToggleNotif = admToggleNotif;
+window.admBcSend      = admBcSend;
+window.admBcPreview   = admBcPreview;
+window.admLoadStats   = admLoadStats;
 
 window.initSettingsPage = initSettingsPage;
 window.initPremPage     = initPremPage;
