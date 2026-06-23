@@ -194,6 +194,12 @@ function _hsyncIsRu() {
 }
 
 // switchTab
+// Принудительный сброс кеша (вызывается из onclick на кнопке Обновить)
+window._hsyncForceRefresh = function() {
+  _hsyncLoaded = false;
+  initHealthSyncPage();
+};
+
 (function(){
   var _orig = window.switchTab;
   if (typeof _orig === 'function') {
