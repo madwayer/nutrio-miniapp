@@ -7,7 +7,7 @@
 var _hsData   = null;
 var _hsDate   = null;
 var _hsLoaded = false;
-var RING_CIRC = 440; // 2π×70
+var RING_CIRC = 565; // 2π×90
 
 async function hsLoad(dateStr) {
   _hsLoaded = true;
@@ -68,7 +68,7 @@ function _renderHs(sc) {
     : {A:'Excellent',  B:'Good',  C:'Fair',  D:'Poor', F:'Low'  };
 
   // ── Кольцо: центр (195, 130), r=70 ──────────────────────────
-  var RCX = 195, RCY = 130, RR = 70;
+  var RCX = 195, RCY = 155, RR = 90;
 
   // Точки вдоль дуги (внутри g rotate(-90) → angle=0 = верх экрана)
   var n = 12, fc = Math.round(n * sc.total / 100), dotsSvg = '';
@@ -86,7 +86,7 @@ function _renderHs(sc) {
   }
 
   // ── Паутина: центр (195, 370), r=100 ────────────────────────
-  var PCX = 195, PCY = 380, PR = 100;
+  var PCX = 195, PCY = 420, PR = 108;
   var comps = sc.components || [];
   var NC = comps.length;
   var PSTEP = NC > 0 ? (2 * Math.PI) / NC : 0;
@@ -150,7 +150,7 @@ function _renderHs(sc) {
     +   '<radialGradient id="rg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity=".35"/><stop offset="100%" stop-color="#a78bfa" stop-opacity=".06"/></radialGradient>'
     + '</defs>'
     // Фоновое свечение кольца
-    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="90" ry="90" fill="url(#bg)"/>'
+    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="110" ry="110" fill="url(#bg)"/>'
     // Кольцо (вращаем группу -90°)
     + '<g transform="translate('+RCX+','+RCY+') rotate(-90)">'
     +   '<circle cx="0" cy="0" r="'+RR+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14"/>'
@@ -161,13 +161,14 @@ function _renderHs(sc) {
     +   ' id="hs-ring-arc" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>'
     + '</g>'
     // Контент кольца (не повёрнут)
-    + '<text x="'+RCX+'" y="'+(RCY-26)+'" text-anchor="middle" font-size="30" font-family="inherit">'+sc.emoji+'</text>'
-    + '<text x="'+RCX+'" y="'+(RCY+16)+'" text-anchor="middle" font-size="44" font-weight="900" fill="'+c+'" filter="url(#rg)">'+sc.total+'</text>'
-    + '<text x="'+RCX+'" y="'+(RCY+34)+'" text-anchor="middle" font-size="12" fill="rgba(255,255,255,.38)">/ 100</text>'
-    + '<rect x="'+(RCX-36)+'" y="'+(RCY+44)+'" width="72" height="24" rx="12" fill="'+c+'22" stroke="'+c+'44" stroke-width="1.2"/>'
-    + '<text x="'+(RCX-14)+'" y="'+(RCY+60)+'" text-anchor="middle" font-size="13" font-weight="900" fill="'+c+'">'+sc.grade+'</text>'
-    + '<text x="'+(RCX+4)+'" y="'+(RCY+60)+'" text-anchor="start" font-size="11" fill="rgba(255,255,255,.5)">'+(gDesc[sc.grade]||'')+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY-38)+'" text-anchor="middle" font-size="34" font-family="inherit">'+sc.emoji+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+18)+'" text-anchor="middle" font-size="48" font-weight="900" fill="'+c+'" filter="url(#rg)">'+sc.total+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+38)+'" text-anchor="middle" font-size="13" fill="rgba(255,255,255,.38)">/ 100</text>'
+    + '<rect x="'+(RCX-58)+'" y="'+(RCY+48)+'" width="116" height="26" rx="13" fill="'+c+'22" stroke="'+c+'44" stroke-width="1.2"/>'
+    + '<text x="'+(RCX-28)+'" y="'+(RCY+66)+'" text-anchor="middle" font-size="14" font-weight="900" fill="'+c+'">'+sc.grade+'</text>'
+    + '<text x="'+(RCX-8)+'" y="'+(RCY+65)+'" text-anchor="start" font-size="12" fill="rgba(255,255,255,.6)">'+(gDesc[sc.grade]||'')+'</text>'
     // Паутина
+    + '<ellipse cx="'+PCX+'" cy="'+PCY+'" rx="'+PR+'" ry="'+PR+'" fill="rgba(99,102,241,.06)" filter="url(#pg)"/>'
     + grid + axes
     + '<polygon points="'+dataPts+'" fill="url(#rg2)" stroke="#6366f1" stroke-width="2" filter="url(#pg)"/>'
     + radarDots + labels
