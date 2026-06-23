@@ -7,7 +7,7 @@
 var _hsData   = null;
 var _hsDate   = null;
 var _hsLoaded = false;
-var RING_CIRC = 565; // 2π×90
+var RING_CIRC = 660; // 2π×105
 
 async function hsLoad(dateStr) {
   _hsLoaded = true;
@@ -68,7 +68,7 @@ function _renderHs(sc) {
     : {A:'Excellent',  B:'Good',  C:'Fair',  D:'Poor', F:'Low'  };
 
   // ── Кольцо: центр (195, 130), r=70 ──────────────────────────
-  var RCX = 195, RCY = 155, RR = 90;
+  var RCX = 195, RCY = 170, RR = 105;
 
   // Точки вдоль дуги (внутри g rotate(-90) → angle=0 = верх экрана)
   var n = 12, fc = Math.round(n * sc.total / 100), dotsSvg = '';
@@ -86,7 +86,7 @@ function _renderHs(sc) {
   }
 
   // ── Паутина: центр (195, 370), r=100 ────────────────────────
-  var PCX = 195, PCY = 420, PR = 108;
+  var PCX = 195, PCY = 490, PR = 108;
   var comps = sc.components || [];
   var NC = comps.length;
   var PSTEP = NC > 0 ? (2 * Math.PI) / NC : 0;
@@ -148,9 +148,13 @@ function _renderHs(sc) {
     +   '<linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="'+c+'"/><stop offset="100%" stop-color="'+c+'88"/></linearGradient>'
     +   '<radialGradient id="bg" cx="50%" cy="33%" r="35%"><stop offset="0%" stop-color="'+c+'" stop-opacity=".12"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0"/></radialGradient>'
     +   '<radialGradient id="rg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity=".35"/><stop offset="100%" stop-color="#a78bfa" stop-opacity=".06"/></radialGradient>'
+    +   '<filter id="outerGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="18" result="blur"/><feMerge><feMergeNode in="blur"/></feMerge></filter>'
+    +   '<radialGradient id="radarBg" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.12"/><stop offset="60%" stop-color="#a78bfa" stop-opacity="0.05"/><stop offset="100%" stop-color="#6366f1" stop-opacity="0"/></radialGradient>'
     + '</defs>'
     // Фоновое свечение кольца
-    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="110" ry="110" fill="url(#bg)"/>'
+    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="135" ry="135" fill="url(#bg)" opacity="0.7"/>'
+    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="108" ry="108" fill="'+c+'" opacity="0.05" filter="url(#outerGlow)"/>'
+    + '<ellipse cx="'+RCX+'" cy="'+RCY+'" rx="70" ry="70" fill="'+c+'" opacity="0.04" filter="url(#outerGlow)"/>'
     // Кольцо (вращаем группу -90°)
     + '<g transform="translate('+RCX+','+RCY+') rotate(-90)">'
     +   '<circle cx="0" cy="0" r="'+RR+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14"/>'
@@ -161,14 +165,15 @@ function _renderHs(sc) {
     +   ' id="hs-ring-arc" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>'
     + '</g>'
     // Контент кольца (не повёрнут)
-    + '<text x="'+RCX+'" y="'+(RCY-38)+'" text-anchor="middle" font-size="34" font-family="inherit">'+sc.emoji+'</text>'
-    + '<text x="'+RCX+'" y="'+(RCY+18)+'" text-anchor="middle" font-size="48" font-weight="900" fill="'+c+'" filter="url(#rg)">'+sc.total+'</text>'
-    + '<text x="'+RCX+'" y="'+(RCY+38)+'" text-anchor="middle" font-size="13" fill="rgba(255,255,255,.38)">/ 100</text>'
-    + '<rect x="'+(RCX-58)+'" y="'+(RCY+48)+'" width="116" height="26" rx="13" fill="'+c+'22" stroke="'+c+'44" stroke-width="1.2"/>'
-    + '<text x="'+(RCX-28)+'" y="'+(RCY+66)+'" text-anchor="middle" font-size="14" font-weight="900" fill="'+c+'">'+sc.grade+'</text>'
-    + '<text x="'+(RCX-8)+'" y="'+(RCY+65)+'" text-anchor="start" font-size="12" fill="rgba(255,255,255,.6)">'+(gDesc[sc.grade]||'')+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY-50)+'" text-anchor="middle" font-size="36" font-family="inherit">'+sc.emoji+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+20)+'" text-anchor="middle" font-size="52" font-weight="900" fill="'+c+'" filter="url(#rg)">'+sc.total+'</text>'
+    + '<text x="'+RCX+'" y="'+(RCY+40)+'" text-anchor="middle" font-size="13" fill="rgba(255,255,255,.35)">/ 100</text>'
+    + '<rect x="'+(RCX-62)+'" y="'+(RCY+58)+'" width="124" height="28" rx="14" fill="'+c+'22" stroke="'+c+'55" stroke-width="1.5"/>'
+    + '<text x="'+(RCX-24)+'" y="'+(RCY+77)+'" text-anchor="middle" font-size="15" font-weight="900" fill="'+c+'">'+sc.grade+'</text>'
+    + '<text x="'+(RCX-4)+'" y="'+(RCY+76)+'" text-anchor="start" font-size="12" fill="rgba(255,255,255,.65)">'+(gDesc[sc.grade]||'')+'</text>'
     // Паутина
-    + '<ellipse cx="'+PCX+'" cy="'+PCY+'" rx="'+PR+'" ry="'+PR+'" fill="rgba(99,102,241,.06)" filter="url(#pg)"/>'
+    + '<ellipse cx="'+PCX+'" cy="'+PCY+'" rx="'+(PR+40)+'" ry="'+(PR+40)+'" fill="url(#radarBg)" opacity="0.8"/>'
+    + '<ellipse cx="'+PCX+'" cy="'+PCY+'" rx="'+PR+'" ry="'+PR+'" fill="#6366f1" opacity="0.04" filter="url(#outerGlow)"/>'
     + grid + axes
     + '<polygon points="'+dataPts+'" fill="url(#rg2)" stroke="#6366f1" stroke-width="2" filter="url(#pg)"/>'
     + radarDots + labels
