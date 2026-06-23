@@ -105,15 +105,26 @@ function _renderTotalRing(total, grade, color, emoji) {
 }
 
 function _dotRing(cx, cy, r, total) {
-  // 12 маленьких точек вокруг кольца, заполненных пропорционально total
+  // Светящиеся точки по направлению дуги кольца
+  // SVG повёрнут на -90deg, поэтому начало дуги (верх экрана) = правая сторона math coords
+  // Чтобы точки совпадали с дугой: начинаем с angle = 0 (правая сторона в math = верх на экране)
   var dots = '';
   var n = 12;
+  var filled_count = Math.round(n * total / 100);
+  dots += '<defs><filter id="dot-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   for (var i = 0; i < n; i++) {
-    var angle = (i / n) * 2 * Math.PI - Math.PI / 2;
-    var x = cx + (r + 20) * Math.cos(angle);
-    var y = cy + (r + 20) * Math.sin(angle);
-    var filled = i < Math.round(n * total / 100);
-    dots += '<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+(filled?'var(--accent)':'rgba(255,255,255,0.08)')+'"/>';
+    // angle=0 = правая сторона в SVG coords = верх экрана после rotate(-90deg)
+    // идём по часовой = увеличиваем angle
+    var angle = (i / n) * 2 * Math.PI;
+    var x = cx + (r + 22) * Math.cos(angle);
+    var y = cy + (r + 22) * Math.sin(angle);
+    var filled = i < filled_count;
+    var isEdge = (i === filled_count - 1) && filled_count > 0;
+    if (filled) {
+      dots += '<circle cx="'+x+'" cy="'+y+'" r="'+(isEdge?4.5:3)+'" fill="var(--accent)" filter="url(#dot-glow)" opacity="'+(isEdge?1:0.75)+'"/>';
+    } else {
+      dots += '<circle cx="'+x+'" cy="'+y+'" r="2.5" fill="rgba(255,255,255,0.07)"/>';
+    }
   }
   return dots;
 }
@@ -123,7 +134,7 @@ function _renderRadar(components) {
   var el = document.getElementById('hs-radar');
   if (!el || !components || !components.length) return;
   el.innerHTML = ''; // очищаем перед ререндером
-  var n = components.length, cx = 150, cy = 150, r = 105;
+  var n = components.length, cx = 170, cy = 170, r = 110;
   var step = (2 * Math.PI) / n;
 
   function polar(i, pct, extraR) {
@@ -156,29 +167,23 @@ function _renderRadar(components) {
 
   // Подписи с эмодзи
   var labels = components.map(function(c,i){
-    var p  = polar(i, 100, r+24);
+    var p  = polar(i, 100, r+30);
     var ta = p.x < cx-8 ? 'end' : p.x > cx+8 ? 'start' : 'middle';
     return '<text x="'+p.x+'" y="'+(p.y+4)+'" text-anchor="'+ta+'" fill="var(--text2)" font-size="13" font-family="inherit">'+c.emoji+'</text>';
   }).join('');
 
-  // Значения процентов на вершинах
-  var pctLabels = components.map(function(c,i){
-    var p = polar(i, c.pct, r * c.pct/100 * 0.65 + 15);
-    var col = c.pct>=80?'#10b981':c.pct>=50?'#6366f1':c.pct>=30?'#f59e0b':'#ef4444';
-    return c.pct > 15
-      ? '<text x="'+p.x+'" y="'+(p.y+4)+'" text-anchor="middle" fill="'+col+'" font-size="9" font-weight="700" font-family="inherit">'+c.pct+'</text>'
-      : '';
-  }).join('');
+  // Числа процентов убраны из паутины — они есть в карточках ниже
+  var pctLabels = '';
 
   el.innerHTML =
-    '<svg viewBox="0 0 300 300" style="width:100%;max-width:300px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">'
+    '<svg viewBox="0 0 340 340" style="width:100%;max-width:320px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">'
     + '<defs>'
     + '<radialGradient id="hsg2" cx="50%" cy="50%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.45"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0.1"/></radialGradient>'
     + '<filter id="radar-glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     + '</defs>'
     + gridLines + axes
     + '<polygon points="'+dataPts+'" fill="url(#hsg2)" stroke="#6366f1" stroke-width="2.5" opacity="0.92" filter="url(#radar-glow)"/>'
-    + dots + pctLabels + labels
+    + dots + labels
     + '</svg>';
 }
 
@@ -235,6 +240,12 @@ function _hsIsRu() {
   try { var l=(typeof i18n!=='undefined'&&i18n._lang)||navigator.language||'ru'; return l.startsWith('ru')||l.startsWith('uk')||l.startsWith('be'); }
   catch(e){ return true; }
 }
+
+// Принудительное обновление — вызывается кнопкой Обновить из HTML
+window._hsForceRefresh = function() {
+  _hsLoaded = false;
+  hsLoad();
+};
 
 (function(){
   var _orig = window.switchTab;

@@ -24,6 +24,7 @@ async function exLoad(dateStr) {
       _exData = d;
       _renderExSummary(d);
       _renderExList(d.entries || []);
+      if (d.week) _renderExWeekChart(d.week);
     }
   } catch(e) { console.warn('[exercise] load failed', e); }
 }
@@ -61,6 +62,42 @@ function _renderExSummary(d) {
         + (ru ? '💡 Чистая цель = дневная норма − сожжённые калории' : '💡 Net goal = daily target − calories burned')
         + '</div>'
       : '');
+}
+
+
+// ── График сожжённых калорий за 7 дней ──────────────────────────
+function _renderExWeekChart(weekData) {
+  var chartEl = document.getElementById('ex-week-chart');
+  var barsEl  = document.getElementById('ex-week-bars');
+  var lblsEl  = document.getElementById('ex-week-labels');
+  if (!chartEl || !barsEl || !lblsEl || !weekData || !weekData.length) return;
+
+  var ru   = _exIsRu();
+  var days = ru
+    ? ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+    : ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  var maxKcal = Math.max.apply(null, weekData.map(function(d){ return d.kcal || 0; }));
+  if (maxKcal === 0) return; // нет данных — не показываем
+
+  chartEl.style.display = 'block';
+
+  barsEl.innerHTML = weekData.map(function(d) {
+    var pct = maxKcal > 0 ? (d.kcal / maxKcal) * 100 : 0;
+    var col = d.kcal > 300 ? '#10b981' : d.kcal > 100 ? '#6366f1' : 'rgba(99,102,241,.35)';
+    var isToday = d.is_today;
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">'
+      + (d.kcal > 0 ? '<div style="font-size:9px;font-weight:700;color:'+col+';margin-bottom:3px">' + Math.round(d.kcal) + '</div>' : '')
+      + '<div style="width:100%;border-radius:6px 6px 0 0;background:' + col + ';height:' + Math.max(pct, d.kcal>0?6:0) + '%;'
+      + (isToday ? 'box-shadow:0 0 8px '+col+'88;' : '')
+      + 'transition:height .6s ease"></div>'
+      + '</div>';
+  }).join('');
+
+  lblsEl.innerHTML = weekData.map(function(d, i) {
+    var isToday = d.is_today;
+    return '<div style="flex:1;text-align:center;font-size:10px;font-weight:'+(isToday?'800':'500')+';color:'+(isToday?'var(--accent)':'var(--text2)')+'">'+days[i % 7]+'</div>';
+  }).join('');
 }
 
 // ── Список тренировок дня ─────────────────────────────────────────
