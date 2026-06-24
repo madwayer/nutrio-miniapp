@@ -263,7 +263,7 @@
 
     setStatus('');
     var btn = document.getElementById('hm-load-btn');
-    if (btn) { btn.textContent = T('hm_refresh','🔄 Обновить'); btn.disabled = false; }
+    if (btn) { btn.disabled = false; }
     loaded = true;
     loading = false;
   }

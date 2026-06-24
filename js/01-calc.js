@@ -59,7 +59,7 @@ function _calcExports() {
    'editDiaryEntry','deditSave','deditDelete','statAddWeight'
   ].forEach(function(n){
     try {
-      var fn = (typeof window[n] !== 'undefined') ? window[n] : null;
+      var fn = eval('typeof ' + n + ' !== "undefined" ? ' + n + ' : null');
       if (fn) window[n] = fn;
     } catch(e){}
   });

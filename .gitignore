@@ -1,12 +1,2 @@
-# Секреты
-.env
-.env.local
-.env.*
-!.env.example
-
-# Vercel
-.vercel/
-
-# OS
-.DS_Store
-Thumbs.db
+.vercel
+.env*
