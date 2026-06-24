@@ -1601,38 +1601,38 @@
     </div>
 
     <!-- Broadcast section -->
-    <div class="adm-section" id="adm-section-broadcast" style="color:var(--text);background:var(--surface);border-radius:14px;padding:12px">
-      <div class="adm-label">📣 Рассылка</div>
+    <div class="adm-section" id="adm-section-broadcast" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📣 Рассылка</div>
       <select id="adm-bc-audience" class="sett-select" style="width:100%;margin-bottom:8px">
         <option value="all">Все пользователи</option>
         <option value="premium">Только Premium</option>
         <option value="ru">Язык: Русский</option>
         <option value="en">Язык: English</option>
       </select>
-      <textarea id="adm-bc-text" rows="5" style="width:100%;resize:vertical;font-family:inherit;font-size:13px;padding:10px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:12px;color:var(--text);outline:none;margin-bottom:8px" placeholder="Текст сообщения..."></textarea>
+      <textarea id="adm-bc-text" rows="5" style="width:100%;resize:vertical;font-family:inherit;font-size:13px;padding:10px;background:#2c2c2e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#f2f2f7;outline:none;margin-bottom:8px" placeholder="Текст сообщения..."></textarea>
       <div style="display:flex;gap:8px">
-        <button class="adm-btn" onclick="admBcPreview()" style="flex:1">👁 Превью</button>
-        <button class="adm-btn adm-btn-prem" onclick="admBcSend()" style="flex:1">📣 Отправить</button>
+        <button onclick="admBcPreview()" style="flex:1;padding:10px;background:#2c2c2e;color:#f2f2f7;border:1px solid rgba(255,255,255,0.1);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">👁 Превью</button>
+        <button onclick="admBcSend()" style="flex:1;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">📣 Отправить</button>
       </div>
-      <div id="adm-bc-preview" style="display:none;background:var(--surface2);border-radius:10px;padding:12px;margin-top:8px;font-size:13px"></div>
-      <div id="adm-bc-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
+      <div id="adm-bc-preview" style="display:none;background:#2c2c2e;border-radius:10px;padding:12px;margin-top:8px;font-size:13px"></div>
+      <div id="adm-bc-status" style="margin-top:8px;font-size:12px;color:#8e8e93"></div>
     </div>
 
     <!-- Управление уведомлениями -->
-    <div class="adm-section" id="adm-section-notif" style="color:var(--text);background:var(--surface);border-radius:14px;padding:12px">
-      <div class="adm-label">🔔 Управление рассылками</div>
+    <div class="adm-section" id="adm-section-notif" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">🔔 Управление рассылками</div>
       <div id="adm-notif-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
         <!-- Заполняется JS -->
       </div>
-      <div id="adm-notif-status" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
+      <div id="adm-notif-status" style="font-size:12px;color:#8e8e93;margin-top:4px"></div>
       <button class="adm-btn" onclick="admLoadNotifSettings()" style="width:100%;margin-top:8px">🔄 Обновить статусы</button>
     </div>
 
     <!-- Admin Stats section -->
-    <div class="adm-section" id="adm-section-admstats" style="color:var(--text);background:var(--surface);border-radius:14px;padding:12px">
-      <div class="adm-label">📈 Расширенная статистика</div>
+    <div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+      <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📈 Расширенная статистика</div>
       <div id="adm-stats-content">
-        <div style="text-align:center;padding:20px;color:var(--text2)">Нажми для загрузки</div>
+        <div style="text-align:center;padding:20px;color:#8e8e93">Нажми для загрузки</div>
       </div>
     </div>
 
@@ -1643,39 +1643,39 @@
     <div style="text-align:center;padding:16px 0 20px">
       <div style="font-size:48px;margin-bottom:8px">🤖</div>
       <div style="font-weight:800;font-size:20px">NutriO</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:4px">Умный дневник питания с AI</div>
+      <div style="font-size:13px;color:#8e8e93;margin-top:4px">Умный дневник питания с AI</div>
     </div>
     <!-- Quick actions -->
     <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button onclick="helpOpenSupport()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">💬 Поддержка</button>
-      <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot')" style="flex:1;padding:12px;background:var(--surface);color:var(--text);border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">🤖 Открыть бота</button>
+      <button onclick="helpOpenSupport()" style="flex:1;padding:12px;background:#6366f1;color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">💬 Поддержка</button>
+      <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot')" style="flex:1;padding:12px;background:#1c1c1e;color:#f2f2f7;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">🤖 Открыть бота</button>
     </div>
     <!-- Feature cards -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-      <div style="background:var(--surface);border-radius:12px;padding:12px">
+      <div style="background:#1c1c1e;border-radius:12px;padding:12px">
         <div style="font-size:22px;margin-bottom:6px">📷</div>
         <div style="font-weight:700;font-size:13px;margin-bottom:3px">Сканер</div>
-        <div style="font-size:11px;color:var(--text2)">Штрихкод или фото блюда</div>
+        <div style="font-size:11px;color:#8e8e93">Штрихкод или фото блюда</div>
       </div>
-      <div style="background:var(--surface);border-radius:12px;padding:12px">
+      <div style="background:#1c1c1e;border-radius:12px;padding:12px">
         <div style="font-size:22px;margin-bottom:6px">🤖</div>
         <div style="font-weight:700;font-size:13px;margin-bottom:3px">AI-нутрициолог</div>
-        <div style="font-size:11px;color:var(--text2)">Анализ и рекомендации</div>
+        <div style="font-size:11px;color:#8e8e93">Анализ и рекомендации</div>
       </div>
-      <div style="background:var(--surface);border-radius:12px;padding:12px">
+      <div style="background:#1c1c1e;border-radius:12px;padding:12px">
         <div style="font-size:22px;margin-bottom:6px">💉</div>
         <div style="font-weight:700;font-size:13px;margin-bottom:3px">Учёт ХЕ</div>
-        <div style="font-size:11px;color:var(--text2)">Для диабетиков, журнал сахара</div>
+        <div style="font-size:11px;color:#8e8e93">Для диабетиков, журнал сахара</div>
       </div>
-      <div style="background:var(--surface);border-radius:12px;padding:12px">
+      <div style="background:#1c1c1e;border-radius:12px;padding:12px">
         <div style="font-size:22px;margin-bottom:6px">📊</div>
         <div style="font-weight:700;font-size:13px;margin-bottom:3px">Статистика</div>
-        <div style="font-size:11px;color:var(--text2)">Графики, ИМТ, прогресс</div>
+        <div style="font-size:11px;color:#8e8e93">Графики, ИМТ, прогресс</div>
       </div>
     </div>
     <!-- FAQ -->
-    <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;margin-bottom:8px">ЧАСТЫЕ ВОПРОСЫ</div>
-    <div style="background:var(--surface);border-radius:14px;overflow:hidden;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:1px;margin-bottom:8px">ЧАСТЫЕ ВОПРОСЫ</div>
+    <div style="background:#1c1c1e;border-radius:14px;overflow:hidden;margin-bottom:16px">
       <div class="help-faq-item" style="border-bottom:1px solid var(--bg2)">
         <div class="help-faq-q" onclick="toggleFaq(this)" style="border-radius:0">Как добавить еду? <span>▼</span></div>
         <div class="help-faq-a">Через кнопку ➕ внизу: сфотографируй блюдо, отсканируй штрихкод, введи вручную или добавь из ресторанного меню (KFC, McDonald's, Додо и др.). В боте также работает голосовой ввод командой 🎤.</div>
@@ -1710,9 +1710,9 @@
       </div>
     </div>
     <!-- Support project -->
-    <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot?start=donate')" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;margin-bottom:12px">❤️ Поддержать проект</button>
+    <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot?start=donate')" style="width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#ef4444);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;margin-bottom:12px">❤️ Поддержать проект</button>
     <!-- Version -->
-    <div style="text-align:center;font-size:11px;color:var(--text2);padding-bottom:8px">
+    <div style="text-align:center;font-size:11px;color:#8e8e93;padding-bottom:8px">
       NutriO v1.0 · @CaloriePilotAI_Bot
     </div>
   </div>
@@ -1720,7 +1720,7 @@
   <div class="page" id="page-adminpage">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-weight:800;font-size:17px">🔧 Панель управления</div>
-      <div style="font-size:11px;background:var(--accent2);color:#fff;padding:3px 8px;border-radius:6px" id="adm-admin-label">Admin</div>
+      <div style="font-size:11px;background:#ef4444;color:#fff;padding:3px 8px;border-radius:6px" id="adm-admin-label">Admin</div>
     </div>
     <div class="adm-nav">
       <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
@@ -1752,7 +1752,7 @@
       </div>
 
       <!-- SVG chart of new users last 14 days -->
-      <div id="adm-users-chart" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;padding:12px;margin-top:10px;min-height:0"></div>
+      <div id="adm-users-chart" style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-top:10px;min-height:0"></div>
 
       <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDashV2()">🔄 Обновить</button>
     </div>
