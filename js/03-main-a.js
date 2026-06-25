@@ -271,6 +271,10 @@ async function loadDiary() {
     if (data.error) { showPageError('diary-meals-container', data.error); return; }
     diaryData = data;
     renderDiary(data);
+    // Обновим виджет воды
+    if (data.water_today !== undefined) {
+      _updateDiaryWaterWidget(data.water_today, data.water_goal || 2000);
+    }
   } catch(e) {
     showToast('Ошибка загрузки', 'var(--accent2)');
   }
@@ -2686,6 +2690,36 @@ window.admToggleNotif = admToggleNotif;
 window.admBcSend      = admBcSend;
 window.admBcPreview   = admBcPreview;
 window.admLoadStats   = admLoadStats;
+
+
+// ── Виджет воды в дневнике ────────────────────────────────────────
+function _updateDiaryWaterWidget(amount, goal) {
+  var amEl = document.getElementById('dw-amount');
+  var barEl = document.getElementById('dw-bar');
+  var goalEl = document.getElementById('dw-goal');
+  if (!amEl) return;
+  amEl.textContent = amount || 0;
+  if (goalEl) goalEl.textContent = goal || 2000;
+  if (barEl) barEl.style.width = Math.min(100, Math.round((amount || 0) / (goal || 2000) * 100)) + '%';
+}
+
+async function diaryAddWater(ml) {
+  try {
+    var d = await apiPost('/api/water', {amount_ml: ml});
+    if (d && d.ok) {
+      _updateDiaryWaterWidget(d.total_today, d.goal);
+      showToast('+' + ml + ' мл 💧', '#0288d1');
+    }
+  } catch(e) {}
+}
+
+async function diaryWaterCustom() {
+  var ml = parseInt(prompt('Введи объём воды (мл):'));
+  if (ml && ml > 0 && ml <= 5000) await diaryAddWater(ml);
+}
+
+window.diaryAddWater   = diaryAddWater;
+window.diaryWaterCustom = diaryWaterCustom;
 
 window.initSettingsPage = initSettingsPage;
 window.initPremPage     = initPremPage;
