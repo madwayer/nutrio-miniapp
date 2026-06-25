@@ -516,6 +516,12 @@ async function restAddToMeal(payloadStr, meal) {
     if (d && d.ok) {
       try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e){}
       showToast('✅ Добавлено в ' + meal, 'var(--green)');
+      // Предупреждение об аномалии КБЖУ
+      if (d.warning) {
+        setTimeout(function() {
+          showToast('⚠️ ' + d.warning, '#f59e0b', 5000);
+        }, 1500);
+      }
     } else { showToast('Ошибка', 'var(--accent2)'); }
   } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
 }
