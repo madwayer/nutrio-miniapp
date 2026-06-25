@@ -1625,6 +1625,64 @@
 
     <!-- Auth status indicator -->
 
+    <!-- Dash section -->
+    <div class="adm-section active" id="adm-section-dash">
+      <div class="adm-kpi-row">
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
+      </div>
+      <div class="stat-card" id="adm-pending-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700">💳 Ожидают оплаты</span>
+          <span class="adm-badge adm-badge-prem" id="adm-pending-cnt">0</span>
+        </div>
+        <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
+      </div>
+
+      <!-- SVG chart of new users last 14 days -->
+      <div id="adm-users-chart" style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-top:10px;min-height:0"></div>
+
+      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDashV2()">🔄 Обновить</button>
+    </div>
+    <!-- Tickets section -->
+    <div class="adm-section" id="adm-section-tickets">
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button onclick="admLoadTickets('')"        style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Все</button>
+        <button onclick="admLoadTickets('new')"     style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Новые</button>
+        <button onclick="admLoadTickets('replied')" style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Отвечены</button>
+        <button onclick="admLoadTickets('closed')"  style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Закрыты</button>
+      </div>
+      <div id="adm-tickets-list">
+        <div class="ai-loading">Загружаю...</div>
+      </div>
+    </div>
+    <!-- Users section -->
+    <div class="adm-section" id="adm-section-users">
+      <div class="adm-search-row">
+        <input type="text" id="adm-search-input" placeholder="Имя, @username или ID..." onkeydown="if(event.key==='Enter')admSearchUsers()">
+        <button onclick="admSearchUsers()">🔍</button>
+      </div>
+      <div id="adm-users-list"></div>
+      <div class="adm-pagination" id="adm-pagination" style="display:none">
+        <button class="adm-page-btn" onclick="admUsersPage(-1)">← Назад</button>
+        <span style="font-size:13px;color:var(--muted)" id="adm-page-info"></span>
+        <button class="adm-page-btn" onclick="admUsersPage(1)">Далее →</button>
+      </div>
+    </div>
+    <!-- Payments section -->
+    <div class="adm-section" id="adm-section-payments">
+      <div id="adm-payments-list">
+        <div class="ai-loading">Загружаю заявки...</div>
+      </div>
+    </div>
+    <!-- Revenue section -->
+    <div class="adm-section" id="adm-section-revenue">
+      <div id="adm-revenue-content">
+        <div class="ai-loading">Загружаю финансовую сводку...</div>
+      </div>
+    </div>
     <!-- Broadcast section -->
     <div class="adm-section" id="adm-section-broadcast" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📣 Рассылка</div>
@@ -1642,24 +1700,31 @@
       <div id="adm-bc-preview" style="display:none;background:#2c2c2e;border-radius:10px;padding:12px;margin-top:8px;font-size:13px"></div>
       <div id="adm-bc-status" style="margin-top:8px;font-size:12px;color:#8e8e93"></div>
     </div>
-
-    <!-- Управление уведомлениями -->
-<div class="adm-section" id="adm-section-notif" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+    <!-- Notif section -->
+    <div class="adm-section" id="adm-section-notif" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">🔔 Управление рассылками</div>
       <div id="adm-notif-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
         <!-- Заполняется JS -->
       </div>
       <div id="adm-notif-status" style="font-size:12px;color:#8e8e93;margin-top:4px"></div>
-      <button class="adm-btn" onclick="admLoadNotifSettings()" style="width:100%;margin-top:8px">🔄 Обновить статусы</button>
+      <button class="adm-btn adm-btn-prem" onclick="admLoadNotifSettings()" style="width:100%;margin-top:12px">🔄 Обновить статусы</button>
     </div>
-
-    <!-- Admin Stats section -->
-<div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+    <!-- Admstats section -->
+    <div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📈 Расширенная статистика</div>
       <div id="adm-stats-content">
         <div style="text-align:center;padding:20px;color:#8e8e93">Нажми для загрузки</div>
       </div>
     </div>
+
+    <!-- Broadcast section -->
+    
+
+    <!-- Управление уведомлениями -->
+
+
+    <!-- Admin Stats section -->
+
 
   </div>
 
@@ -1738,67 +1803,19 @@
     <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot?start=donate')" style="width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#ef4444);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;margin-bottom:12px">❤️ Поддержать проект</button>
 
     <!-- Dashboard -->
-    <div class="adm-section active" id="adm-section-dash">
-      <div class="adm-kpi-row">
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
-        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
-      </div>
-      <div class="stat-card" id="adm-pending-card" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:700">💳 Ожидают оплаты</span>
-          <span class="adm-badge adm-badge-prem" id="adm-pending-cnt">0</span>
-        </div>
-        <button class="adm-btn adm-btn-prem" style="width:100%;margin-top:8px" onclick="admSection('payments')">Смотреть заявки →</button>
-      </div>
-
-      <!-- SVG chart of new users last 14 days -->
-      <div id="adm-users-chart" style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-top:10px;min-height:0"></div>
-
-      <button class="ai-action-btn" style="margin-top:4px" onclick="admLoadDashV2()">🔄 Обновить</button>
-    </div>
+    
 
     <!-- Tickets -->
-    <div class="adm-section" id="adm-section-tickets">
-      <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button onclick="admLoadTickets('')"        style="flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Все</button>
-        <button onclick="admLoadTickets('new')"     style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Новые</button>
-        <button onclick="admLoadTickets('replied')" style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Отвечены</button>
-        <button onclick="admLoadTickets('closed')"  style="flex:1;padding:9px;background:var(--surface2);color:var(--text);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:40px">Закрыты</button>
-      </div>
-      <div id="adm-tickets-list">
-        <div class="ai-loading">Загружаю...</div>
-      </div>
-    </div>
+    
 
     <!-- Revenue -->
-    <div class="adm-section" id="adm-section-revenue">
-      <div id="adm-revenue-content">
-        <div class="ai-loading">Загружаю финансовую сводку...</div>
-      </div>
-    </div>
+    
 
     <!-- Users -->
-    <div class="adm-section" id="adm-section-users">
-      <div class="adm-search-row">
-        <input type="text" id="adm-search-input" placeholder="Имя, @username или ID..." onkeydown="if(event.key==='Enter')admSearchUsers()">
-        <button onclick="admSearchUsers()">🔍</button>
-      </div>
-      <div id="adm-users-list"></div>
-      <div class="adm-pagination" id="adm-pagination" style="display:none">
-        <button class="adm-page-btn" onclick="admUsersPage(-1)">← Назад</button>
-        <span style="font-size:13px;color:var(--muted)" id="adm-page-info"></span>
-        <button class="adm-page-btn" onclick="admUsersPage(1)">Далее →</button>
-      </div>
-    </div>
+    
 
     <!-- Payments -->
-    <div class="adm-section" id="adm-section-payments">
-      <div id="adm-payments-list">
-        <div class="ai-loading">Загружаю заявки...</div>
-      </div>
-    </div>
+    
   </div>
 
 

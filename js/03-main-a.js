@@ -2330,335 +2330,127 @@ async function admBcSend() {
 async function admLoadStats() {
   var box = document.getElementById('adm-stats-content');
   if (!box) return;
-  box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">⏳ Загрузка...</div>';
+  box.innerHTML = '<div style="text-align:center;padding:20px;color:#8e8e93">⏳ Загружаю статистику...</div>';
   try {
-    var res = await fetch('/api/proxy/api/admin?action=detailed_stats', {headers:_adminHeaders()});
+    var res = await fetch(window.API_BASE + '/api/admin?action=detailed_stats', {headers: _adminHeaders()});
     var data = await res.json();
-    if (!data.ok) { box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка: ' + (data.error||'?') + '</div>'; return; }
-    var s = data.stats || {};
-    function kpi(v,l){ return '<div class="adm-kpi"><div class="adm-kpi-val">'+v+'</div><div class="adm-kpi-lbl">'+l+'</div></div>'; }
-    var langs = (s.lang_breakdown||[]).map(function(l){
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
-        + '<div style="min-width:34px;font-weight:700;font-size:12px">' + (l.lang||'?') + '</div>'
-        + '<div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">'
-        +   '<div style="height:100%;width:' + Math.min(100, l.pct||0) + '%;background:var(--accent);border-radius:4px"></div>'
-        + '</div>'
-        + '<div style="min-width:38px;text-align:right;font-size:12px;color:var(--text2)">' + (l.count||0) + '</div>'
-        + '</div>';
-    }).join('');
-    box.innerHTML =
-      '<div class="adm-kpi-row">' + kpi(s.total_users||0,'Всего') + kpi(s.premium_users||0,'Premium') + kpi(s.active_7d||0,'Актив 7д') + kpi(s.new_7d||0,'Новых 7д') + '</div>'
-      + '<div class="adm-kpi-row" style="margin-top:8px">' + kpi(s.total_entries||0,'Записей еды') + kpi(s.avg_entries||0,'Сред/юзер') + kpi(s.ai_generations||0,'AI генер.') + kpi(s.water_entries||0,'Вода') + '</div>'
-      + '<div style="margin-top:14px"><div class="adm-label">🌍 Языки (топ-10)</div>' + (langs||'<div style="color:var(--muted);font-size:12px">нет данных</div>') + '</div>';
-  } catch(e) {
-    box.innerHTML = '<div style="color:var(--accent2);padding:12px">Ошибка загрузки</div>';
-  }
-}
-
-// ── DASHBOARD ──────────────────────────────────────────
-async function admLoadDash() {
-  try {
-    var res  = await fetch('/api/proxy/api/admin?action=dashboard', {headers:_adminHeaders()});
-    var data = await res.json();
-    if (!data.ok) return;
-    document.getElementById('adm-total').textContent   = data.total_users   || 0;
-    document.getElementById('adm-premium').textContent = data.premium_users || 0;
-    document.getElementById('adm-active').textContent  = data.active_today  || 0;
-    document.getElementById('adm-entries').textContent = (data.total_entries||0).toLocaleString();
-    var pend = data.pending_payments || 0;
-    var pc   = document.getElementById('adm-pending-card');
-    var pn   = document.getElementById('adm-pending-cnt');
-    if (pend > 0) {
-      pc.style.display = 'block'; if (pn) pn.textContent = pend;
-    } else { pc.style.display = 'none'; }
-  } catch(e) { showToast('Ошибка загрузки', 'var(--accent2)'); }
-}
-
-// ── USERS ──────────────────────────────────────────────
-async function admLoadUsers(page, q) {
-  admCurrentPage = page; admSearchQ = q;
-  var list = document.getElementById('adm-users-list');
-  list.innerHTML = '<div class="ai-loading">Загружаю...</div>';
-  try {
-    var data = await _admFetch('users', {page:page, q:q});
-    if (!data.ok) return;
-    var total = data.total; var per = data.per; var pages = Math.ceil(total/per);
-    if (!data.users.length) { list.innerHTML = '<div class="lb-empty">Пусто</div>'; return; }
-    list.innerHTML = data.users.map(function(u) {
-      var badge = u.premium
-        ? '<span class="adm-badge adm-badge-prem">⭐ Premium' + (u.premium_until ? ' до '+u.premium_until : '') + '</span>'
-        : '<span class="adm-badge adm-badge-free">Бесплатный</span>';
-      return '<div class="adm-user-card" id="adm-user-'+u.id+'">'
-        + '<div class="adm-user-row">'
-        + '<div><div class="adm-user-name">' + escHtml((u.name||'') + (u.username ? ' @'+u.username : '')) + '</div>'
-        + '<div class="adm-user-meta">ID: ' + u.id + ' · 🔥 ' + u.streak + ' дн.' + (u.is_banned?' · 🔴 БАН':'') + '</div></div>'
-        + badge + '</div>'
-        + '<div class="adm-user-btns">'
-        + (u.premium
-           ? '<button class="adm-btn adm-btn-unprem" onclick="admSetPremium('+u.id+',false)">Снять Premium</button>'
-           : '<button class="adm-btn adm-btn-prem" onclick="admSetPremium('+u.id+',true)">⭐ +30 дней</button>')
-        + '<button class="adm-btn" style="background:var(--surface2);color:var(--text)" onclick="admUserProfile('+u.id+')">👤 Профиль</button>'
-        + '</div></div>';
-    }).join('');
-    var pag = document.getElementById('adm-pagination');
-    var pi  = document.getElementById('adm-page-info');
-    pag.style.display = pages>1 ? 'flex' : 'none';
-    if (pi) pi.textContent = 'Стр. '+(page+1)+' / '+pages+' ('+total+' юзеров)';
-  } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка</div>'; }
-}
-
-function admSearchUsers() {
-  var q = document.getElementById('adm-search-input').value.trim();
-  admLoadUsers(0, q);
-}
-
-function admUsersPage(dir) {
-  admLoadUsers(Math.max(0, admCurrentPage+dir), admSearchQ);
-}
-
-async function admSetPremium(uid, give) {
-  var days = give ? (parseInt(prompt('Дней Premium:', '30')) || 30) : 0;
-  try {
-    var data = await _admFetch('set_premium', {user_id:uid, days:days, give:give});
-    if (data.ok) {
-      showToast(data.message || (give?'Premium выдан':'Premium снят'), 'var(--green)');
-      admLoadUsers(admCurrentPage, admSearchQ);
-    }
-  } catch(e) {}
-}
-
-async function admUserDetail(uid) {
-  try {
-    var res  = await fetch('/api/proxy/api/admin?action=user_detail&id='+uid, {headers:_adminHeaders()});
-    var data = await res.json();
-    if (!data.ok) return;
-    var u = data.user;
-    alert(
-      'ID: ' + u.id + '\n' +
-      '@' + (u.username||'—') + ' / ' + (u.name||'—') + '\n' +
-      'Язык: ' + u.lang + ' · Цель: ' + u.goal + '\n' +
-      'Норма: ' + u.daily_goal + ' ккал · Вес: ' + (u.weight||'—') + ' кг\n' +
-      'Стрик: ' + u.streak + ' дн. · Записей: ' + u.entries_total + '\n' +
-      'За неделю: ' + u.entries_week + ' записей · ' + u.achievements + ' ачивок\n' +
-      'Рефералов: ' + u.referral_count + '\n' +
-      'Premium: ' + (u.premium ? ('до '+u.premium_until) : 'нет')
-    );
-  } catch(e) {}
-}
-
-// ── PAYMENTS ───────────────────────────────────────────
-async function admLoadPayments() {
-  var list = document.getElementById('adm-payments-list');
-  list.innerHTML = '<div class="ai-loading">Загружаю заявки...</div>';
-  try {
-    var data = await _admFetch('payments');
-    if (!data.ok) return;
-    if (!data.payments.length) {
-      list.innerHTML = '<div class="lb-empty">✅ Нет активных заявок</div>';
+    if (!data.ok) {
+      box.innerHTML = '<div style="color:#ef4444;padding:12px">Ошибка: ' + (data.error || '?') + '</div>';
       return;
     }
-    var planNames = {'1m':'1 мес','3m':'3 мес','12m':'12 мес'};
-    var statusBadge = {
-      'pending':              '<span style="background:rgba(234,88,12,.15);color:#ea580c;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">⏳ ОЖИДАЕТ СКРИНА</span>',
-      'screenshot_received':  '<span style="background:rgba(22,163,74,.15);color:var(--green);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">📸 СКРИН ПОЛУЧЕН</span>',
-    };
-    list.innerHTML = data.payments.map(function(p) {
-      var uname = p.username ? '@' + escHtml(p.username) : '';
-      var name  = p.name ? escHtml(p.name) : '';
-      var screenshotBlock = '';
-      if (p.screenshot) {
-        // Бэк хранит Telegram file_id. Прямо отрендерить нельзя — дёргаем
-        // новую ручку /api/admin/payment_screenshot которая скачивает картинку.
-        var imgSrc = '/api/proxy/api/admin/payment_screenshot?payment_id=' + p.id
-                   + '&_uid=' + getUserId();  // для X-Admin-Id через proxy
-        screenshotBlock =
-          '<div style="margin-top:10px">'
-          + '<img src="' + imgSrc + '" alt="скриншот"'
-          + ' style="width:100%;border-radius:10px;cursor:pointer;max-height:360px;object-fit:contain;background:#000"'
-          + ' onclick="admViewImage(this.src)"'
-          + ' onerror="this.parentNode.innerHTML=\'<div style=&quot;padding:12px;background:rgba(219,39,119,.08);border-radius:10px;font-size:12px;color:var(--accent2);text-align:center&quot;>⚠️ Не удалось загрузить скриншот. Попробуй обновить.</div>\'">'
-          + '</div>';
-      } else if (p.status === 'pending') {
-        screenshotBlock = '<div style="margin-top:10px;padding:12px;background:rgba(234,88,12,.08);border-radius:10px;font-size:12px;color:#ea580c;text-align:center">⏳ Юзер ещё не прислал скрин. Можешь напомнить ему кнопкой ниже.</div>';
-      }
+    var s = data.stats || {};
 
-      return '<div class="adm-pay-card" id="adm-pay-'+p.id+'" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:14px;margin-bottom:10px">'
-        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-        +   '<div style="font-weight:800;font-size:15px">#' + p.id + '</div>'
-        +   statusBadge[p.status] || '<span style="background:var(--surface2);color:var(--text2);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700">' + escHtml(p.status||'') + '</span>'
-        +   '<div style="margin-left:auto;font-size:11px;color:var(--text2)">' + escHtml(p.created_at||'') + '</div>'
-        + '</div>'
-        + '<div style="font-size:13px;color:var(--text2);margin-bottom:6px">'
-        +   '👤 ' + name + ' ' + uname + ' <span style="opacity:.7">· id=' + p.user_id + '</span>'
-        + '</div>'
-        + '<div style="display:flex;gap:10px;margin-bottom:6px;font-size:14px;font-weight:600">'
-        +   '<span>📦 ' + (planNames[p.plan]||p.plan) + '</span>'
-        +   '<span style="color:var(--green)">💰 ' + p.amount + ' ₽</span>'
-        + '</div>'
-        + '<button onclick="admTogglePayDetails('+p.id+')" id="adm-pay-toggle-'+p.id+'" style="width:100%;padding:9px;background:var(--surface2);color:var(--text);border:none;border-radius:9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:38px;margin-bottom:8px">📂 Показать детали</button>'
-        + '<div id="adm-pay-details-'+p.id+'" style="display:none">'
-        +   screenshotBlock
-        + '</div>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'
-        +   '<button onclick="admConfirmPay('+p.id+')" style="padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">✅ Подтвердить</button>'
-        +   '<button onclick="admRejectPay('+p.id+')" style="padding:11px;background:rgba(219,39,119,.15);color:var(--accent2);border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">❌ Отклонить</button>'
-        + '</div>'
-        + '<button onclick="admMessagePayUser('+p.user_id+','+p.id+')" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px">💬 Написать юзеру</button>'
+    function card(val, lbl, icon, color) {
+      color = color || '#6366f1';
+      return '<div style="background:#2c2c2e;border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.07)">'
+        + '<div style="font-size:22px;margin-bottom:4px">' + icon + '</div>'
+        + '<div style="font-size:24px;font-weight:900;color:' + color + '">' + (val || 0) + '</div>'
+        + '<div style="font-size:11px;color:#8e8e93;margin-top:2px">' + lbl + '</div>'
         + '</div>';
-    }).join('');
-  } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>'; }
-}
+    }
 
-function admTogglePayDetails(payId) {
-  var d = document.getElementById('adm-pay-details-'+payId);
-  var b = document.getElementById('adm-pay-toggle-'+payId);
-  if (!d) return;
-  if (d.style.display === 'none' || !d.style.display) {
-    d.style.display = 'block';
-    if (b) b.textContent = '📁 Скрыть детали';
-  } else {
-    d.style.display = 'none';
-    if (b) b.textContent = '📂 Показать детали';
+    function bar(label, val, max, color) {
+      var pct = max > 0 ? Math.round(val / max * 100) : 0;
+      color = color || '#6366f1';
+      return '<div style="margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+        + '<span style="font-size:12px;color:#f2f2f7">' + label + '</span>'
+        + '<span style="font-size:12px;font-weight:700;color:' + color + '">' + val + '</span>'
+        + '</div>'
+        + '<div style="height:6px;background:#3a3a3c;border-radius:3px;overflow:hidden">'
+        + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:width .6s ease"></div>'
+        + '</div></div>';
+    }
+
+    var html = '';
+
+    // Главные KPI - 2x2 сетка
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+    html += card(s.total_users, 'Пользователей', '👥', '#6366f1');
+    html += card(s.premium_users, 'Premium', '⭐', '#f59e0b');
+    html += card(s.active_7d, 'Активны 7д', '📈', '#10b981');
+    html += card(s.new_7d, 'Новых 7д', '🆕', '#06b6d4');
+    html += '</div>';
+
+    // Активность
+    html += '<div style="background:#2c2c2e;border-radius:12px;padding:14px;margin-bottom:10px">';
+    html += '<div style="font-size:12px;font-weight:800;color:#8e8e93;letter-spacing:.8px;margin-bottom:12px">📊 АКТИВНОСТЬ</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+    html += '<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#f2f2f7">' + (s.total_entries || 0) + '</div><div style="font-size:10px;color:#8e8e93">Записей еды</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#f2f2f7">' + (s.avg_entries_per_user || 0) + '</div><div style="font-size:10px;color:#8e8e93">Средн./юзер</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#f2f2f7">' + (s.ai_generations || 0) + '</div><div style="font-size:10px;color:#8e8e93">AI генер.</div></div>';
+    html += '</div>';
+    html += bar('Вода (записей)', s.water_entries || 0, (s.water_entries || 0) + (s.total_entries || 1), '#06b6d4');
+    html += '</div>';
+
+    // Языки
+    if (s.lang_stats && s.lang_stats.length) {
+      html += '<div style="background:#2c2c2e;border-radius:12px;padding:14px;margin-bottom:10px">';
+      html += '<div style="font-size:12px;font-weight:800;color:#8e8e93;letter-spacing:.8px;margin-bottom:12px">🌍 ЯЗЫКИ</div>';
+      var maxLang = s.lang_stats[0].count || 1;
+      var colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#a78bfa'];
+      s.lang_stats.slice(0, 6).forEach(function(l, i) {
+        html += bar(l.lang.toUpperCase(), l.count, maxLang, colors[i % colors.length]);
+      });
+      html += '</div>';
+    }
+
+    // Достижения и Premium
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+    html += card(s.achievements_total || 0, 'Достижений', '🏆', '#f59e0b');
+    html += card(s.support_tickets || 0, 'Тикетов', '📩', '#ef4444');
+    html += '</div>';
+
+    // Обновить
+    html += '<button onclick="admLoadStats()" style="width:100%;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">🔄 Обновить</button>';
+
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = '<div style="color:#ef4444;padding:12px">Ошибка: ' + e.message + '</div>';
   }
 }
-window.admTogglePayDetails = admTogglePayDetails;
 
-// Лайтбокс для скриншота
-function admViewImage(src) {
-  var existing = document.getElementById('adm-imgview');
-  if (existing) document.body.removeChild(existing);
-  var overlay = document.createElement('div');
-  overlay.id = 'adm-imgview';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:10px;cursor:zoom-out';
-  overlay.onclick = function(){ document.body.removeChild(overlay); };
-  overlay.innerHTML = '<img src="' + src + '" style="max-width:100%;max-height:100%;border-radius:8px">';
-  document.body.appendChild(overlay);
-}
-window.admViewImage = admViewImage;
-
-async function admConfirmPay(payId) {
-  showConfirm('Подтвердить оплату #'+payId+'?', async function() {
-    try {
-      var data = await _admFetch('confirm_payment', {payment_id:payId});
-      if (data && data.ok) {
-        showToast('✅ Оплата подтверждена, Premium выдан до '+(data.until||'?'), 'var(--green)');
-        var row = document.getElementById('adm-pay-'+payId);
-        if (row) row.remove();
-      } else {
-        showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
-      }
-    } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
-  }, null, {yes:'✅ Подтвердить', yesColor:'var(--green)'});
-}
-
-async function admRejectPay(payId) {
-  // Открываем модал с причиной отклонения
-  showPrompt(
-    'Отклонить заявку #'+payId,
-    'Опиши причину отклонения — она уйдёт юзеру:',
-    'Не вижу платежа на нашу карту',
-    async function(reason) {
-      if (!reason || !reason.trim()) return;
-      try {
-        var data = await _admFetch('reject_payment', {payment_id:payId, reason:reason.trim()});
-        if (data && data.ok) {
-          showToast('❌ Отклонено, юзеру отправлено сообщение', 'var(--accent2)');
-          var row = document.getElementById('adm-pay-'+payId);
-          if (row) row.remove();
-        } else {
-          showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
-        }
-      } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
-    }
-  );
-}
-
-async function admMessagePayUser(userId, payId) {
-  showPrompt(
-    '💬 Сообщение юзеру',
-    'Что написать про заявку #'+payId+'?',
-    'Привет! Пришли пожалуйста скрин или чек об оплате — без него не смогу подтвердить заявку 🙏',
-    async function(text) {
-      if (!text || !text.trim()) return;
-      try {
-        var data = await _admFetch('send_message', {user_id:userId, text:text.trim()});
-        if (data && data.ok) showToast('✅ Сообщение отправлено', 'var(--green)');
-        else showToast('Ошибка: ' + (data && data.error || 'не удалось'), 'var(--accent2)');
-      } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
-    }
-  );
-}
-window.admMessagePayUser = admMessagePayUser;
-
-
-// Ripple effect on buttons
-document.addEventListener('click', function(e) {
-  var btn = e.target.closest('button');
-  if (!btn || btn.classList.contains('sett-toggle')) return;
-  btn.classList.remove('rippling');
-  void btn.offsetWidth;
-  btn.classList.add('rippling');
-  setTimeout(function(){ btn.classList.remove('rippling'); }, 600);
-});
-
-
-// ── Global scope exports ─────────────────────────────────────────
-window.openDatePicker=openDatePicker; window.dpPick=dpPick; window.dpClose=dpClose; window.dpRender=dpRender; window.dpPrevMonth=dpPrevMonth; window.dpNextMonth=dpNextMonth; window.dpClose2=dpClose2;
-window.editDiaryEntry = editDiaryEntry; window.deditSave = deditSave; window.deditDelete = deditDelete;
-window.statAddWeight = statAddWeight; window.calcSearch=calcSearch; window.calcSetWeight=calcSetWeight; window.calcUpdateWeight=calcUpdateWeight; window.calcSelectMeal=calcSelectMeal; window.calcAddItem = calcAddItem;
-window.calcSave = calcSave; window.calcClear = calcClear; window.calcQuickAdd = calcQuickAdd;
-window.sugarLogAdd = sugarLogAdd; window.mfShowForm = mfShowForm; window.mfHideForm = mfHideForm;
-window.mfSave = mfSave; window.mfDelete = mfDelete; window.mfUse = mfUse;
-window.mfHideUse = mfHideUse; window.mfUseConfirm = mfUseConfirm;
-window.selectPdfDays = selectPdfDays; window.downloadPdf = downloadPdf; window.downloadPdfPreview = downloadPdfPreview;
-window.refCopyLink = refCopyLink; window.refShare = refShare;
-window.selectPlan = selectPlan; window.premBuyStars = premBuyStars; window.premBuyCard = premBuyCard;
-window.toggleFaq = toggleFaq; window.helpOpenBot = helpOpenBot; window.helpOpenSupport = helpOpenSupport;
-window.openTgLink = openTgLink; window.admSection = admSection; window.admLoadDash = admLoadDash;
-window.admSearchUsers = admSearchUsers; window.admUsersPage = admUsersPage;
-window.admSetPremium = admSetPremium; window.admUserDetail = admUserDetail;
-window.admConfirmPay = admConfirmPay; window.admRejectPay = admRejectPay;
-window.heSearch = heSearch; window.loadLb = loadLb;
-
-// ── Init page exports (needed by switchTab in block 3) ───────────
-window.initStatPage     = initStatPage;
-window.initCalcPage     = initCalcPage;
-window.initDiaryPage    = initDiaryPage;
-window.initAiPage       = initAiPage;
-window.initMicroPage    = initMicroPage;
-window.initLbPage       = initLbPage;
-window.initPdfPage      = initPdfPage;
-window.initImportPage   = initImportPage;
-
-// ── Управление рассылками (Admin) ─────────────────────────────────
-var _notifSettings = null;
 
 async function admLoadNotifSettings() {
   var list = document.getElementById('adm-notif-list');
   var status = document.getElementById('adm-notif-status');
   if (!list) return;
-  list.innerHTML = '<div class="ai-loading">Загружаю...</div>';
+  list.innerHTML = '<div style="text-align:center;padding:16px;color:#8e8e93">⏳ Загружаю...</div>';
   try {
     var d = await apiGet('/api/admin/notif_settings');
-    if (!d || !d.ok) { list.innerHTML = '<div style="color:var(--accent2)">Ошибка загрузки</div>'; return; }
+    if (!d || !d.ok) {
+      list.innerHTML = '<div style="color:#ef4444;padding:12px">Ошибка загрузки</div>';
+      return;
+    }
     _notifSettings = d.settings;
     list.innerHTML = d.settings.map(function(s) {
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:12px;padding:12px 14px">'
-        + '<div>'
-        +   '<div style="font-weight:700;font-size:13px;color:var(--text)">' + s.icon + ' ' + s.label + '</div>'
-        +   '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + s.desc + '</div>'
-        + '</div>'
-        + '<div onclick="admToggleNotif(&quot;' + s.key + '&quot;,this)" style="cursor:pointer;width:44px;height:24px;border-radius:12px;background:' + (s.enabled ? 'var(--accent)' : 'var(--surface)') + ';position:relative;border:1px solid var(--glass-border);transition:background .2s" data-key="' + s.key + '" data-on="' + s.enabled + '">'
-        +   '<div style="position:absolute;top:3px;left:' + (s.enabled ? '21px' : '3px') + ';width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></div>'
-        + '</div>'
-        + '</div>';
+      var bgOn = '#6366f1', bgOff = '#3a3a3c';
+      var leftOn = '21px', leftOff = '3px';
+      var bg = s.enabled ? bgOn : bgOff;
+      var left = s.enabled ? leftOn : leftOff;
+      var row = '<div style="display:flex;align-items:center;justify-content:space-between;';
+      row += 'background:#2c2c2e;border-radius:12px;padding:12px 14px;margin-bottom:8px">';
+      row += '<div>';
+      row += '<div style="font-weight:700;font-size:13px;color:#f2f2f7">' + s.icon + ' ' + s.label + '</div>';
+      row += '<div style="font-size:11px;color:#8e8e93;margin-top:2px">' + s.desc + '</div>';
+      row += '</div>';
+      // Тумблер через data-атрибут
+      row += '<div onclick="admToggleNotif(this)" data-key="' + s.key + '" data-on="' + s.enabled + '"';
+      row += ' style="cursor:pointer;width:44px;height:24px;border-radius:12px;';
+      row += 'background:' + bg + ';position:relative;border:1px solid rgba(255,255,255,0.1);transition:background .2s">';
+      row += '<div style="position:absolute;top:3px;left:' + left + ';width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></div>';
+      row += '</div>';
+      row += '</div>';
+      return row;
     }).join('');
   } catch(e) {
-    list.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + e.message + '</div>';
+    list.innerHTML = '<div style="color:#ef4444;padding:12px">Ошибка: ' + e.message + '</div>';
   }
 }
 
-async function admToggleNotif(key, toggleEl) {
+
+async function admToggleNotif(toggleEl) {
+  var key = toggleEl.dataset.key;
   var isOn = toggleEl.dataset.on === 'true';
   var newVal = !isOn;
   // Анимация
