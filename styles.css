@@ -3982,3 +3982,25 @@ button, .sheet-row, .bnav-item, .prem-plan-card, .ai-arch-item {
   transition:background .15s,color .15s;
 }
 .rest-chip:active { background:var(--accent);color:#fff; }
+
+
+/* ── Утилитарные классы (замена повторяющихся inline-стилей) ── */
+.row { display:flex; align-items:center; }
+.row-between { display:flex; align-items:center; justify-content:space-between; }
+.col { display:flex; flex-direction:column; }
+.card-sm { background:var(--surface2); border-radius:12px; padding:12px; }
+.card-md { background:var(--surface2); border-radius:14px; padding:14px; }
+.text-sm { font-size:13px; }
+.text-xs { font-size:11px; }
+.text-bold { font-weight:700; }
+.text-heavy { font-weight:900; }
+.text-muted { color:var(--text2); }
+.text-accent { color:var(--accent); }
+.mb-8 { margin-bottom:8px; }
+.mb-12 { margin-bottom:12px; }
+.mb-16 { margin-bottom:16px; }
+.gap-8 { gap:8px; }
+.gap-12 { gap:12px; }
+.w-full { width:100%; }
+.pill { border-radius:20px; padding:4px 12px; }
+.shine-border { border:1px solid var(--glass-border); }
