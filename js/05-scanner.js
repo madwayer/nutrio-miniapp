@@ -1023,18 +1023,17 @@ function addWater(ml){
   renderWater();
   var unit = i18n&&i18n.water_unit||'мл';
   showToast('+' + ml + ' ' + unit + ' 💧');
-  // Отправляем на сервер через apiPost (правильно передаёт user_id и auth headers)
-  if(window.apiPost){
-    window.apiPost('/api/water', {ml: ml}).catch(function(){});
-  } else {
-    var userId = getUserId ? getUserId() : (tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id);
-    if(userId){
-      fetch((window.API_BASE||'')+'/api/water',{
-        method:'POST',
-        headers:(window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
-        body:JSON.stringify({ml:ml, user_id: parseInt(userId)})
-      }).catch(function(){});
-    }
+  // Прямой fetch без рекурсии через apiPost
+  var uid = typeof getUserId === 'function' ? parseInt(getUserId()) : 0;
+  if(!uid && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) uid = tg.initDataUnsafe.user.id;
+  if(uid){
+    var headers = {'Content-Type':'application/json'};
+    if(window._authHeaders) headers = window._authHeaders(headers);
+    fetch((window.API_BASE||'')+'/api/water', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ml: ml, user_id: uid})
+    }).catch(function(){});
   }
 }
 
