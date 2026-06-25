@@ -1601,6 +1601,31 @@
     </div>
 
     <!-- Broadcast section -->
+                <!-- Version -->
+    <div style="text-align:center;font-size:11px;color:#8e8e93;padding-bottom:8px">
+      NutriO v1.0 · @CaloriePilotAI_Bot
+    </div>
+  </div>
+
+  <div class="page" id="page-adminpage" style="padding-bottom:80px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-weight:800;font-size:17px">🔧 Панель управления</div>
+      <div style="font-size:11px;background:#ef4444;color:#fff;padding:3px 8px;border-radius:6px" id="adm-admin-label">Admin</div>
+    </div>
+    <div class="adm-nav">
+      <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
+      <button class="adm-nav-btn"        id="adm-btn-tickets"   onclick="admSection('tickets')">📩 Тикеты</button>
+      <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
+      <button class="adm-nav-btn"        id="adm-btn-payments"  onclick="admSection('payments')">💳 Оплаты</button>
+      <button class="adm-nav-btn"        id="adm-btn-revenue"   onclick="admSection('revenue')">💰 Финансы</button>
+      <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
+      <button class="adm-nav-btn"        id="adm-btn-notif"     onclick="admSection('notif')">🔔 Уведомления</button>
+      <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
+    </div>
+
+    <!-- Auth status indicator -->
+
+    <!-- Broadcast section -->
     <div class="adm-section" id="adm-section-broadcast" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📣 Рассылка</div>
       <select id="adm-bc-audience" class="sett-select" style="width:100%;margin-bottom:8px">
@@ -1619,7 +1644,7 @@
     </div>
 
     <!-- Управление уведомлениями -->
-    <div class="adm-section" id="adm-section-notif" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+<div class="adm-section" id="adm-section-notif" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">🔔 Управление рассылками</div>
       <div id="adm-notif-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
         <!-- Заполняется JS -->
@@ -1629,7 +1654,7 @@
     </div>
 
     <!-- Admin Stats section -->
-    <div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
+<div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
       <div style="font-size:11px;font-weight:700;color:#8e8e93;letter-spacing:.5px;margin-bottom:10px">📈 Расширенная статистика</div>
       <div id="adm-stats-content">
         <div style="text-align:center;padding:20px;color:#8e8e93">Нажми для загрузки</div>
@@ -1711,29 +1736,6 @@
     </div>
     <!-- Support project -->
     <button onclick="openTgLink('https://t.me/CaloriePilotAI_Bot?start=donate')" style="width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#ef4444);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;margin-bottom:12px">❤️ Поддержать проект</button>
-    <!-- Version -->
-    <div style="text-align:center;font-size:11px;color:#8e8e93;padding-bottom:8px">
-      NutriO v1.0 · @CaloriePilotAI_Bot
-    </div>
-  </div>
-
-  <div class="page" id="page-adminpage" style="padding-bottom:80px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-weight:800;font-size:17px">🔧 Панель управления</div>
-      <div style="font-size:11px;background:#ef4444;color:#fff;padding:3px 8px;border-radius:6px" id="adm-admin-label">Admin</div>
-    </div>
-    <div class="adm-nav">
-      <button class="adm-nav-btn active" id="adm-btn-dash"     onclick="admSection('dash')">📊 Дашборд</button>
-      <button class="adm-nav-btn"        id="adm-btn-tickets"   onclick="admSection('tickets')">📩 Тикеты</button>
-      <button class="adm-nav-btn"        id="adm-btn-users"    onclick="admSection('users')">👥 Юзеры</button>
-      <button class="adm-nav-btn"        id="adm-btn-payments"  onclick="admSection('payments')">💳 Оплаты</button>
-      <button class="adm-nav-btn"        id="adm-btn-revenue"   onclick="admSection('revenue')">💰 Финансы</button>
-      <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
-      <button class="adm-nav-btn"        id="adm-btn-notif"     onclick="admSection('notif')">🔔 Уведомления</button>
-      <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
-    </div>
-
-    <!-- Auth status indicator -->
 
     <!-- Dashboard -->
     <div class="adm-section active" id="adm-section-dash">
