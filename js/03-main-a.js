@@ -2705,10 +2705,16 @@ function _updateDiaryWaterWidget(amount, goal) {
 
 async function diaryAddWater(ml) {
   try {
-    var d = await apiPost('/api/water', {amount_ml: ml});
+    var d = await apiPost('/api/water', {ml: ml});
     if (d && d.ok) {
-      _updateDiaryWaterWidget(d.total_today, d.goal);
       showToast('+' + ml + ' мл 💧', '#0288d1');
+      // Перезагружаем данные дневника чтобы обновить виджет
+      try {
+        var diary = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
+        if (diary && diary.water_today !== undefined) {
+          _updateDiaryWaterWidget(diary.water_today, diary.water_goal || 2000);
+        }
+      } catch(e) {}
     }
   } catch(e) {}
 }
