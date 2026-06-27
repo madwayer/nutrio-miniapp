@@ -46,8 +46,11 @@ function doRequest(client, options, bodyStr) {
 }
 
 export default async function handler(req, res) {
-  // CORS — safe defaults
-  res.setHeader('Access-Control-Allow-Origin',  '*');
+  // CORS — allow only our Mini App origin
+  const allowedOrigins = ['https://nutrio-miniapp.vercel.app', 'https://nutrio-miniapp.pages.dev'];
+  const reqOrigin = req.headers.origin || '';
+  const corsOrigin = allowedOrigins.includes(reqOrigin) ? reqOrigin : allowedOrigins[0];
+  res.setHeader('Access-Control-Allow-Origin',  corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-User-Id, X-Admin-Id, X-Telegram-Init-Data, X-Health-Token');
   res.setHeader('Vary', 'Origin');

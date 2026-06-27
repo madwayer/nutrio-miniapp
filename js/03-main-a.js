@@ -83,12 +83,8 @@ function getUserId() {
   if (!id) {
     try {
       var p = new URLSearchParams(window.location.search);
-      id = p.get('user_id') || localStorage.getItem('nutrio_user_id');
+      id = p.get('user_id');
     } catch(e) {}
-  }
-  // Save for reuse across sessions
-  if (id) {
-    try { localStorage.setItem('nutrio_user_id', String(id)); } catch(e) {}
   }
   return id || 0;
 }
