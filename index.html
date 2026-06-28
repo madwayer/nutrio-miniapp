@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta name="nutrio-version" content="v10jun2026-phase3n">
+  <meta name="nutrio-version" content="v27jun2026-audit">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NutriO</title>
@@ -286,6 +286,7 @@
       <div class="diary-prog-bar">
         <div class="diary-prog-fill" id="diary-prog-fill" style="width:0%"></div>
       </div>
+      <div id="diary-burned-hint" style="display:none;font-size:11px;color:var(--accent2);margin-top:4px;text-align:right"></div>
       <div class="diary-macro-row">
         <div class="diary-macro-box">
           <div class="diary-macro-val" id="diary-prot">0</div>
@@ -1364,8 +1365,8 @@
     <!-- Зона загрузки -->
     <div class="imp-drop" id="imp-drop" onclick="document.getElementById('imp-file-input').click()">
       <div class="imp-drop-icon">📂</div>
-      <div class="imp-drop-text">Нажми или перетащи CSV файл<br><small>MyFitnessPal, FatSecret, универсальный формат</small></div>
-      <input type="file" id="imp-file-input" accept=".csv" style="display:none">
+      <div class="imp-drop-text">Нажми или перетащи CSV файл<br><small>MyFitnessPal · FatSecret · Cronometer<br>или любой CSV с колонками: Food, Calories, Protein, Fat, Carbs</small></div>
+      <input type="file" id="imp-file-input" accept=".csv,text/csv,text/plain,application/vnd.ms-excel" style="display:none">
     </div>
 
     <!-- Прогресс и результат -->
@@ -1616,7 +1617,7 @@
     <!-- Broadcast section -->
                 <!-- Version -->
     <div style="text-align:center;font-size:11px;color:#8e8e93;padding-bottom:8px">
-      NutriO v1.0 · @CaloriePilotAI_Bot
+      NutriO v2.0 · @CaloriePilotAI_Bot
     </div>
   </div>
 
@@ -1633,6 +1634,7 @@
       <button class="adm-nav-btn"        id="adm-btn-revenue"   onclick="admSection('revenue')">💰 Финансы</button>
       <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
       <button class="adm-nav-btn"        id="adm-btn-notif"     onclick="admSection('notif')">🔔 Уведомления</button>
+      <button class="adm-nav-btn"        id="adm-btn-settings"  onclick="admSection('settings')">⚙️ Настройки</button>
       <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
     </div>
 
@@ -1642,6 +1644,7 @@
     <div class="adm-section active" id="adm-section-dash">
       <div class="adm-kpi-row">
         <div class="adm-kpi"><div class="adm-kpi-val" id="adm-total">—</div><div class="adm-kpi-lbl">Всего юзеров</div></div>
+        <div class="adm-kpi"><div class="adm-kpi-val" id="adm-new-today">—</div><div class="adm-kpi-lbl">Новых сегодня</div></div>
         <div class="adm-kpi"><div class="adm-kpi-val" id="adm-premium">—</div><div class="adm-kpi-lbl">Premium</div></div>
         <div class="adm-kpi"><div class="adm-kpi-val" id="adm-active">—</div><div class="adm-kpi-lbl">Активны сегодня</div></div>
         <div class="adm-kpi"><div class="adm-kpi-val" id="adm-entries">—</div><div class="adm-kpi-lbl">Записей еды</div></div>
@@ -1721,6 +1724,111 @@
       </div>
       <div id="adm-notif-status" style="font-size:12px;color:#8e8e93;margin-top:4px"></div>
       <button class="adm-btn adm-btn-prem" onclick="admLoadNotifSettings()" style="width:100%;margin-top:12px">🔄 Обновить статусы</button>
+    </div>
+    <!-- Settings section -->
+    <div class="adm-section" id="adm-section-settings" style="padding:0">
+
+      <!-- ── ЦЕНЫ PREMIUM ──────────────────────────────── -->
+      <div class="stat-card" style="margin-bottom:10px">
+        <div class="stat-card-title">💳 Цены Premium</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Изменения вступают в силу сразу. Уже выданные подписки не меняются.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Basic · 1 мес</div>
+            <div style="position:relative">
+              <input id="prem-price-1m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Standard · 3 мес</div>
+            <div style="position:relative">
+              <input id="prem-price-3m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Premium · 12 мес</div>
+            <div style="position:relative">
+              <input id="prem-price-12m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+            </div>
+          </div>
+        </div>
+        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('premium_prices')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить цены</button>
+        <div id="status-premium-prices" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+      </div>
+
+      <!-- ── РЕКВИЗИТЫ КАРТЫ ────────────────────────────── -->
+      <div class="stat-card" style="margin-bottom:10px">
+        <div class="stat-card-title">🏦 Реквизиты карты (РФ)</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Показываются юзеру при выборе оплаты картой.</div>
+
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Номер карты</div>
+          <input id="card-number" type="text" maxlength="19" placeholder="0000 0000 0000 0000"
+            style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:monospace;letter-spacing:2px;box-sizing:border-box">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Получатель (имя)</div>
+            <input id="card-holder" type="text" maxlength="50" placeholder="Ivan Petrov"
+              style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Банк</div>
+            <input id="card-bank" type="text" maxlength="30" placeholder="Сбер / Ozon / Т-Банк"
+              style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;box-sizing:border-box">
+          </div>
+        </div>
+        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('card')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить реквизиты</button>
+        <div id="status-card" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+      </div>
+
+      <!-- ── ЦЕНЫ TON ────────────────────────────────────── -->
+      <div class="stat-card" style="margin-bottom:10px">
+        <div class="stat-card-title">💎 Цены в TON</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Обновляй вручную при колебаниях курса TON.</div>
+        <div id="ton-rate-hint" style="font-size:11px;color:var(--accent);margin-bottom:14px">Загрузка курса...</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Basic · 1 мес</div>
+            <div style="position:relative">
+              <input id="ton-price-1m" type="number" step="0.5" min="0.5"
+                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Standard · 3 мес</div>
+            <div style="position:relative">
+              <input id="ton-price-3m" type="number" step="0.5" min="0.5"
+                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Premium · 12 мес</div>
+            <div style="position:relative">
+              <input id="ton-price-12m" type="number" step="0.5" min="0.5"
+                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TON кошелёк -->
+        <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">💎 Адрес кошелька TON</div>
+          <div id="ton-wallet-display" style="font-size:11px;color:var(--text);font-family:monospace;word-break:break-all;line-height:1.5"></div>
+        </div>
+
+        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('ton')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить цены TON</button>
+        <div id="status-ton" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+      </div>
+
     </div>
     <!-- Admstats section -->
     <div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">
