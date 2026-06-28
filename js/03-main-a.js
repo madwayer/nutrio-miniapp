@@ -77,17 +77,34 @@ function showPhotoLimitModal() {
 window.updatePhotoQuotaUI = updatePhotoQuotaUI;
 window.showPhotoLimitModal = showPhotoLimitModal;
 
+// Кэш user_id — заполняется один раз при инициализации
+var _cachedUserId = 0;
+
 function getUserId() {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-  if (!id) {
-    try {
-      var p = new URLSearchParams(window.location.search);
-      id = p.get('user_id');
-    } catch(e) {}
-  }
-  return id || 0;
+  if (_cachedUserId) return _cachedUserId;
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+    if (id) { _cachedUserId = id; return id; }
+    // Fallback — URL параметр (для dev и некоторых клиентов)
+    var p = new URLSearchParams(window.location.search);
+    id = p.get('user_id') || p.get('tgWebAppStartParam');
+    if (id && parseInt(id) > 0) { _cachedUserId = parseInt(id); return _cachedUserId; }
+  } catch(e) {}
+  return 0;
 }
+
+// Инициализируем user_id как можно раньше
+(function() {
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.ready();
+      var uid = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+      if (uid) _cachedUserId = uid;
+    }
+  } catch(e) {}
+})();
 
 // Автоматически определяем и сохраняем timezone с устройства юзера
 // Вызывается один раз при загрузке — юзер ничего не делает вручную
