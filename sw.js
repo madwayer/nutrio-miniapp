@@ -1,4 +1,4 @@
-// NutriO Service Worker v1
+// NutriO Service Worker v2
 const CACHE_NAME = 'nutrio-v8a';
 const STATIC_ASSETS = [
   '/',
@@ -22,7 +22,6 @@ const STATIC_ASSETS = [
   '/styles.css',
 ];
 
-// Установка — кэшируем все статические файлы
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
@@ -33,7 +32,6 @@ self.addEventListener('install', function(e) {
   );
 });
 
-// Активация — удаляем старые кэши
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -47,11 +45,8 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// Fetch — Cache First для статики, Network First для API
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
-  
-  // API запросы — всегда сеть
   if (url.includes('/api/') || url.includes('telegram.org')) {
     e.respondWith(fetch(e.request).catch(function() {
       return new Response(JSON.stringify({error: 'offline'}), {
@@ -60,13 +55,10 @@ self.addEventListener('fetch', function(e) {
     }));
     return;
   }
-  
-  // Статика — сначала кэш, потом сеть
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
-        // Кэшируем только успешные ответы
         if (response.ok && e.request.method === 'GET') {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {
