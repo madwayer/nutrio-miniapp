@@ -289,21 +289,25 @@ async function loadDiary() {
   try {
     showPageLoading('diary-meals-container', '📔 Загрузка...');
     var data = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
-    if (data.error) { showPageError('diary-meals-container', data.error); return; }
+    if (!data || data.error) { 
+      showPageError('diary-meals-container', data ? data.error : 'Ошибка загрузки'); 
+      return; 
+    }
     diaryData = data;
     renderDiary(data);
     // Обновим виджет воды
-    if (data.water_today !== undefined) {
-      _updateDiaryWaterWidget(data.water_today, data.water_goal || 2000);
+    if (data.water_today !== undefined || data.water_ml !== undefined) {
+      _updateDiaryWaterWidget(data.water_today || data.water_ml || 0, data.water_goal || 2000);
     }
   } catch(e) {
-    showToast('Ошибка загрузки', 'var(--accent2)');
+    showPageError('diary-meals-container', 'Ошибка: ' + e.message);
   }
 }
 
 function renderDiary(data) {
+  if (!data || !data.total) return;
   // Прогресс-бар
-  var eaten   = data.total.calories;
+  var eaten   = data.total.calories || 0;
   var burned  = data.kcal_burned_today || 0;
   var baseGoal = data.daily_goal || 2000;
   var goal    = baseGoal + burned;   // чистая цель = норма + сожжённые
@@ -2933,8 +2937,8 @@ async function diaryAddWater(ml) {
       // Перезагружаем данные дневника чтобы обновить виджет
       try {
         var diary = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
-        if (diary && diary.water_today !== undefined) {
-          _updateDiaryWaterWidget(diary.water_today, diary.water_goal || 2000);
+        if (diary && (diary.water_ml !== undefined || diary.water_today !== undefined)) {
+          _updateDiaryWaterWidget(diary.water_ml || diary.water_today || 0, diary.water_goal || 2000);
         }
       } catch(e) {}
     }
