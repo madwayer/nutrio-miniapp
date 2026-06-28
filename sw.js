@@ -1,16 +1,16 @@
 // NutriO Service Worker v1
-const CACHE_NAME = 'nutrio-v7a';
+const CACHE_NAME = 'nutrio-v8a';
 const STATIC_ASSETS = [
   '/',
   '/js/01-calc.js?v=3x',
   '/js/02-datepicker.js?v=3x',
-  '/js/03-main-a.js?v=6a',
-  '/js/04-main-b.js?v=3x',
-  '/js/05-scanner.js?v=3x',
-  '/js/06-nav.js?v=6a',
+  '/js/03-main-a.js?v=8a',
+  '/js/04-main-b.js?v=8a',
+  '/js/05-scanner.js?v=8a',
+  '/js/06-nav.js?v=8a',
   '/js/07-skeleton.js?v=3x',
   '/js/08-rings-heatmap.js?v=3x',
-  '/js/09-ai-cards.js?v=3x',
+  '/js/09-ai-cards.js?v=8a',
   '/js/10-charts-archive.js?v=3x',
   '/js/11-fasting.js?v=6a',
   '/js/11-i18n-ext.js?v=6a',
