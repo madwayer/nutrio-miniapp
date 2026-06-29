@@ -77,56 +77,16 @@ function showPhotoLimitModal() {
 window.updatePhotoQuotaUI = updatePhotoQuotaUI;
 window.showPhotoLimitModal = showPhotoLimitModal;
 
-// Кэш user_id — заполняется один раз при инициализации
-var _cachedUserId = 0;
-
 function getUserId() {
-  if (_cachedUserId) return _cachedUserId;
-  try {
-    var tg = window.Telegram && window.Telegram.WebApp;
-    var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-    if (id) { _cachedUserId = id; return id; }
-    // Fallback — URL параметр (для dev и некоторых клиентов)
-    var p = new URLSearchParams(window.location.search);
-    id = p.get('user_id') || p.get('tgWebAppStartParam');
-    if (id && parseInt(id) > 0) { _cachedUserId = parseInt(id); return _cachedUserId; }
-  } catch(e) {}
-  return 0;
-}
-
-// Инициализируем user_id как можно раньше
-(function() {
-  try {
-    var tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) {
-      tg.ready();
-      var uid = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-      if (uid) _cachedUserId = uid;
-    }
-  } catch(e) {}
-})();
-
-// Автоматически определяем и сохраняем timezone с устройства юзера
-// Вызывается один раз при загрузке — юзер ничего не делает вручную
-function _syncTimezone() {
-  try {
-    var uid = getUserId();
-    if (!uid) return;
-    var tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    // Вычисляем offset в часах (учитываем летнее время)
-    var offsetMin = -new Date().getTimezoneOffset();
-    var offsetH   = Math.round(offsetMin / 60 * 2) / 2; // с шагом 0.5 для India/Иран
-    var body = {user_id: parseInt(uid), tz_name: tzName, tz_offset: offsetH};
-    var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-    if (initData) body.initData = initData;
-    // fire-and-forget: не ждём ответа, не блокируем загрузку
-    fetch('/api/proxy/api/tz', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-Telegram-User-Id': String(uid)},
-      body: JSON.stringify(body),
-      keepalive: true,
-    }).catch(function(){});
-  } catch(e) {}
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var id = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  if (!id) {
+    try {
+      var p = new URLSearchParams(window.location.search);
+      id = p.get('user_id');
+    } catch(e) {}
+  }
+  return id || 0;
 }
 
 var API_BASE = '/api/proxy';
@@ -230,8 +190,6 @@ function initDiaryPage() {
 }
 
 async function checkOnboardingAndLoad() {
-  // Отправляем timezone автоматически — юзер ничего не делает
-  _syncTimezone();
   try {
     var data = await apiGet('/api/settings');
     if (data && data.ok && data.is_onboarded === false) {
@@ -306,29 +264,23 @@ async function loadDiary() {
   try {
     showPageLoading('diary-meals-container', '📔 Загрузка...');
     var data = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
-    if (!data || data.error) { 
-      showPageError('diary-meals-container', data ? data.error : 'Ошибка загрузки'); 
-      return; 
-    }
+    if (data.error) { showPageError('diary-meals-container', data.error); return; }
     diaryData = data;
     renderDiary(data);
     // Обновим виджет воды
-    if (data.water_today !== undefined || data.water_ml !== undefined) {
-      _updateDiaryWaterWidget(data.water_today || data.water_ml || 0, data.water_goal || 2000);
+    if (data.water_today !== undefined) {
+      _updateDiaryWaterWidget(data.water_today, data.water_goal || 2000);
     }
   } catch(e) {
-    showPageError('diary-meals-container', 'Ошибка: ' + e.message);
+    showToast('Ошибка загрузки', 'var(--accent2)');
   }
 }
 
 function renderDiary(data) {
-  if (!data || !data.total) return;
   // Прогресс-бар
-  var eaten   = data.total.calories || 0;
-  var burned  = data.kcal_burned_today || 0;
-  var baseGoal = data.daily_goal || 2000;
-  var goal    = baseGoal + burned;   // чистая цель = норма + сожжённые
-  var pct     = Math.min(100, Math.round(eaten / goal * 100));
+  var eaten = data.total.calories;
+  var goal  = data.daily_goal || 2000;
+  var pct   = Math.min(100, Math.round(eaten / goal * 100));
   // Сохраняем снимок дня для шеринг-карточки
   var mealCount = 0, foodNames = [];
   if (data.meals) {
@@ -346,19 +298,6 @@ function renderDiary(data) {
   };
   var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
   var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';
-  // Показываем подсказку про тренировку если есть сожжённые калории
-  var burnedHint = document.getElementById('diary-burned-hint');
-  if (burnedHint) {
-    if (burned > 0) {
-      var ru = (window._lang || 'ru') !== 'en';
-      burnedHint.textContent = ru
-        ? ('🏃 +' + burned + ' ккал от тренировки')
-        : ('🏃 +' + burned + ' kcal from exercise');
-      burnedHint.style.display = '';
-    } else {
-      burnedHint.style.display = 'none';
-    }
-  }
   var fill = document.getElementById('diary-prog-fill');
   if (fill) {
     fill.style.width = pct + '%';
@@ -2017,7 +1956,7 @@ async function initAdminPage() {
 })();
 
 function admSection(name) {
-  ['dash','tickets','users','payments','revenue','broadcast','notif','settings','admstats'].forEach(function(s) {
+  ['dash','tickets','users','payments','revenue','broadcast','notif','admstats'].forEach(function(s) {
     var btn = document.getElementById('adm-btn-' + s);
     var sec = document.getElementById('adm-section-' + s);
     if (btn) btn.className = 'adm-nav-btn' + (s===name?' active':'');
@@ -2031,7 +1970,6 @@ function admSection(name) {
   if (name==='broadcast') { /* уже есть UI */ }
   if (name==='notif')     admLoadNotifSettings();
   if (name==='admstats')  admLoadStats();
-  if (name==='settings')  admSettingsLoad();
 }
 
 // ════════════════════════════════════════════════════════
@@ -2167,34 +2105,29 @@ async function admUserProfile(userId) {
     var body = document.getElementById('adm-userprof-body');
     if (!d.ok) { body.innerHTML = '<div style="color:var(--accent2)">Не удалось загрузить</div>'; return; }
     var u = d.user || {};
-    var name = (u.name||u.first_name||'').trim() || '—';
-    var uname = u.username ? '@' + u.username : ('id' + u.id);
-    var isPrem = u.premium || u.is_premium || u.status === 'premium' || u.status === 'vip';
-    var premBadge = isPrem ?
+    var name = (u.first_name||'').trim() || '—';
+    var uname = u.username ? '@' + u.username : '';
+    var premBadge = u.is_premium ?
       '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">⭐ PREMIUM</span>' :
       '<span style="background:var(--surface2);color:var(--text2);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700">FREE</span>';
-    var uid = u.id || u.telegram_id;
-    var streak = u.streak || u.streak_days || 0;
-    var entries = u.entries_total || u.food_entries || 0;
-    var photosToday = u.photos_today || u.photo_today_used || 0;
-    var photoLimit  = u.photo_today_limit || 5;
 
     body.innerHTML =
       '<div style="font-weight:800;font-size:18px;margin-bottom:4px">' + escHtml(name) + ' ' + premBadge + '</div>'
       + '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">'
-      +   escHtml(uname) + ' · id=' + uid
+      +   (uname ? escHtml(uname) + ' · ' : '')
+      +   'id=' + u.telegram_id
       + '</div>'
 
       // Сводка
       + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">'
       +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
-      +     '<div style="font-size:16px;font-weight:800;color:var(--accent)">' + entries + '</div>'
+      +     '<div style="font-size:16px;font-weight:800;color:var(--accent)">' + (u.food_entries||0) + '</div>'
       +     '<div style="font-size:10px;color:var(--text2)">Записей</div></div>'
       +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
-      +     '<div style="font-size:16px;font-weight:800;color:var(--green)">' + streak + '</div>'
+      +     '<div style="font-size:16px;font-weight:800;color:var(--green)">' + (u.streak_days||0) + '</div>'
       +     '<div style="font-size:10px;color:var(--text2)">Стрик</div></div>'
       +   '<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
-      +     '<div style="font-size:16px;font-weight:800;color:#facc15">' + photosToday + '/' + photoLimit + '</div>'
+      +     '<div style="font-size:16px;font-weight:800;color:#facc15">' + (u.photos_today||0) + '/5</div>'
       +     '<div style="font-size:10px;color:var(--text2)">Фото сегодня</div></div>'
       + '</div>'
 
@@ -2204,28 +2137,26 @@ async function admUserProfile(userId) {
       +   '⚖️ Вес: <b>' + (u.weight||'—') + ' кг</b> · 📏 Рост: <b>' + (u.height||'—') + ' см</b><br>'
       +   '🔥 Норма: <b>' + (u.daily_goal||'—') + ' ккал</b><br>'
       +   (u.premium_until ? '⭐ Premium до: <b>' + escHtml(u.premium_until) + '</b><br>' : '')
-      +   '📊 Записей за неделю: <b>' + (u.entries_week||0) + '</b><br>'
-      +   '🏆 Достижений: <b>' + (u.achievements||0) + '</b><br>'
-      +   '🌍 Язык: <b>' + escHtml(u.language||u.lang||'ru') + '</b>'
+      +   '🌍 Язык: <b>' + escHtml(u.language||'ru') + '</b>'
       + '</div>'
 
       // Действия
       + '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">⚡ ДЕЙСТВИЯ</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
-      +   (isPrem ?
-          '<button onclick="admUserSetPremium(' + uid + ',0)" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">❌ Снять Premium</button>'
+      +   (u.is_premium ?
+          '<button onclick="admUserSetPremium(' + u.telegram_id + ',0)" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">❌ Снять Premium</button>'
         :
-          '<button onclick="admUserSetPremium(' + uid + ',30)" style="padding:11px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">⭐ Выдать 30д</button>')
-      +   '<button onclick="admUserSetPremium(' + uid + ',365)" style="padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🎁 Выдать 365д</button>'
+          '<button onclick="admUserSetPremium(' + u.telegram_id + ',30)" style="padding:11px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">⭐ Выдать 30д</button>')
+      +   '<button onclick="admUserSetPremium(' + u.telegram_id + ',365)" style="padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🎁 Выдать 365д</button>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
-      +   '<button onclick="admUserResetQuota(' + uid + ')" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">🔄 Обнулить квоту</button>'
+      +   '<button onclick="admUserResetQuota(' + u.telegram_id + ')" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">🔄 Обнулить квоту</button>'
       +   (u.is_banned ?
-          '<button onclick="admUserBan(' + uid + ',false)" style="padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">✅ Разбанить</button>'
+          '<button onclick="admUserBan(' + u.telegram_id + ',false)" style="padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">✅ Разбанить</button>'
         :
-          '<button onclick="admUserBan(' + uid + ',true)" style="padding:11px;background:rgba(219,39,119,.15);color:var(--accent2);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🚫 Забанить</button>')
+          '<button onclick="admUserBan(' + u.telegram_id + ',true)" style="padding:11px;background:rgba(219,39,119,.15);color:var(--accent2);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🚫 Забанить</button>')
       + '</div>'
-      + '<button onclick="admUserSendMessage(' + uid + ')" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">💬 Отправить сообщение</button>';
+      + '<button onclick="admUserSendMessage(' + u.telegram_id + ')" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:44px">💬 Отправить сообщение</button>';
   } catch(e) {
     var body = document.getElementById('adm-userprof-body');
     if (body) body.innerHTML = '<div style="color:var(--accent2)">Ошибка</div>';
@@ -2345,19 +2276,18 @@ async function admLoadDashV2() {
       return;
     }
 
-    var max = Math.max.apply(null, d.buckets.map(function(b){ return b.new_users || 0; })) || 1;
+    var max = Math.max.apply(null, d.buckets.map(function(b){ return b.count || 0; })) || 1;
     var days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
     var bars = d.buckets.map(function(b) {
-      var cnt = b.new_users || 0;
-      var pct = Math.round(cnt / max * 100);
+      var pct = Math.round((b.count || 0) / max * 100);
       var date = new Date(b.date);
       var dow = days[date.getDay()];
       var isToday = b.date === new Date().toISOString().slice(0,10);
       var col = isToday ? '#6366f1' : 'rgba(99,102,241,0.4)';
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'
-        + (cnt > 0 ? '<div style="font-size:9px;color:#8e8e93">' + cnt + '</div>' : '<div style="font-size:9px;color:transparent">0</div>')
-        + '<div style="width:100%;border-radius:4px 4px 0 0;background:' + col + ';height:' + Math.max(pct, cnt>0?4:0) + '%;' + (isToday ? 'box-shadow:0 0 8px rgba(99,102,241,0.5)' : '') + '"></div>'
+        + (b.count > 0 ? '<div style="font-size:9px;color:#8e8e93">' + b.count + '</div>' : '<div style="font-size:9px;color:transparent">0</div>')
+        + '<div style="width:100%;border-radius:4px 4px 0 0;background:' + col + ';height:' + Math.max(pct, b.count>0?4:0) + '%;' + (isToday ? 'box-shadow:0 0 8px rgba(99,102,241,0.5)' : '') + '"></div>'
         + '<div style="font-size:9px;color:' + (isToday ? '#6366f1' : '#8e8e93') + ';font-weight:' + (isToday ? '700' : '400') + '">' + dow + '</div>'
         + '</div>';
     }).join('');
@@ -2438,9 +2368,6 @@ async function admLoadDash() {
     document.getElementById('adm-premium').textContent = data.premium_users || 0;
     document.getElementById('adm-active').textContent  = data.active_today  || 0;
     document.getElementById('adm-entries').textContent = (data.total_entries||0).toLocaleString();
-    // Новые сегодня
-    var newEl = document.getElementById('adm-new-today');
-    if (newEl) newEl.textContent = data.new_today || 0;
     var pend = data.pending_payments || 0;
     var pc   = document.getElementById('adm-pending-card');
     var pn   = document.getElementById('adm-pending-cnt');
@@ -2761,174 +2688,6 @@ async function admToggleNotif(toggleEl) {
   }
 }
 window.admLoadNotifSettings = admLoadNotifSettings;
-
-// ── ADMIN SETTINGS (цены, карта, TON) ──────────────────────────
-async function admSettingsLoad() {
-  try {
-    var r = await fetch('/api/proxy/api/admin?action=settings_get', {headers: _adminHeaders()});
-    var d = await r.json();
-    if (!d.ok) return;
-
-    // Цены Premium в рублях
-    if (d.prices_rub) {
-      var el1m  = document.getElementById('prem-price-1m');
-      var el3m  = document.getElementById('prem-price-3m');
-      var el12m = document.getElementById('prem-price-12m');
-      if (el1m)  el1m.value  = d.prices_rub['1m']  || 449;
-      if (el3m)  el3m.value  = d.prices_rub['3m']  || 1199;
-      if (el12m) el12m.value = d.prices_rub['12m'] || 3990;
-    }
-
-    // Реквизиты карты
-    var elNum  = document.getElementById('card-number');
-    var elHold = document.getElementById('card-holder');
-    var elBank = document.getElementById('card-bank');
-    if (elNum)  elNum.value  = d.card_number || '';
-    if (elHold) elHold.value = d.card_holder || '';
-    if (elBank) elBank.value = d.card_bank   || 'OZON Bank';
-
-    // TON цены
-    if (d.prices_ton) {
-      var t1m  = document.getElementById('ton-price-1m');
-      var t3m  = document.getElementById('ton-price-3m');
-      var t12m = document.getElementById('ton-price-12m');
-      if (t1m)  t1m.value  = d.prices_ton['1m']  || 5;
-      if (t3m)  t3m.value  = d.prices_ton['3m']  || 13;
-      if (t12m) t12m.value = d.prices_ton['12m'] || 42;
-    }
-
-    // TON кошелёк
-    var walletEl = document.getElementById('ton-wallet-display');
-    if (walletEl) walletEl.textContent = d.ton_wallet || '—';
-
-    // Подсказка по курсу TON
-    var rateEl = document.getElementById('ton-rate-hint');
-    if (rateEl && d.prices_rub && d.prices_ton) {
-      var rate = Math.round(d.prices_rub['1m'] / (d.prices_ton['1m'] || 1));
-      rateEl.textContent = '≈ ' + rate + ' ₽ за 1 TON (по ценам 1 мес). Обновляй при изменении курса.';
-    }
-  } catch(e) { console.warn('settings load failed', e); }
-}
-
-async function admSettingsSave(section) {
-  var status = document.getElementById('status-' + section);
-  var body = {action: 'settings_save', section: section};
-
-  if (section === 'premium_prices') {
-    body.prices = {
-      '1m':  parseInt(document.getElementById('prem-price-1m').value)  || 449,
-      '3m':  parseInt(document.getElementById('prem-price-3m').value)  || 1199,
-      '12m': parseInt(document.getElementById('prem-price-12m').value) || 3990,
-    };
-  } else if (section === 'card') {
-    body.card_number = (document.getElementById('card-number').value || '').trim();
-    body.card_holder = (document.getElementById('card-holder').value || '').trim();
-    body.card_bank   = (document.getElementById('card-bank').value   || '').trim();
-    if (!body.card_number) { _settingsStatus(status, '❌ Введи номер карты', false); return; }
-  } else if (section === 'ton') {
-    body.prices = {
-      '1m':  parseFloat(document.getElementById('ton-price-1m').value)  || 5,
-      '3m':  parseFloat(document.getElementById('ton-price-3m').value)  || 13,
-      '12m': parseFloat(document.getElementById('ton-price-12m').value) || 42,
-    };
-  }
-
-  try {
-    if (status) { status.textContent = '⏳ Сохраняю...'; status.style.color = 'var(--muted)'; }
-    var r = await fetch('/api/proxy/api/admin', {
-      method: 'POST',
-      headers: _adminHeaders({'Content-Type': 'application/json'}),
-      body: JSON.stringify(body)
-    });
-    var d = await r.json();
-    if (d.ok) {
-      _settingsStatus(status, '✅ Сохранено', true);
-      admSettingsLoad(); // перезагружаем чтобы показать актуальные данные
-    } else {
-      _settingsStatus(status, '❌ ' + (d.error || 'Ошибка'), false);
-    }
-  } catch(e) {
-    _settingsStatus(status, '❌ Ошибка соединения', false);
-  }
-}
-
-function _settingsStatus(el, msg, ok) {
-  if (!el) return;
-  el.textContent  = msg;
-  el.style.color  = ok ? 'var(--green)' : 'var(--accent2)';
-  el.style.fontWeight = '700';
-  setTimeout(function() { if (el) { el.textContent = ''; } }, 3000);
-}
-
-window.admSettingsLoad = admSettingsLoad;
-window.admSettingsSave = admSettingsSave;
-
-// ── WEIGHT WIDGET ────────────────────────────────────────────────
-async function saveWeightToday() {
-  var inp = document.getElementById('weight-input-today');
-  var status = document.getElementById('weight-today-status');
-  var w = parseFloat(inp && inp.value);
-  if (!w || w < 20 || w > 500) {
-    if (status) { status.textContent = '❌ Введи вес от 20 до 300 кг'; status.style.color = 'var(--accent2)'; }
-    return;
-  }
-  var uid = getUserId();
-  if (!uid) return;
-  try {
-    if (status) { status.textContent = '⏳ Сохраняю...'; status.style.color = 'var(--muted)'; }
-    var r = await fetch('/api/proxy/api/weight', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Telegram-User-Id': String(uid)},
-      body: JSON.stringify({user_id: parseInt(uid), weight: w}),
-    });
-    var d = await r.json();
-    if (d.ok) {
-      if (status) { status.textContent = '✅ Вес сохранён: ' + w + ' кг'; status.style.color = 'var(--green)'; }
-      // Обновляем список последних записей
-      _renderWeightRecent(d.recent || []);
-      // Хаптик
-      try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e) {}
-    } else {
-      if (status) { status.textContent = '❌ ' + (d.error || 'Ошибка'); status.style.color = 'var(--accent2)'; }
-    }
-  } catch(e) {
-    if (status) { status.textContent = '❌ Ошибка соединения'; status.style.color = 'var(--accent2)'; }
-  }
-}
-
-function _renderWeightRecent(entries) {
-  var el = document.getElementById('weight-recent-list');
-  if (!el || !entries || !entries.length) return;
-  var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
-  entries.forEach(function(e) {
-    html += '<div style="background:var(--bg2);border-radius:8px;padding:6px 10px;font-size:12px">'
-      + '<span style="font-weight:700;color:var(--accent)">' + e.weight + ' кг</span>'
-      + '<span style="color:var(--muted);margin-left:4px">' + e.date + '</span>'
-      + '</div>';
-  });
-  html += '</div>';
-  el.innerHTML = html;
-}
-
-function initWeightWidget() {
-  // Подставляем текущий вес как placeholder
-  var uid = getUserId();
-  if (!uid) return;
-  fetch('/api/proxy/api/weight_history?user_id=' + uid + '&limit=5')
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.entries && d.entries.length) {
-        var latest = d.entries[0];
-        var inp = document.getElementById('weight-input-today');
-        if (inp && latest.weight) inp.placeholder = latest.weight;
-        _renderWeightRecent(d.entries.map(function(e) {
-          return {weight: e.weight, date: e.date ? e.date.slice(5).replace('-','.') : '—'};
-        }));
-      }
-    }).catch(function(){});
-}
-window.saveWeightToday  = saveWeightToday;
-window.initWeightWidget = initWeightWidget;
 window.admToggleNotif = admToggleNotif;
 window.admBcSend      = admBcSend;
 window.admBcPreview   = admBcPreview;
@@ -2954,8 +2713,8 @@ async function diaryAddWater(ml) {
       // Перезагружаем данные дневника чтобы обновить виджет
       try {
         var diary = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
-        if (diary && (diary.water_ml !== undefined || diary.water_today !== undefined)) {
-          _updateDiaryWaterWidget(diary.water_ml || diary.water_today || 0, diary.water_goal || 2000);
+        if (diary && diary.water_today !== undefined) {
+          _updateDiaryWaterWidget(diary.water_today, diary.water_goal || 2000);
         }
       } catch(e) {}
     }

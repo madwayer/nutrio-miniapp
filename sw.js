@@ -1,16 +1,16 @@
-// NutriO Service Worker v2
-const CACHE_NAME = 'nutrio-v8a';
+// NutriO Service Worker v1
+const CACHE_NAME = 'nutrio-v7a';
 const STATIC_ASSETS = [
   '/',
   '/js/01-calc.js?v=3x',
   '/js/02-datepicker.js?v=3x',
-  '/js/03-main-a.js?v=8a',
-  '/js/04-main-b.js?v=8a',
-  '/js/05-scanner.js?v=8a',
-  '/js/06-nav.js?v=8a',
+  '/js/03-main-a.js?v=6a',
+  '/js/04-main-b.js?v=3x',
+  '/js/05-scanner.js?v=3x',
+  '/js/06-nav.js?v=6a',
   '/js/07-skeleton.js?v=3x',
   '/js/08-rings-heatmap.js?v=3x',
-  '/js/09-ai-cards.js?v=8a',
+  '/js/09-ai-cards.js?v=3x',
   '/js/10-charts-archive.js?v=3x',
   '/js/11-fasting.js?v=6a',
   '/js/11-i18n-ext.js?v=6a',
@@ -22,6 +22,7 @@ const STATIC_ASSETS = [
   '/styles.css',
 ];
 
+// Установка — кэшируем все статические файлы
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
@@ -32,6 +33,7 @@ self.addEventListener('install', function(e) {
   );
 });
 
+// Активация — удаляем старые кэши
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -45,8 +47,11 @@ self.addEventListener('activate', function(e) {
   );
 });
 
+// Fetch — Cache First для статики, Network First для API
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
+  
+  // API запросы — всегда сеть
   if (url.includes('/api/') || url.includes('telegram.org')) {
     e.respondWith(fetch(e.request).catch(function() {
       return new Response(JSON.stringify({error: 'offline'}), {
@@ -55,10 +60,13 @@ self.addEventListener('fetch', function(e) {
     }));
     return;
   }
+  
+  // Статика — сначала кэш, потом сеть
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
+        // Кэшируем только успешные ответы
         if (response.ok && e.request.method === 'GET') {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {
