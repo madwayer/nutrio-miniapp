@@ -311,6 +311,7 @@ function renderDiary(data) {
   // Прогресс-бар
   var eaten   = data.total.calories;
   var burned  = data.kcal_burned_today || 0;
+  if (burned > 0) showToast('🏃 burned: ' + burned, 'var(--accent)');
   var baseGoal = data.daily_goal || 2000;
   var goal    = baseGoal + burned;   // чистая цель = норма + сожжённые
   var pct     = Math.min(100, Math.round(eaten / goal * 100));
