@@ -336,8 +336,8 @@ function renderDiary(data) {
     if (burned > 0) {
       var ru = (window._lang || 'ru') !== 'en';
       burnedHint.textContent = ru
-        ? ('🏃 Сожжено: ' + burned + ' ккал')
-        : ('🏃 Burned: ' + burned + ' kcal');
+        ? ('🏃 Сожжено: ' + burned + ' ккал от тренировки')
+        : ('🏃 Burned: ' + burned + ' kcal from workout');
       burnedHint.style.display = '';
     } else {
       burnedHint.style.display = 'none';

@@ -1,10 +1,10 @@
 // NutriO Service Worker v1
-const CACHE_NAME = 'nutrio-v9a';
+const CACHE_NAME = 'nutrio-v10a';
 const STATIC_ASSETS = [
   '/',
   '/js/01-calc.js?v=3x',
   '/js/02-datepicker.js?v=3x',
-  '/js/03-main-a.js?v=9a',
+  '/js/03-main-a.js?v=10a',
   '/js/04-main-b.js?v=3x',
   '/js/05-scanner.js?v=3x',
   '/js/06-nav.js?v=6a',
