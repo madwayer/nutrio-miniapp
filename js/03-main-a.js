@@ -1481,7 +1481,13 @@ function initImportPage() {
 }
 
 function importHandleFile(file) {
-  if (!file.name.endsWith('.csv')) { showToast('Нужен CSV файл', 'var(--accent2)'); return; }
+  // Проверяем по расширению или MIME типу — на Android может не быть .csv
+  var name = (file.name || '').toLowerCase();
+  var mime = (file.type || '').toLowerCase();
+  var isText = name.endsWith('.csv') || name.endsWith('.txt') ||
+               mime.includes('csv') || mime.includes('text') ||
+               mime.includes('excel') || mime === '';
+  if (!isText) { showToast('Выбери CSV файл', 'var(--accent2)'); return; }
   var reader = new FileReader();
   reader.onload = function(e) { importParseCSV(e.target.result); };
   reader.readAsText(file, 'UTF-8');
