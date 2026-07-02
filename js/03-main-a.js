@@ -311,7 +311,6 @@ function renderDiary(data) {
   // Прогресс-бар
   var eaten   = data.total.calories;
   var burned  = data.kcal_burned_today || 0;
-  if (burned > 0) showToast('🏃 burned: ' + burned, 'var(--accent)');
   var baseGoal = data.daily_goal || 2000;
   var goal    = baseGoal + burned;   // чистая цель = норма + сожжённые
   var pct     = Math.min(100, Math.round(eaten / goal * 100));
@@ -332,6 +331,8 @@ function renderDiary(data) {
   };
   var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
   var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';
+  var gd = document.getElementById('diary-goal-display');
+  if(gd) gd.textContent = burned > 0 ? ('🏃 +' + burned + ' ккал · норма ' + goal) : '';
   // Показываем подсказку про тренировку если есть сожжённые калории
   var burnedHint = document.getElementById('diary-burned-hint');
   if (burnedHint) {
