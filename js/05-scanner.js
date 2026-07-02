@@ -1001,10 +1001,14 @@ function renderWater(){
                        dt.toLocaleDateString(LANG||'en-US',{weekday:'short'});
         if(data.log&&data.log.length){
           allEntries.push('<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;font-weight:600;">'+dayLabel+' — '+data.total+' '+(i18n&&i18n.water_unit||unit)+'</div>');
-          data.log.slice().reverse().forEach(function(e){
-            allEntries.push('<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;">'+
+          data.log.slice().reverse().forEach(function(e, ri){
+            var realIdx = data.log.length - 1 - ri;
+            var delBtn = d===0
+              ? '<button onclick="deleteWaterEntry('+realIdx+')" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;padding:0 4px;line-height:1" title="Удалить">✕</button>'
+              : '';
+            allEntries.push('<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;">'+
               '<span>💧 +'+e.ml+' '+unit+'</span>'+
-              '<span style="color:var(--text2);">'+e.time+'</span></div>');
+              '<span style="display:flex;align-items:center;gap:8px;color:var(--text2);">'+e.time+delBtn+'</span></div>');
           });
         }
       }
@@ -1014,6 +1018,21 @@ function renderWater(){
     ? '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">'+(i18n&&i18n['history_3day']||'3-day history:')+'</div>'+allEntries.join('')
     : '';
 }
+
+function deleteWaterEntry(idx) {
+  if (!waterLog[idx]) return;
+  var ml = waterLog[idx].ml;
+  waterLog.splice(idx, 1);
+  waterToday = Math.max(0, waterToday - ml);
+  saveWaterLocal();
+  // Синхронизируем с сервером — отправляем отрицательное значение
+  var uid = (typeof getUserId === 'function') ? getUserId() : 0;
+  if (uid) {
+    apiPost('/api/water', {ml: -ml}).catch(function(){});
+  }
+  renderWater();
+}
+window.deleteWaterEntry = deleteWaterEntry;
 
 function addWater(ml){
   waterToday += ml;
