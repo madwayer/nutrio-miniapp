@@ -331,8 +331,6 @@ function renderDiary(data) {
   };
   var el = document.getElementById('diary-kcal-eaten'); if(el) el.textContent = eaten;
   var gl = document.getElementById('diary-kcal-goal');  if(gl) gl.textContent = '/ ' + goal + ' ккал';
-  var gd = document.getElementById('diary-goal-display');
-  if(gd) gd.textContent = burned > 0 ? ('🏃 +' + burned + ' ккал · норма ' + goal) : '';
   // Показываем подсказку про тренировку если есть сожжённые калории
   var burnedHint = document.getElementById('diary-burned-hint');
   if (burnedHint) {
