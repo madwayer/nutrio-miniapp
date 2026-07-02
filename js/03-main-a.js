@@ -2394,18 +2394,19 @@ async function admLoadDashV2() {
       return;
     }
 
-    var max = Math.max.apply(null, d.buckets.map(function(b){ return b.count || 0; })) || 1;
+    var max = Math.max.apply(null, d.buckets.map(function(b){ return b.new_users || 0; })) || 1;
     var days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
     var bars = d.buckets.map(function(b) {
-      var pct = Math.round((b.count || 0) / max * 100);
+      var cnt = b.new_users || 0;
+      var pct = Math.round(cnt / max * 100);
       var date = new Date(b.date);
       var dow = days[date.getDay()];
       var isToday = b.date === new Date().toISOString().slice(0,10);
       var col = isToday ? '#6366f1' : 'rgba(99,102,241,0.4)';
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'
-        + (b.count > 0 ? '<div style="font-size:9px;color:#8e8e93">' + b.count + '</div>' : '<div style="font-size:9px;color:transparent">0</div>')
-        + '<div style="width:100%;border-radius:4px 4px 0 0;background:' + col + ';height:' + Math.max(pct, b.count>0?4:0) + '%;' + (isToday ? 'box-shadow:0 0 8px rgba(99,102,241,0.5)' : '') + '"></div>'
+        + (cnt > 0 ? '<div style="font-size:9px;color:#8e8e93">' + cnt + '</div>' : '<div style="font-size:9px;color:transparent">0</div>')
+        + '<div style="width:100%;border-radius:4px 4px 0 0;background:' + col + ';height:' + Math.max(pct, cnt>0?4:0) + '%;' + (isToday ? 'box-shadow:0 0 8px rgba(99,102,241,0.5)' : '') + '"></div>'
         + '<div style="font-size:9px;color:' + (isToday ? '#6366f1' : '#8e8e93') + ';font-weight:' + (isToday ? '700' : '400') + '">' + dow + '</div>'
         + '</div>';
     }).join('');
@@ -2478,6 +2479,13 @@ async function admLoadStats() {
 
 
 async function admLoadDash() {
+  // Ждём user_id если ещё не получен
+  var uid = getUserId();
+  if (!uid) {
+    await new Promise(function(r){ setTimeout(r, 500); });
+    uid = getUserId();
+  }
+  if (!uid) return;
   try {
     var res  = await fetch('/api/proxy/api/admin?action=dashboard', {headers:_adminHeaders()});
     var data = await res.json();

@@ -1749,107 +1749,113 @@
       <button class="adm-btn adm-btn-prem" onclick="admLoadNotifSettings()" style="width:100%;margin-top:12px">🔄 Обновить статусы</button>
     </div>
     <!-- Settings section -->
-    <div class="adm-section" id="adm-section-settings" style="padding:0">
+    <div class="adm-section" id="adm-section-settings" style="padding:0;display:flex;flex-direction:column;gap:12px">
 
       <!-- ── ЦЕНЫ PREMIUM ──────────────────────────────── -->
-      <div class="stat-card" style="margin-bottom:10px">
-        <div class="stat-card-title">💳 Цены Premium</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Изменения вступают в силу сразу. Уже выданные подписки не меняются.</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:#1c1c1e;border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,0.08)">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">💳 Цены Premium</div>
+        <div style="font-size:11px;color:#8e8e93;margin-bottom:16px">Вступают в силу сразу. Выданные подписки не меняются.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Basic · 1 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Basic · 1 мес</div>
             <div style="position:relative">
-              <input id="prem-price-1m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+              <input id="prem-price-1m" type="number" min="1" placeholder="449"
+                style="width:100%;padding:12px 24px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:12px;font-weight:600">₽</span>
             </div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Standard · 3 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Std · 3 мес</div>
             <div style="position:relative">
-              <input id="prem-price-3m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+              <input id="prem-price-3m" type="number" min="1" placeholder="1199"
+                style="width:100%;padding:12px 24px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:12px;font-weight:600">₽</span>
             </div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Premium · 12 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Prem · 12 мес</div>
             <div style="position:relative">
-              <input id="prem-price-12m" type="number" min="1" style="width:100%;padding:10px 28px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">₽</span>
+              <input id="prem-price-12m" type="number" min="1" placeholder="3990"
+                style="width:100%;padding:12px 24px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:12px;font-weight:600">₽</span>
             </div>
           </div>
         </div>
-        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('premium_prices')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить цены</button>
-        <div id="status-premium-prices" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+        <button onclick="admSettingsSave('premium_prices')"
+          style="width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          💾 Сохранить цены
+        </button>
+        <div id="status-premium-prices" style="font-size:12px;text-align:center;margin-top:8px;min-height:18px;color:#8e8e93"></div>
       </div>
 
       <!-- ── РЕКВИЗИТЫ КАРТЫ ────────────────────────────── -->
-      <div class="stat-card" style="margin-bottom:10px">
-        <div class="stat-card-title">🏦 Реквизиты карты (РФ)</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Показываются юзеру при выборе оплаты картой.</div>
-
+      <div style="background:#1c1c1e;border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,0.08)">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">🏦 Реквизиты карты (РФ)</div>
+        <div style="font-size:11px;color:#8e8e93;margin-bottom:16px">Показываются юзеру при выборе оплаты картой.</div>
         <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Номер карты</div>
+          <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Номер карты</div>
           <input id="card-number" type="text" maxlength="19" placeholder="0000 0000 0000 0000"
-            style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:monospace;letter-spacing:2px;box-sizing:border-box">
+            style="width:100%;padding:13px;background:#2c2c2e;border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;font-size:15px;font-family:monospace;letter-spacing:3px;box-sizing:border-box;outline:none">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Получатель (имя)</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Получатель</div>
             <input id="card-holder" type="text" maxlength="50" placeholder="Ivan Petrov"
-              style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;box-sizing:border-box">
+              style="width:100%;padding:13px;background:#2c2c2e;border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;font-size:13px;box-sizing:border-box;outline:none">
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Банк</div>
-            <input id="card-bank" type="text" maxlength="30" placeholder="Сбер / Ozon / Т-Банк"
-              style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;box-sizing:border-box">
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Банк</div>
+            <input id="card-bank" type="text" maxlength="30" placeholder="Сбер / Ozon"
+              style="width:100%;padding:13px;background:#2c2c2e;border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;font-size:13px;box-sizing:border-box;outline:none">
           </div>
         </div>
-        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('card')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить реквизиты</button>
-        <div id="status-card" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+        <button onclick="admSettingsSave('card')"
+          style="width:100%;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          💾 Сохранить реквизиты
+        </button>
+        <div id="status-card" style="font-size:12px;text-align:center;margin-top:8px;min-height:18px;color:#8e8e93"></div>
       </div>
 
       <!-- ── ЦЕНЫ TON ────────────────────────────────────── -->
-      <div class="stat-card" style="margin-bottom:10px">
-        <div class="stat-card-title">💎 Цены в TON</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Обновляй вручную при колебаниях курса TON.</div>
-        <div id="ton-rate-hint" style="font-size:11px;color:var(--accent);margin-bottom:14px">Загрузка курса...</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:#1c1c1e;border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,0.08)">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">💎 Цены в TON</div>
+        <div style="font-size:11px;color:#8e8e93;margin-bottom:4px">Обновляй при колебаниях курса TON.</div>
+        <div id="ton-rate-hint" style="font-size:12px;color:#6366f1;font-weight:600;margin-bottom:16px">Загрузка...</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Basic · 1 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Basic · 1 мес</div>
             <div style="position:relative">
-              <input id="ton-price-1m" type="number" step="0.5" min="0.5"
-                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+              <input id="ton-price-1m" type="number" step="0.5" min="0.5" placeholder="5"
+                style="width:100%;padding:12px 40px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:10px;font-weight:700">TON</span>
             </div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Standard · 3 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Std · 3 мес</div>
             <div style="position:relative">
-              <input id="ton-price-3m" type="number" step="0.5" min="0.5"
-                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+              <input id="ton-price-3m" type="number" step="0.5" min="0.5" placeholder="13"
+                style="width:100%;padding:12px 40px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:10px;font-weight:700">TON</span>
             </div>
           </div>
           <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">Premium · 12 мес</div>
+            <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Prem · 12 мес</div>
             <div style="position:relative">
-              <input id="ton-price-12m" type="number" step="0.5" min="0.5"
-                style="width:100%;padding:10px 36px 10px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box">
-              <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;font-weight:700">TON</span>
+              <input id="ton-price-12m" type="number" step="0.5" min="0.5" placeholder="42"
+                style="width:100%;padding:12px 40px 12px 10px;background:#2c2c2e;border:1.5px solid rgba(99,102,241,0.4);border-radius:12px;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none">
+              <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);color:#8e8e93;font-size:10px;font-weight:700">TON</span>
             </div>
           </div>
         </div>
-
-        <!-- TON кошелёк -->
-        <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:14px">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">💎 Адрес кошелька TON</div>
-          <div id="ton-wallet-display" style="font-size:11px;color:var(--text);font-family:monospace;word-break:break-all;line-height:1.5"></div>
+        <div style="background:#2c2c2e;border-radius:10px;padding:10px 12px;margin-bottom:14px">
+          <div style="font-size:10px;color:#8e8e93;margin-bottom:4px;font-weight:600">💎 КОШЕЛЁК TON</div>
+          <div id="ton-wallet-display" style="font-size:11px;color:#a5b4fc;font-family:monospace;word-break:break-all;line-height:1.6"></div>
         </div>
-
-        <button class="adm-btn adm-btn-prem" onclick="admSettingsSave('ton')" style="width:100%;padding:12px;font-size:13px">💾 Сохранить цены TON</button>
-        <div id="status-ton" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+        <button onclick="admSettingsSave('ton')"
+          style="width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          💾 Сохранить цены TON
+        </button>
+        <div id="status-ton" style="font-size:12px;text-align:center;margin-top:8px;min-height:18px;color:#8e8e93"></div>
       </div>
 
     </div>
