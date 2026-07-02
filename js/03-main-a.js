@@ -1685,7 +1685,20 @@ async function initSettingsPage() {
     settData = data;
 
     document.getElementById('sett-kcal').value   = data.daily_goal || 2000;
-    document.getElementById('sett-water').value  = data.water_goal || 2000;
+    // Вода — авторасчёт если water_goal_custom = 0
+    var waterAutoOn = (data.water_goal_custom === 0);
+    var waterAutoBtn = document.getElementById('sett-water-auto-toggle');
+    var waterInp     = document.getElementById('sett-water');
+    var waterHint    = document.getElementById('sett-water-auto-hint');
+    if (waterAutoOn) {
+      if (waterAutoBtn) waterAutoBtn.className = 'sett-toggle on';
+      if (waterInp)  { waterInp.value = data.water_goal_auto || 2000; waterInp.disabled = true; waterInp.style.opacity = '0.4'; }
+      if (waterHint) waterHint.style.display = 'block';
+    } else {
+      if (waterAutoBtn) waterAutoBtn.className = 'sett-toggle';
+      if (waterInp)  { waterInp.value = data.water_goal_custom || data.water_goal || 2000; waterInp.disabled = false; waterInp.style.opacity = '1'; }
+      if (waterHint) waterHint.style.display = 'none';
+    }
     if (data.weight) document.getElementById('sett-weight').value = data.weight;
 
     // Load goal/lang/tz
@@ -1742,6 +1755,29 @@ function toggleReminder(type) {
     if (!sel.value) sel.value = type === 'food' ? '12' : '10';
   }
 }
+
+function toggleWaterAuto() {
+  var btn  = document.getElementById('sett-water-auto-toggle');
+  var inp  = document.getElementById('sett-water');
+  var hint = document.getElementById('sett-water-auto-hint');
+  if (!btn) return;
+  var isOn = btn.classList.contains('on');
+  btn.className = 'sett-toggle' + (isOn ? '' : ' on');
+  if (!isOn) {
+    // Включаем авто — прячем поле ввода, показываем подсказку
+    inp.style.opacity = '0.4';
+    inp.disabled = true;
+    if (hint) hint.style.display = 'block';
+    // Сохраняем 0 = авторасчёт
+    apiPost('/api/settings', {water_goal: 0}).catch(function(){});
+  } else {
+    // Выключаем авто — показываем поле ввода
+    inp.style.opacity = '1';
+    inp.disabled = false;
+    if (hint) hint.style.display = 'none';
+  }
+}
+window.toggleWaterAuto = toggleWaterAuto;
 
 function toggleExerciseInGoal() {
   var btn = document.getElementById('sett-exercise-goal-toggle');

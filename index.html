@@ -1494,9 +1494,16 @@
         <input type="number" class="sett-input" id="sett-kcal" min="500" max="10000" value="2000">
       </div>
       <div class="sett-row">
-        <div><div class="sett-label">Вода/день</div><div class="sett-sublabel">мл</div></div>
-        <input type="number" class="sett-input" id="sett-water" min="500" max="10000" value="2000">
+        <div>
+          <div class="sett-label">Вода/день</div>
+          <div class="sett-sublabel" id="sett-water-sublabel">мл · или авторасчёт по весу</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" class="sett-input" id="sett-water" min="500" max="10000" value="2000" style="width:80px" placeholder="мл">
+          <button class="sett-toggle" id="sett-water-auto-toggle" onclick="toggleWaterAuto()" title="Авторасчёт"></button>
+        </div>
       </div>
+      <div id="sett-water-auto-hint" style="display:none;font-size:11px;color:var(--accent);padding:0 0 8px 0">🤖 Авторасчёт: вес × 30 мл + 500 мл за тренировку</div>
       <div class="sett-row">
         <div>
           <div class="sett-label">🏃 Тренировки в норме</div>
