@@ -311,7 +311,10 @@ function renderDiary(data) {
   // Прогресс-бар
   var eaten    = data.total.calories;
   var burned   = data.kcal_burned_today || 0;
-  var goal     = data.daily_goal || 2000;
+  var baseGoal = data.daily_goal || 2000;
+  // Если включена настройка "учитывать тренировки в норме" — прибавляем сожжённые
+  var exerciseInGoal = data.exercise_in_goal || window._exerciseInGoal || 0;
+  var goal     = exerciseInGoal ? (baseGoal + burned) : baseGoal;
   var pct      = Math.min(100, Math.round(eaten / goal * 100));
   // Сохраняем снимок дня для шеринг-карточки
   var mealCount = 0, foodNames = [];
@@ -1708,6 +1711,10 @@ async function initSettingsPage() {
       }
     });
     // Данные загружены — показываем контент
+    // exercise_in_goal toggle
+    window._exerciseInGoal = data.exercise_in_goal || 0;
+    var exToggle = document.getElementById('sett-exercise-goal-toggle');
+    if (exToggle) exToggle.className = 'sett-toggle' + (data.exercise_in_goal ? ' on' : '');
     if (loadEl) loadEl.style.display = 'none';
     if (contEl) contEl.style.display = 'block';
   } catch(e) {
@@ -1730,6 +1737,15 @@ function toggleReminder(type) {
   }
 }
 
+function toggleExerciseInGoal() {
+  var btn = document.getElementById('sett-exercise-goal-toggle');
+  if (!btn) return;
+  var isOn = btn.classList.contains('on');
+  btn.className = 'sett-toggle' + (isOn ? '' : ' on');
+  window._exerciseInGoal = isOn ? 0 : 1;
+}
+window.toggleExerciseInGoal = toggleExerciseInGoal;
+
 async function saveSettings() {
   var userId = getUserId();
   if (!userId) { showToast('Открой из Telegram', 'var(--accent2)'); return; }
@@ -1743,6 +1759,7 @@ async function saveSettings() {
   var langSel2 = document.getElementById('sett-lang');
   var tzSel2   = document.getElementById('sett-tz');
   var heightEl = document.getElementById('sett-height');
+  var exGoalToggle = document.getElementById('sett-exercise-goal-toggle');
   var body = {
     user_id:            parseInt(userId),
     daily_goal:         parseInt(document.getElementById('sett-kcal').value)  || 2000,
@@ -1752,6 +1769,7 @@ async function saveSettings() {
     goal:     goalSel2 ? goalSel2.value : undefined,
     language: langSel2 ? langSel2.value : undefined,
     timezone_offset: tzSel2 ? parseInt(tzSel2.value) : undefined,
+    exercise_in_goal: exGoalToggle && exGoalToggle.classList.contains('on') ? 1 : 0,
   };
   var w = document.getElementById('sett-weight').value;
   if (w) body.weight = parseFloat(w);
