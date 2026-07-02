@@ -309,11 +309,10 @@ async function loadDiary() {
 
 function renderDiary(data) {
   // Прогресс-бар
-  var eaten   = data.total.calories;
-  var burned  = data.kcal_burned_today || 0;
-  var baseGoal = data.daily_goal || 2000;
-  var goal    = baseGoal + burned;   // чистая цель = норма + сожжённые
-  var pct     = Math.min(100, Math.round(eaten / goal * 100));
+  var eaten    = data.total.calories;
+  var burned   = data.kcal_burned_today || 0;
+  var goal     = data.daily_goal || 2000;
+  var pct      = Math.min(100, Math.round(eaten / goal * 100));
   // Сохраняем снимок дня для шеринг-карточки
   var mealCount = 0, foodNames = [];
   if (data.meals) {
@@ -337,8 +336,8 @@ function renderDiary(data) {
     if (burned > 0) {
       var ru = (window._lang || 'ru') !== 'en';
       burnedHint.textContent = ru
-        ? ('🏃 +' + burned + ' ккал от тренировки')
-        : ('🏃 +' + burned + ' kcal from exercise');
+        ? ('🏃 Сожжено: ' + burned + ' ккал')
+        : ('🏃 Burned: ' + burned + ' kcal');
       burnedHint.style.display = '';
     } else {
       burnedHint.style.display = 'none';
