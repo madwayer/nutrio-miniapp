@@ -1743,6 +1743,11 @@ function toggleExerciseInGoal() {
   var isOn = btn.classList.contains('on');
   btn.className = 'sett-toggle' + (isOn ? '' : ' on');
   window._exerciseInGoal = isOn ? 0 : 1;
+  // Сохраняем сразу
+  apiPost('/api/settings', {exercise_in_goal: window._exerciseInGoal})
+    .then(function(d) {
+      if (d && d.ok) showToast(window._exerciseInGoal ? '🏃 Тренировки учитываются' : 'Тренировки не учитываются', 'var(--accent)');
+    }).catch(function(){});
 }
 window.toggleExerciseInGoal = toggleExerciseInGoal;
 
