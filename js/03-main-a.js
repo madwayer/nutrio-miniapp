@@ -1406,7 +1406,7 @@ async function initPdfPage() {
   // При открытии страницы PDF проверяем премиум-статус и блокируем недоступные опции.
   try {
     var data = await apiGet('/api/settings');
-    _pdfIsPremium = !!(data && data.is_full_premium);
+    _pdfIsPremium = !!(data && data.is_premium);
   } catch(e) { _pdfIsPremium = false; }
 
   ['pdf-opt-30','pdf-opt-90'].forEach(function(id){
@@ -1934,9 +1934,10 @@ async function initPremPage() {
 
     if (data.is_premium) {
       var tierNames = {basic:'Basic', standard:'Standard', premium:'Premium'};
-      var tierName = tierNames[data.tier] || 'Premium';
+      var tierName  = tierNames[data.tier] || 'Premium';
       var tierIcons = {basic:'📦', standard:'⭐', premium:'👑'};
-      if (card)  card.className  = 'prem-status-card premium';
+      var tierClass = ['basic','standard','premium'].includes(data.tier) ? data.tier : 'premium';
+      if (card)  card.className  = 'prem-status-card ' + tierClass;
       if (icon)  icon.textContent  = tierIcons[data.tier] || '⭐';
       if (title) title.textContent = tierName + ' активен';
       if (sub)   sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';

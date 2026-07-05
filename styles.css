@@ -792,8 +792,10 @@
   .prem-status-card {
     border-radius:14px; padding:16px; margin-bottom:12px; text-align:center;
   }
-  .prem-status-card.free    { background:var(--bg2); }
-  .prem-status-card.premium { background:linear-gradient(135deg,#1a237e,#283593); color:#fff; }
+  .prem-status-card.free     { background:var(--bg2); }
+  .prem-status-card.basic    { background:linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; }
+  .prem-status-card.standard { background:linear-gradient(135deg,#5b21b6,#8b5cf6); color:#fff; }
+  .prem-status-card.premium  { background:linear-gradient(135deg,#78350f,#f59e0b); color:#fff; }
   .prem-status-icon { font-size:40px; margin-bottom:8px; }
   .prem-status-title { font-size:18px; font-weight:800; margin-bottom:4px; }
   .prem-status-sub   { font-size:13px; opacity:.8; }
@@ -1456,8 +1458,10 @@
   .prem-status-card {
     border-radius:14px; padding:16px; margin-bottom:12px; text-align:center;
   }
-  .prem-status-card.free    { background:var(--bg2); }
-  .prem-status-card.premium { background:linear-gradient(135deg,#1a237e,#283593); color:#fff; }
+  .prem-status-card.free     { background:var(--bg2); }
+  .prem-status-card.basic    { background:linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; }
+  .prem-status-card.standard { background:linear-gradient(135deg,#5b21b6,#8b5cf6); color:#fff; }
+  .prem-status-card.premium  { background:linear-gradient(135deg,#78350f,#f59e0b); color:#fff; }
   .prem-status-icon { font-size:40px; margin-bottom:8px; }
   .prem-status-title { font-size:18px; font-weight:800; margin-bottom:4px; }
   .prem-status-sub   { font-size:13px; opacity:.8; }
