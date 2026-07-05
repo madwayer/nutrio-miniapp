@@ -2275,12 +2275,13 @@ async function admUserProfile(userId) {
 
       // Действия
       + '<div style="font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">⚡ ДЕЙСТВИЯ</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
       +   (isPrem ?
-          '<button onclick="admUserSetPremium(' + uid + ',0)" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">❌ Снять Premium</button>'
-        :
-          '<button onclick="admUserSetPremium(' + uid + ',30)" style="padding:11px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">⭐ Выдать 30д</button>')
-      +   '<button onclick="admUserSetPremium(' + uid + ',365)" style="padding:11px;background:var(--accent);color:#fff;border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:44px">🎁 Выдать 365д</button>'
+          '<button onclick="admUserSetPremium(' + uid + ',0,\'free\')" style="width:100%;padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px;margin-bottom:8px">❌ Снять тариф</button>'
+        : '')
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'
+      +   '<button onclick="admUserSetPremium(' + uid + ',30,\'basic\')" style="padding:10px 4px;background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border:none;border-radius:10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;min-height:44px">📦 Basic<br>30д</button>'
+      +   '<button onclick="admUserSetPremium(' + uid + ',90,\'standard\')" style="padding:10px 4px;background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#fff;border:none;border-radius:10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;min-height:44px">⭐ Std<br>90д</button>'
+      +   '<button onclick="admUserSetPremium(' + uid + ',365,\'premium\')" style="padding:10px 4px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;border:none;border-radius:10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;min-height:44px">🎁 Prem<br>365д</button>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'
       +   '<button onclick="admUserResetQuota(' + uid + ')" style="padding:11px;background:var(--surface2);color:var(--text);border:none;border-radius:10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;min-height:44px">🔄 Обнулить квоту</button>'
@@ -2297,16 +2298,18 @@ async function admUserProfile(userId) {
 }
 window.admUserProfile = admUserProfile;
 
-async function admUserSetPremium(userId, days) {
-  var msg = days > 0 ? 'Выдать Premium на <b>' + days + ' дней</b>?' : 'Снять Premium?';
+async function admUserSetPremium(userId, days, tier) {
+  var tierNames = {basic:'Basic', standard:'Standard', premium:'Premium', free:'Free'};
+  var tierName = tierNames[tier] || tier;
+  var msg = days > 0 ? 'Выдать <b>' + tierName + '</b> на <b>' + days + ' дней</b>?' : 'Снять текущий тариф?';
   showConfirm(msg, async function() {
     try {
       var r = await fetch('/api/proxy/api/admin', {
         method:'POST', headers:_adminHeaders({'Content-Type':'application/json'}),
-        body: JSON.stringify({action:'set_premium', user_id:userId, days:days})
+        body: JSON.stringify({action:'set_premium', user_id:userId, days:days, give: days > 0, tier: tier})
       });
       var d = await r.json();
-      if (d.ok) { showToast(days>0?'⭐ Выдан':'❌ Снят', 'var(--green)'); admUserProfile(userId); }
+      if (d.ok) { showToast(days>0?'⭐ Выдан ' + tierName:'❌ Снят', 'var(--green)'); admUserProfile(userId); }
       else showToast('Ошибка', 'var(--accent2)');
     } catch(e) { showToast('Ошибка', 'var(--accent2)'); }
   }, null, days > 0 ? {yes:'⭐ Выдать', yesColor:'var(--accent)'} : {yes:'❌ Снять', yesColor:'var(--accent2)'});
