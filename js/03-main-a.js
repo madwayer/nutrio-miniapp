@@ -225,7 +225,7 @@ async function refreshPhotoQuota() {
       updatePhotoQuotaUI({
         used: data.photo_today_used,
         limit: data.photo_today_limit || 5,
-        unlimited: !!data.is_premium,
+        unlimited: false,
       });
     }
   } catch(e) {}
@@ -246,7 +246,7 @@ async function checkOnboardingAndLoad() {
       updatePhotoQuotaUI({
         used: data.photo_today_used,
         limit: data.photo_today_limit || 5,
-        unlimited: !!data.is_premium,
+        unlimited: false,
       });
     }
   } catch(e) { /* при ошибке всё равно пробуем загрузить */ }
