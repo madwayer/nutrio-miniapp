@@ -2356,35 +2356,61 @@ body {
 /* ════════════════════ Phase 3A: themes + rings + heatmap ════════════════════ */
 
 /* ─── Light theme (dark is default — already defined at :root) ─── */
+/* Premium light: холодновато-лавандовый белый, глубина через цветные тени, не серые */
 [data-theme="light"] {
-  /* Мягкая тёплая палитра — приглушённый бежево-серый фон, не белый вырвиглаз */
-  --bg:        #eeece7;
-  --bg2:       #e4e1da;
-  --surface:   #f7f5f1;
-  --surface2:  #ece9e3;
-  --card:      #f7f5f1;
+  --bg:        #f6f5fb;
+  --bg2:       #edebf5;
+  --surface:   #ffffff;
+  --surface2:  #f2f0f9;
+  --card:      #ffffff;
   --accent:    #6d28d9;
-  --accent2:   #be185d;
-  --green:     #15803d;
-  --text:      #2a2724;
-  --text2:     #6b6560;
-  --muted:     #a39c93;
-  --shadow:    0 1px 3px rgba(42,39,36,.08), 0 1px 2px rgba(42,39,36,.05);
-  --glow-green:  0 0 0 transparent;
-  --glow-purple: 0 0 0 transparent;
-  --glass-bg:        rgba(247,245,241,0.92);
-  --glass-bg-2:      rgba(236,233,227,0.94);
-  --glass-border:    rgba(42,39,36,0.08);
-  --glass-border-strong: rgba(42,39,36,0.12);
-  --shadow-sm:       0 1px 2px rgba(42,39,36,.05);
-  --shadow-md:       0 2px 8px rgba(42,39,36,.08);
-  --shadow-lg:       0 8px 24px rgba(42,39,36,.10);
-  --shadow-glow:     0 0 0 transparent;
-  --gradient-accent: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
-  --gradient-pink:   linear-gradient(135deg, #be185d 0%, #db2777 100%);
-  --gradient-green:  linear-gradient(135deg, #15803d 0%, #22c55e 100%);
-  --gradient-orange: linear-gradient(135deg, #c2410c 0%, #ea580c 100%);
-  --gradient-blue:   linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+  --accent2:   #db2777;
+  --green:     #059669;
+  --gold:      #b8860b;
+  --gold-soft: rgba(184,134,11,.12);
+  --text:      #201c33;
+  --text2:     #635f7a;
+  --muted:     #9d98b5;
+  /* Тени с цветным оттенком вместо серых — источник "дороговизны" в светлой теме */
+  --shadow:    0 8px 28px rgba(109,40,217,.09), 0 2px 8px rgba(32,28,51,.05);
+  --glow-green:  0 0 0 4px rgba(5,150,105,.08), 0 4px 16px rgba(5,150,105,.18);
+  --glow-purple: 0 0 0 4px rgba(109,40,217,.08), 0 4px 18px rgba(109,40,217,.20);
+  --glass-bg:        rgba(255,255,255,0.75);
+  --glass-bg-2:      rgba(242,240,249,0.82);
+  --glass-border:    rgba(109,40,217,0.10);
+  --glass-border-strong: rgba(109,40,217,0.16);
+  --shadow-sm:       0 2px 8px rgba(109,40,217,.06), 0 1px 2px rgba(32,28,51,.04);
+  --shadow-md:       0 6px 18px rgba(109,40,217,.10), 0 2px 6px rgba(32,28,51,.05);
+  --shadow-lg:       0 16px 40px rgba(109,40,217,.14), 0 4px 12px rgba(32,28,51,.06);
+  --shadow-glow:     0 0 0 4px rgba(109,40,217,.07), 0 8px 24px rgba(109,40,217,.18);
+  --gradient-accent: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  --gradient-pink:   linear-gradient(135deg, #db2777 0%, #f472b6 100%);
+  --gradient-green:  linear-gradient(135deg, #059669 0%, #34d399 100%);
+  --gradient-orange: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+  --gradient-blue:   linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+}
+
+/* Мягкая цветная дымка фона — та же идея что в тёмной теме, но приглушённая под белый */
+[data-theme="light"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 85% 45% at 15% -8%, rgba(124,58,237,.10), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(219,39,119,.06), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(5,150,105,.05), transparent 60%);
+}
+
+/* Карточки: тонкая световая кромка сверху + цветная тень снизу — эффект "приподнятости" */
+[data-theme="light"] .chart-card, [data-theme="light"] .stat-card,
+[data-theme="light"] .gring-card, [data-theme="light"] .hm-card,
+[data-theme="light"] .prem-feat-card, [data-theme="light"] .prem-ref-section,
+[data-theme="light"] .ai-result-card, [data-theme="light"] .diary-card,
+[data-theme="light"] .glass-card {
+  border: 1px solid rgba(109,40,217,.07);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.9);
 }
 
 [data-theme="light"] body {
@@ -3582,9 +3608,6 @@ body::before {
     radial-gradient(ellipse 90% 50% at 50% -10%, rgba(124,108,255,.13), transparent 60%),
     radial-gradient(ellipse 60% 40% at 100% 0%, rgba(216,182,106,.05), transparent 55%),
     radial-gradient(ellipse 70% 45% at 0% 100%, rgba(255,93,126,.05), transparent 60%);
-}
-[data-theme="light"] body::before {
-  background: none;  /* без бликов в светлой теме — спокойнее */
 }
 .content, .bnav, .page { position: relative; z-index: 1; }
 
