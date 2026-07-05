@@ -2395,14 +2395,14 @@ async function admLoadDashV2() {
     }
 
     var max = Math.max.apply(null, d.buckets.map(function(b){ return b.new_users || 0; })) || 1;
-    var days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    var days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];  // weekday() 0=понедельник
 
+    var todayISO = new Date().toISOString().slice(0,10);
     var bars = d.buckets.map(function(b) {
       var cnt = b.new_users || 0;
       var pct = Math.round(cnt / max * 100);
-      var date = new Date(b.date);
-      var dow = days[date.getDay()];
-      var isToday = b.date === new Date().toISOString().slice(0,10);
+      var dow = days[b.dow] || '?';
+      var isToday = b.date === todayISO;
       var col = isToday ? '#6366f1' : 'rgba(99,102,241,0.4)';
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'
         + (cnt > 0 ? '<div style="font-size:9px;color:#8e8e93">' + cnt + '</div>' : '<div style="font-size:9px;color:transparent">0</div>')
