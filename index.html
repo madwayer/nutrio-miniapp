@@ -1658,6 +1658,7 @@
       <button class="adm-nav-btn"        id="adm-btn-broadcast" onclick="admSection('broadcast')">📣 Рассылка</button>
       <button class="adm-nav-btn"        id="adm-btn-notif"     onclick="admSection('notif')">🔔 Уведомления</button>
       <button class="adm-nav-btn"        id="adm-btn-settings"  onclick="admSection('settings')">⚙️ Настройки</button>
+      <button class="adm-nav-btn"        id="adm-btn-foodcand"  onclick="admSection('foodcand')">🍽 Кандидаты</button>
       <button class="adm-nav-btn"        id="adm-btn-admstats"  onclick="admSection('admstats')">📈 Статистика</button>
     </div>
 
@@ -1866,6 +1867,18 @@
       </div>
 
       </div>
+    </div>
+    <!-- Food candidates section -->
+    <div class="adm-section" id="adm-section-foodcand">
+      <div style="font-size:11px;color:#8e8e93;margin-bottom:12px;line-height:1.5">
+        Продукты, которые вручную добавили ≥2 разных юзера с похожими КБЖУ. Проверь и подтверди — добавится в общую базу для распознавания.
+      </div>
+      <div id="foodcand-list">
+        <div class="ai-loading">Загружаю...</div>
+      </div>
+      <button onclick="admLoadFoodCandidates()" style="width:100%;margin-top:12px;padding:12px;background:#2c2c2e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+        🔄 Обновить список
+      </button>
     </div>
     <!-- Admstats section -->
     <div class="adm-section" id="adm-section-admstats" style="color:#f2f2f7;background:#1c1c1e;border-radius:14px;padding:12px">

@@ -2066,7 +2066,7 @@ async function initAdminPage() {
 })();
 
 function admSection(name) {
-  ['dash','tickets','users','payments','revenue','broadcast','notif','settings','admstats'].forEach(function(s) {
+  ['dash','tickets','users','payments','revenue','broadcast','notif','settings','foodcand','admstats'].forEach(function(s) {
     var btn = document.getElementById('adm-btn-' + s);
     var sec = document.getElementById('adm-section-' + s);
     if (btn) btn.className = 'adm-nav-btn' + (s===name?' active':'');
@@ -2081,6 +2081,7 @@ function admSection(name) {
   if (name==='notif')     admLoadNotifSettings();
   if (name==='admstats')  admLoadStats();
   if (name==='settings')  admSettingsLoad();
+  if (name==='foodcand')  admLoadFoodCandidates();
 }
 
 // ════════════════════════════════════════════════════════
@@ -2847,6 +2848,67 @@ async function admTonRefreshRate() {
   }
 }
 window.admTonRefreshRate = admTonRefreshRate;
+
+// ── FOOD CANDIDATES ─────────────────────────────────────────────
+async function admLoadFoodCandidates() {
+  var listEl = document.getElementById('foodcand-list');
+  if (listEl) listEl.innerHTML = '<div class="ai-loading">Загружаю...</div>';
+  try {
+    var r = await fetch('/api/proxy/api/admin?action=food_candidates', {headers: _adminHeaders()});
+    var d = await r.json();
+    if (!d.ok || !d.candidates || !d.candidates.length) {
+      if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px 0;color:#8e8e93;font-size:13px">Нет новых кандидатов</div>';
+      return;
+    }
+    var html = '';
+    d.candidates.forEach(function(c, i) {
+      html += '<div style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+        + '<div style="font-weight:700;font-size:14px;color:#fff">' + escHtml(c.name) + '</div>'
+        + '<div style="background:rgba(99,102,241,0.15);color:#a5b4fc;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">👥 ' + c.users_count + '</div>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;font-size:11px;color:#8e8e93">'
+        + '<div>🔥 ' + c.avg_calories + '</div>'
+        + '<div>Б ' + c.avg_protein + '</div>'
+        + '<div>Ж ' + c.avg_fat + '</div>'
+        + '<div>У ' + c.avg_carbs + '</div>'
+        + '</div>'
+        + '<button onclick="admApproveFoodCandidate(' + i + ')" style="width:100%;padding:10px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">✅ Добавить в базу</button>'
+        + '</div>';
+    });
+    if (listEl) listEl.innerHTML = html;
+    window._foodCandidates = d.candidates;
+  } catch(e) {
+    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;font-size:13px">Ошибка загрузки</div>';
+  }
+}
+window.admLoadFoodCandidates = admLoadFoodCandidates;
+
+async function admApproveFoodCandidate(idx) {
+  var c = window._foodCandidates && window._foodCandidates[idx];
+  if (!c) return;
+  try {
+    var r = await fetch('/api/proxy/api/admin', {
+      method: 'POST',
+      headers: _adminHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({
+        action: 'food_candidate_approve',
+        name: c.name, calories: c.avg_calories,
+        protein: c.avg_protein, fat: c.avg_fat, carbs: c.avg_carbs,
+      })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      showToast('✅ Добавлено: ' + c.name, 'var(--accent)');
+      admLoadFoodCandidates(); // обновляем список
+    } else {
+      showToast('❌ Ошибка', 'var(--accent2)');
+    }
+  } catch(e) {
+    showToast('❌ Ошибка соединения', 'var(--accent2)');
+  }
+}
+window.admApproveFoodCandidate = admApproveFoodCandidate;
 
 async function admSettingsLoad() {
   try {
