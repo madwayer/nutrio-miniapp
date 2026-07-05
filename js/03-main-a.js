@@ -1406,7 +1406,7 @@ async function initPdfPage() {
   // При открытии страницы PDF проверяем премиум-статус и блокируем недоступные опции.
   try {
     var data = await apiGet('/api/settings');
-    _pdfIsPremium = !!(data && data.is_premium);
+    _pdfIsPremium = !!(data && data.is_full_premium);
   } catch(e) { _pdfIsPremium = false; }
 
   ['pdf-opt-30','pdf-opt-90'].forEach(function(id){
@@ -1933,9 +1933,12 @@ async function initPremPage() {
     var buySect = document.getElementById('prem-buy-section');
 
     if (data.is_premium) {
+      var tierNames = {basic:'Basic', standard:'Standard', premium:'Premium'};
+      var tierName = tierNames[data.tier] || 'Premium';
+      var tierIcons = {basic:'📦', standard:'⭐', premium:'👑'};
       if (card)  card.className  = 'prem-status-card premium';
-      if (icon)  icon.textContent  = '⭐';
-      if (title) title.textContent = 'Premium активен';
+      if (icon)  icon.textContent  = tierIcons[data.tier] || '⭐';
+      if (title) title.textContent = tierName + ' активен';
       if (sub)   sub.textContent   = data.premium_until ? 'До ' + data.premium_until : 'Активен';
       if (buySect) buySect.style.display = 'none';
     } else {
@@ -2233,9 +2236,16 @@ async function admUserProfile(userId) {
     var u = d.user || {};
     var name = (u.name||u.first_name||'').trim() || '—';
     var uname = u.username ? '@' + u.username : ('id' + u.id);
-    var isPrem = u.premium || u.is_premium || u.status === 'premium' || u.status === 'vip';
-    var premBadge = isPrem ?
-      '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">⭐ PREMIUM</span>' :
+    var uStatus = (u.status || 'free').toLowerCase();
+    var isPrem = u.premium || u.is_premium || ['basic','standard','premium','vip','tester'].includes(uStatus);
+    var tierBadges = {
+      basic:    '<span style="background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">📦 BASIC</span>',
+      standard: '<span style="background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#fff;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">⭐ STANDARD</span>',
+      premium:  '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">👑 PREMIUM</span>',
+      vip:      '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">👑 PREMIUM</span>',
+      tester:   '<span style="background:linear-gradient(135deg,#facc15,#f59e0b);color:#000;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:800">👑 PREMIUM</span>',
+    };
+    var premBadge = tierBadges[uStatus] ||
       '<span style="background:var(--surface2);color:var(--text2);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700">FREE</span>';
     var uid = u.id || u.telegram_id;
     var streak = u.streak || u.streak_days || 0;
@@ -2535,8 +2545,10 @@ async function admLoadUsers(page, q) {
     var total = data.total; var per = data.per; var pages = Math.ceil(total/per);
     if (!data.users.length) { list.innerHTML = '<div class="lb-empty">Пусто</div>'; return; }
     list.innerHTML = data.users.map(function(u) {
+      var uStatus = (u.status || 'free').toLowerCase();
+      var tierLabels = {basic:'📦 Basic', standard:'⭐ Standard', premium:'👑 Premium', vip:'👑 Premium', tester:'👑 Premium'};
       var badge = u.premium
-        ? '<span class="adm-badge adm-badge-prem">⭐ Premium' + (u.premium_until ? ' до '+u.premium_until : '') + '</span>'
+        ? '<span class="adm-badge adm-badge-prem">' + (tierLabels[uStatus] || '⭐ Premium') + (u.premium_until ? ' до '+u.premium_until : '') + '</span>'
         : '<span class="adm-badge adm-badge-free">Бесплатный</span>';
       return '<div class="adm-user-card" id="adm-user-'+u.id+'">'
         + '<div class="adm-user-row">'
@@ -2544,10 +2556,7 @@ async function admLoadUsers(page, q) {
         + '<div class="adm-user-meta">ID: ' + u.id + ' · 🔥 ' + u.streak + ' дн.' + (u.is_banned?' · 🔴 БАН':'') + '</div></div>'
         + badge + '</div>'
         + '<div class="adm-user-btns">'
-        + (u.premium
-           ? '<button class="adm-btn adm-btn-unprem" onclick="admSetPremium('+u.id+',false)">Снять Premium</button>'
-           : '<button class="adm-btn adm-btn-prem" onclick="admSetPremium('+u.id+',true)">⭐ +30 дней</button>')
-        + '<button class="adm-btn" style="background:var(--surface2);color:var(--text)" onclick="admUserProfile('+u.id+')">👤 Профиль</button>'
+        + '<button class="adm-btn" style="background:var(--surface2);color:var(--text)" onclick="admUserProfile('+u.id+')">👤 Профиль (тарифы там)</button>'
         + '</div></div>';
     }).join('');
     var pag = document.getElementById('adm-pagination');
