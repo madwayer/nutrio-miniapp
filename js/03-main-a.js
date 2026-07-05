@@ -2819,6 +2819,35 @@ async function admToggleNotif(toggleEl) {
 window.admLoadNotifSettings = admLoadNotifSettings;
 
 // ── ADMIN SETTINGS (цены, карта, TON) ──────────────────────────
+async function admTonRefreshRate() {
+  var rateEl = document.getElementById('ton-rate-hint');
+  if (rateEl) rateEl.textContent = '⏳ Обновляю курс...';
+  try {
+    // Публичный курс TON/RUB через CoinGecko
+    var r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=rub');
+    var d = await r.json();
+    var rate = d && d['the-open-network'] && d['the-open-network'].rub;
+    if (!rate) throw new Error('no rate');
+    rate = Math.round(rate);
+
+    // Автопересчитываем цены TON по текущим ценам Premium в рублях
+    var rub1m  = parseInt(document.getElementById('prem-price-1m').value)  || 449;
+    var rub3m  = parseInt(document.getElementById('prem-price-3m').value)  || 1199;
+    var rub12m = parseInt(document.getElementById('prem-price-12m').value) || 3990;
+
+    document.getElementById('ton-price-1m').value  = (rub1m  / rate).toFixed(1);
+    document.getElementById('ton-price-3m').value  = (rub3m  / rate).toFixed(1);
+    document.getElementById('ton-price-12m').value = (rub12m / rate).toFixed(1);
+
+    if (rateEl) rateEl.textContent = '✅ Курс: 1 TON ≈ ' + rate + ' ₽ · цены пересчитаны';
+    showToast('Курс обновлён: ' + rate + ' ₽/TON', 'var(--accent)');
+  } catch(e) {
+    if (rateEl) rateEl.textContent = '❌ Не удалось получить курс, введи вручную';
+    showToast('Ошибка получения курса', 'var(--accent2)');
+  }
+}
+window.admTonRefreshRate = admTonRefreshRate;
+
 async function admSettingsLoad() {
   try {
     var r = await fetch('/api/proxy/api/admin?action=settings_get', {headers: _adminHeaders()});

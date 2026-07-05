@@ -1821,7 +1821,13 @@
       <div style="background:#1c1c1e;border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,0.08)">
         <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">💎 Цены в TON</div>
         <div style="font-size:11px;color:#8e8e93;margin-bottom:4px">Обновляй при колебаниях курса TON.</div>
-        <div id="ton-rate-hint" style="font-size:12px;color:#6366f1;font-weight:600;margin-bottom:16px">Загрузка...</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+          <div id="ton-rate-hint" style="font-size:12px;color:#6366f1;font-weight:600;flex:1">Загрузка...</div>
+          <button onclick="admTonRefreshRate()" title="Обновить курс"
+            style="background:#2c2c2e;border:1px solid rgba(99,102,241,0.4);border-radius:8px;padding:6px 10px;color:#a5b4fc;font-size:12px;cursor:pointer;white-space:nowrap">
+            🔄 Курс
+          </button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
           <div>
             <div style="font-size:10px;color:#8e8e93;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Basic · 1 мес</div>
