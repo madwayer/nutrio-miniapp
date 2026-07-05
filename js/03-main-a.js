@@ -218,6 +218,20 @@ function initDiaryPage() {
   checkOnboardingAndLoad();
 }
 
+async function refreshPhotoQuota() {
+  try {
+    var data = await apiGet('/api/settings');
+    if (data && data.ok && typeof data.photo_today_used === 'number') {
+      updatePhotoQuotaUI({
+        used: data.photo_today_used,
+        limit: data.photo_today_limit || 5,
+        unlimited: !!data.is_premium,
+      });
+    }
+  } catch(e) {}
+}
+window.refreshPhotoQuota = refreshPhotoQuota;
+
 async function checkOnboardingAndLoad() {
   // Отправляем timezone автоматически — юзер ничего не делает
   _syncTimezone();

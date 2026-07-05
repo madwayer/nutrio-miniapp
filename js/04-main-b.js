@@ -2523,6 +2523,7 @@ function switchTab(tab) {
   const page = document.getElementById('page-' + tab);
   if (page) page.classList.add('active');
   if (tab !== 'scanner') stopScanner();
+  if (tab === 'scanner')  refreshPhotoQuota();
   if (tab === 'game')     setTimeout(initGame, 100);
   if (tab === 'water')    initWaterPage();
   if (tab === 'progress') initProgressPage();
@@ -3045,8 +3046,17 @@ function _scanCaptureSend(b64, video) {
       document.getElementById('scan-stop-btn').style.display    = 'none';
       document.getElementById('scan-start-btn').style.display   = 'block';
       var name = (d.name||'').charAt(0).toUpperCase() + (d.name||'').slice(1);
-      photoResultData = {name:name, weight:d.weight, calories:d.calories, protein:d.protein, fat:d.fat, carbs:d.carbs};
-      document.getElementById('scan-pr-name').textContent = name + ' — ' + d.weight + 'г';
+      var w0 = d.weight || 100;
+      // Сохраняем КБЖУ на 100г для пересчёта при изменении порции
+      var ratio0 = w0 / 100;
+      photoResultData = {
+        name: name, weight: w0,
+        calories: d.calories, protein: d.protein, fat: d.fat, carbs: d.carbs,
+        cal100: d.calories / ratio0, prot100: d.protein / ratio0,
+        fat100: d.fat / ratio0, carbs100: d.carbs / ratio0,
+      };
+      document.getElementById('scan-pr-name').textContent = name;
+      document.getElementById('scan-pr-weight').value = w0;
       document.getElementById('scan-pr-cal').textContent  = d.calories;
       document.getElementById('scan-pr-prot').textContent = d.protein;
       document.getElementById('scan-pr-fat').textContent  = d.fat;
@@ -3151,6 +3161,33 @@ function _onBarcodeFound(data) {
 }
 
 // photoRename uses photoResultData — update to use new name field
+function scanPhotoAdjWeight(delta) {
+  var inp = document.getElementById('scan-pr-weight');
+  if (!inp) return;
+  var w = (parseFloat(inp.value) || 100) + delta;
+  w = Math.max(1, Math.min(5000, w));
+  inp.value = w;
+  scanPhotoWeightChanged();
+}
+window.scanPhotoAdjWeight = scanPhotoAdjWeight;
+
+function scanPhotoWeightChanged() {
+  if (!photoResultData) return;
+  var inp = document.getElementById('scan-pr-weight');
+  var w = Math.max(1, Math.min(5000, parseFloat(inp.value) || 100));
+  var ratio = w / 100;
+  photoResultData.weight   = w;
+  photoResultData.calories = Math.round(photoResultData.cal100   * ratio);
+  photoResultData.protein  = Math.round(photoResultData.prot100  * ratio * 10) / 10;
+  photoResultData.fat      = Math.round(photoResultData.fat100   * ratio * 10) / 10;
+  photoResultData.carbs    = Math.round(photoResultData.carbs100 * ratio * 10) / 10;
+  document.getElementById('scan-pr-cal').textContent  = photoResultData.calories;
+  document.getElementById('scan-pr-prot').textContent = photoResultData.protein;
+  document.getElementById('scan-pr-fat').textContent  = photoResultData.fat;
+  document.getElementById('scan-pr-carb').textContent = photoResultData.carbs;
+}
+window.scanPhotoWeightChanged = scanPhotoWeightChanged;
+
 function photoRename() {
   if (!photoResultData) return;
   var existing = document.getElementById('photo-rename-modal');
