@@ -433,7 +433,9 @@ function toggleMeal(header) {
 // на калькуляторные переменные idx/calcItems). В реальном UI удаление идёт через
 // editDiaryEntry → модалка → deditDelete (см. 02-datepicker.js).
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 
@@ -2627,16 +2629,14 @@ async function admLoadPayments() {
       var name  = p.name ? escHtml(p.name) : '';
       var screenshotBlock = '';
       if (p.screenshot) {
-        // Бэк хранит Telegram file_id. Прямо отрендерить нельзя — дёргаем
-        // новую ручку /api/admin/payment_screenshot которая скачивает картинку.
-        var imgSrc = '/api/proxy/api/admin/payment_screenshot?payment_id=' + p.id
-                   + '&_uid=' + getUserId();  // для X-Admin-Id через proxy
+        // Бэк хранит Telegram file_id. <img src> не может слать заголовки авторизации,
+        // поэтому грузим скрин авторизованным fetch → blob → objectURL (работает в strict).
+        // Ленивая загрузка: реально дёргаем ручку только при раскрытии деталей заявки.
         screenshotBlock =
           '<div style="margin-top:10px">'
-          + '<img src="' + imgSrc + '" alt="скриншот"'
-          + ' style="width:100%;border-radius:10px;cursor:pointer;max-height:360px;object-fit:contain;background:#000"'
-          + ' onclick="admViewImage(this.src)"'
-          + ' onerror="this.parentNode.innerHTML=\'<div style=&quot;padding:12px;background:rgba(219,39,119,.08);border-radius:10px;font-size:12px;color:var(--accent2);text-align:center&quot;>⚠️ Не удалось загрузить скриншот. Попробуй обновить.</div>\'">'
+          + '<img data-shot="' + p.id + '" alt="скриншот"'
+          + ' style="width:100%;border-radius:10px;cursor:pointer;max-height:360px;min-height:120px;object-fit:contain;background:#000"'
+          + ' onclick="if(this.src)admViewImage(this.src)">'
           + '</div>';
       } else if (p.status === 'pending') {
         screenshotBlock = '<div style="margin-top:10px;padding:12px;background:rgba(234,88,12,.08);border-radius:10px;font-size:12px;color:#ea580c;text-align:center">⏳ Юзер ещё не прислал скрин. Можешь напомнить ему кнопкой ниже.</div>';
@@ -2669,6 +2669,27 @@ async function admLoadPayments() {
   } catch(e) { list.innerHTML = '<div class="lb-empty">Ошибка загрузки</div>'; }
 }
 
+// Грузит скрин платежа авторизованным запросом (img не умеет слать заголовки).
+async function admLoadScreenshot(img) {
+  if (!img || img.getAttribute('data-loaded')) return;
+  var pid = img.getAttribute('data-shot');
+  if (!pid) return;
+  img.setAttribute('data-loaded', '1');
+  try {
+    var r = await fetch(window.API_BASE + '/api/admin/payment_screenshot?payment_id=' + pid, { headers: _adminHeaders() });
+    if (!r.ok) throw new Error('http ' + r.status);
+    var blob = await r.blob();
+    if (img._objUrl) URL.revokeObjectURL(img._objUrl);
+    img._objUrl = URL.createObjectURL(blob);
+    img.src = img._objUrl;
+  } catch (e) {
+    img.removeAttribute('data-loaded'); // разрешаем повтор при следующем открытии
+    if (img.parentNode) img.parentNode.innerHTML =
+      '<div style="padding:12px;background:rgba(219,39,119,.08);border-radius:10px;font-size:12px;color:var(--accent2);text-align:center">⚠️ Не удалось загрузить скриншот. Попробуй ещё раз.</div>';
+  }
+}
+window.admLoadScreenshot = admLoadScreenshot;
+
 function admTogglePayDetails(payId) {
   var d = document.getElementById('adm-pay-details-'+payId);
   var b = document.getElementById('adm-pay-toggle-'+payId);
@@ -2676,6 +2697,8 @@ function admTogglePayDetails(payId) {
   if (d.style.display === 'none' || !d.style.display) {
     d.style.display = 'block';
     if (b) b.textContent = '📁 Скрыть детали';
+    // Ленивая догрузка скрина при первом раскрытии
+    d.querySelectorAll('img[data-shot]').forEach(function(img){ admLoadScreenshot(img); });
   } else {
     d.style.display = 'none';
     if (b) b.textContent = '📂 Показать детали';

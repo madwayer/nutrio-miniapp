@@ -3197,7 +3197,7 @@ function photoRename() {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:300px">'
     + '<div style="font-weight:700;font-size:15px;margin-bottom:12px">✏️ Переименовать</div>'
-    + '<input id="photo-rename-input" type="text" value="' + (photoResultData.name||'') + '"'
+    + '<input id="photo-rename-input" type="text" value="' + escHtml(photoResultData.name||'') + '"'
     + ' style="width:100%;box-sizing:border-box;padding:12px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:15px;margin-bottom:12px">'
     + '<div style="display:flex;gap:8px">'
     + '<button onclick="photoRenameConfirm()" style="flex:1;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;touch-action:manipulation">✅ Сохранить</button>'
