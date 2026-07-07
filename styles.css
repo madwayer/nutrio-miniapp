@@ -4065,3 +4065,53 @@ button, .sheet-row, .bnav-item, .prem-plan-card, .ai-arch-item {
 .w-full { width:100%; }
 .pill { border-radius:20px; padding:4px 12px; }
 .shine-border { border:1px solid var(--glass-border); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UX polish (v1) — клавиатурная доступность, тактильность, тач-hover
+   Аддитивная секция в конце файла: выигрывает по порядку каскада,
+   специфичность совпадает с базовыми правилами (один класс/псевдокласс).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Кольцо фокуса — только для клавиатурной навигации, тач/мышь не трогаем */
+:focus:not(:focus-visible) { outline: none; }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Тактильный отклик нажатия там, где его не было */
+.chip:active,
+.action-btn:active,
+.tab:active,
+.adm-nav-btn:active,
+.ai-arch-tab:active {
+  transform: scale(.97);
+}
+
+/* На тач-устройствах :hover «залипает» после тапа — гасим подъём кнопок */
+@media (hover: none) {
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .chip:hover,
+  .action-btn:hover {
+    transform: none;
+  }
+}
+
+/* Уважаем «уменьшить движение»: снимаем и трансформы нажатия/наведения */
+@media (prefers-reduced-motion: reduce) {
+  .chip:active,
+  .action-btn:active,
+  .tab:active,
+  .adm-nav-btn:active,
+  .ai-arch-tab:active,
+  .btn-primary:active,
+  .btn-primary:hover { transform: none !important; }
+}
