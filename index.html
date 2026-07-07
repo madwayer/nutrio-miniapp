@@ -1291,6 +1291,9 @@
 
     <!-- Планировщик -->
     <div class="ai-section" id="ai-section-plan">
+      <div class="stat-card" style="font-size:13px;color:var(--muted);line-height:1.5">
+        <div style="font-size:11px" data-i18n="ai_plan_limit">Бесплатно: 1 раз в месяц · Premium: до 15/мес</div>
+      </div>
       <!-- Кнопки дней инжектятся из JS (09-ai-cards.js → ensurePlanDaysPicker) -->
       <div class="ai-sub-label" data-i18n="ai_plan_days_lbl">Количество дней:</div>
       <div class="ai-sub-label" data-i18n="ai_plan_restrict_lbl">Ограничения (необязательно):</div>
@@ -1302,6 +1305,9 @@
 
     <!-- Рецепты -->
     <div class="ai-section" id="ai-section-recipe">
+      <div class="stat-card" style="font-size:13px;color:var(--muted);line-height:1.5">
+        <div style="font-size:11px" data-i18n="ai_recipe_limit">Бесплатно: 5 раз в месяц · Premium: до 80/мес</div>
+      </div>
       <div class="ai-sub-label" data-i18n="ai_recipe_cat_lbl">Категория:</div>
       <div class="recipe-filters" id="recipe-filters">
         <button class="recipe-filter-btn selected" data-key="random"    onclick="selectRecipeFilter(this)" data-i18n="recipe_random">🎲 Случайный</button>
