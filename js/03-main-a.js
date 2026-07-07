@@ -1,3 +1,4 @@
+alert('initData: ' + (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData ? 'YES len=' + window.Telegram.WebApp.initData.length : 'EMPTY'));
 // ===== ДНЕВНИК =====
 
 // ────────────────────────────────────────────────────────────────
