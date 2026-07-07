@@ -984,7 +984,7 @@ function _scanCaptureSend(b64, video) {
         try { video.play(); } catch(e) {}
         if (captureBtn) captureBtn.style.display = 'block';
         if (typeof showPhotoLimitModal === 'function') showPhotoLimitModal();
-        else showToast('На сегодня лимит фото исчерпан. Открой Premium для безлимита.', 'var(--accent2)');
+        else showToast('На сегодня лимит фото исчерпан. На Premium — до 80/день.', 'var(--accent2)');
         return;
       }
       // Обновляем счётчик в UI если бэк прислал quota

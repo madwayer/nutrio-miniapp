@@ -36,14 +36,14 @@ function _renderXpBar(xp, level) {
 window._renderXpBar = _renderXpBar;
 
 // ────────────────────────────────────────────────────────────────
-// Photo quota UI (Free: 5 фото/день, Premium: безлимит)
+// Photo quota UI (Free: 5 фото/день, Premium: до 80/день)
 // ────────────────────────────────────────────────────────────────
 function updatePhotoQuotaUI(quota) {
   if (!quota) return;
   var el = document.getElementById('scan-quota');
   if (!el) return;
   if (quota.unlimited) {
-    el.textContent = '⭐ Безлимит фото (Premium)';
+    el.textContent = '⭐ Premium: до 80 фото/день';
     el.style.color = 'var(--green)';
     el.style.display = 'block';
     return;
