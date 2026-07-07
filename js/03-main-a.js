@@ -1,3 +1,4 @@
+alert(JSON.stringify({tg:!!window.Telegram,platform:(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp.platform:0,idLen:(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData)?window.Telegram.WebApp.initData.length:0}));
 alert('initData: ' + (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData ? 'YES len=' + window.Telegram.WebApp.initData.length : 'EMPTY'));
 // ===== ДНЕВНИК =====
 
