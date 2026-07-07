@@ -1,4 +1,4 @@
-setTimeout(function(){ alert('initData len=' + (window.Telegram.WebApp.initData||'').length + ' | ver=' + window.Telegram.WebApp.version); }, 2000);
+setTimeout(function(){ alert('hash=' + location.hash.substring(0,100) + ' | search=' + location.search.substring(0,100)); }, 1000);
 // ===== ДНЕВНИК =====
 
 // ────────────────────────────────────────────────────────────────
