@@ -456,11 +456,7 @@ function setCalcMode(mode) {
   var he  = document.getElementById('calc-mode-he');
   var rst = document.getElementById('calc-mode-rest');
   [['kbzu',kb],['he',he],['rest',rst]].forEach(function(p){
-    if (p[1]) {
-      var active = mode === p[0];
-      p[1].style.background = active ? 'var(--accent)' : 'transparent';
-      p[1].style.color      = active ? '#fff' : 'var(--text2)';
-    }
+    if (p[1]) p[1].classList.toggle('active', mode === p[0]);
   });
   var ks = document.getElementById('calc-kbzu-section');
   var hs = document.getElementById('calc-he-section');
@@ -470,6 +466,7 @@ function setCalcMode(mode) {
   if (rs) rs.style.display = mode==='rest' ? 'block':'none';
   if (mode==='he')   loadHeDailyData();
   if (mode==='rest') restShowPopular();
+  try { if (typeof haptic === 'function') haptic('select'); } catch(e){}
 }
 
 // ════ РЕСТОРАННЫЙ ПОИСК ════
@@ -481,7 +478,8 @@ async function restSearch(q) {
   if (q.length < 1) { restShowPopular(); return; }
   _restSearchTimeout = setTimeout(async function(){
     try {
-      var d = await apiGet('/api/restaurants/search', {q:q, limit:12});
+      var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+      var d = await apiGet('/api/restaurants/search', {q:q, limit:12, lang: ru?'ru':'en'});
       _restRender(d && d.results || []);
     } catch(e) { _restRender([]); }
   }, 250);
@@ -490,32 +488,38 @@ window.restSearch = restSearch;
 
 async function restSearchBrand(brand) {
   var inp = document.getElementById('rest-search-input');
-  if (inp) inp.value = brand;
+  if (inp) inp.value = '';
   try {
-    var d = await apiGet('/api/restaurants/search', {q:brand.toLowerCase(), limit:15});
+    var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+    var d = await apiGet('/api/restaurants/search', {q:brand.toLowerCase(), limit:15, lang: ru?'ru':'en'});
     _restRender(d && d.results || []);
   } catch(e) { _restRender([]); }
 }
 window.restSearchBrand = restSearchBrand;
 
+// Пустое приглашение при открытии вкладки — никаких зашитых данных во
+// фронтенде: все КБЖУ идут строго из бэкенда (services/restaurants.py),
+// иначе легко разойтись с актуальной базой (было именно так раньше).
 function restShowPopular() {
-  // Показываем популярные без запроса
-  var popular = [
-    {name:'биг мак',    brand:"McDonald's",  calories:257, protein:13, fat:13, carbs:24},
-    {name:'кфс твистер',brand:'KFC',          calories:218, protein:11, fat:11, carbs:19},
-    {name:'воппер',     brand:'Burger King',  calories:247, protein:11, fat:14, carbs:22},
-    {name:'додо пепперони', brand:'Додо Пицца', calories:291, protein:13, fat:13, carbs:32},
-    {name:'ролл калифорния',brand:'Суши',     calories:125, protein:5,  fat:4,  carbs:17},
-    {name:'шаурма',     brand:'Шаурма',       calories:220, protein:12, fat:9,  carbs:23},
-  ];
-  _restRender(popular);
+  var el = document.getElementById('rest-results');
+  if (!el) return;
+  var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+  el.innerHTML = '<div style="text-align:center;padding:28px 16px;color:var(--text2)">'
+    + '<div style="font-size:36px;margin-bottom:10px">🍔</div>'
+    + '<div style="font-size:14px">' + (ru ? 'Выбери сеть выше или начни вводить название блюда' : 'Pick a chain above or start typing a dish name') + '</div>'
+    + '</div>';
 }
 window.restShowPopular = restShowPopular;
+
+var _CALC2_MEAL_BTNS = [['завтрак','🌅','fadd_breakfast','Завтрак','Breakfast'],
+                        ['обед','☀️','fadd_lunch','Обед','Lunch'],
+                        ['ужин','🌙','fadd_dinner','Ужин','Dinner'],
+                        ['перекус','🍎','fadd_snack','Перекус','Snack']];
 
 function _restRender(items) {
   var el = document.getElementById('rest-results');
   if (!el) return;
-  var ru = (navigator.language||'ru').startsWith('ru');
+  var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
   if (!items || !items.length) {
     el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2)">'
       + '<div style="font-size:32px;margin-bottom:8px">🔍</div>'
@@ -523,113 +527,156 @@ function _restRender(items) {
       + '</div>';
     return;
   }
-  el.innerHTML = items.map(function(r){
-    var rawName = (r.name||'');
-    // Правим известные бренды в названии
-    var name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    name = name.replace(/\bкфс\b/gi,'KFC').replace(/\bkfc\b/gi,'KFC')
-               .replace(/\bмакдоналдс\b/gi,"McDonald's").replace(/\bmcd\b/gi,"McDonald's")
-               .replace(/\bбк\b/gi,'BK').replace(/\bбургер кинг\b/gi,'Burger King')
-               .replace(/\bдодо\b/gi,'Додо');
+  el.innerHTML = items.map(function(r, idx){
+    // Имя уже приходит правильно оформленным с бэкенда (display_name):
+    // "Биг Хит | Big Hit" на русском, "Big Hit | Биг Хит" на английском —
+    // никакой ручной капитализации/regex-подмены брендов здесь больше не нужно.
+    var name = r.name || '';
     var brand = r.brand || '';
-    // Для добавления — строим payload с весом порции (100г стандарт)
-    var payload = JSON.stringify({name:r.name,cal:r.calories,prot:r.protein,fat:r.fat,carbs:r.carbs}).replace(/"/g,'&quot;');
-    return '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:12px 14px">'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
-      +   '<div style="flex:1;min-width:0">'
-      +     '<div style="font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(name) + '</div>'
-      +     (brand ? '<div style="font-size:11px;color:var(--accent);font-weight:600;margin-top:1px">' + escHtml(brand) + '</div>' : '')
+    window._restItems = window._restItems || {};
+    window._restItems[idx] = r;
+    var mealBtns = _CALC2_MEAL_BTNS.map(function(m){
+      var label = ru ? m[3] : m[4];
+      return '<button class="calc2-meal-btn" onclick="restAddToMeal(' + idx + ',\'' + m[0] + '\')">'
+        + '<span>' + m[1] + '</span><span>' + label + '</span></button>';
+    }).join('');
+    return '<div class="calc2-result-card">'
+      + '<div class="calc2-result-head">'
+      +   '<div style="min-width:0;flex:1">'
+      +     '<div class="calc2-result-name">' + escHtml(name) + '</div>'
+      +     (brand ? '<div class="calc2-result-brand">' + escHtml(brand) + '</div>' : '')
       +   '</div>'
-      +   '<div style="text-align:right;flex-shrink:0">'
-      +     '<div style="font-size:17px;font-weight:800;color:var(--accent)">' + r.calories + '</div>'
-      +     '<div style="font-size:10px;color:var(--text2)">ккал/100г</div>'
+      +   '<div>'
+      +     '<div class="calc2-result-kcal">' + r.calories + '</div>'
+      +     '<div class="calc2-result-kcal-unit">' + (ru?'ккал/100г':'kcal/100g') + '</div>'
       +   '</div>'
       + '</div>'
-      + '<div style="display:flex;gap:8px;font-size:11px;color:var(--text2);margin-bottom:10px">'
+      + '<div style="display:flex;gap:10px;font-size:11px;color:var(--text2);margin:8px 0 10px">'
       +   '<span>Б <b>' + r.protein + '</b></span>'
       +   '<span>Ж <b>' + r.fat + '</b></span>'
       +   '<span>У <b>' + r.carbs + '</b></span>'
-      +   '<span style="opacity:.6">г/100г</span>'
       + '</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">'
-      +   [['завтрак','🌅'],['обед','🌞'],['ужин','🌙'],['перекус','🍎']].map(function(pair){
-            var mname = pair[0]; var icon = pair[1];
-            return '<button onclick="restAddToMeal(' + payload.replace(/'/g,"&#39;") + ',\'' + mname + '\')" '
-              + 'style="padding:9px 2px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:9px;font:inherit;font-size:10px;font-weight:600;color:var(--text);cursor:pointer;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">'
-              + icon + '<br>' + mname
-              + '</button>';
-          }).join('')
-      + '</div>'
+      + '<div class="calc2-meal-row">' + mealBtns + '</div>'
       + '</div>';
   }).join('');
 }
 
-async function restAddToMeal(payloadStr, meal) {
-  var p;
-  try { p = typeof payloadStr === 'string' ? JSON.parse(payloadStr.replace(/&quot;/g,'"')) : payloadStr; } catch(e){ return; }
+async function restAddToMeal(idx, meal) {
+  var p = window._restItems && window._restItems[idx];
+  if (!p) return;
   try {
     var d = await apiPost('/api/manual', {
-      food_name: p.name, weight: 100,
-      calories: p.cal, protein: p.prot, fat: p.fat, carbs: p.carbs,
+      food_name: (p.name||'').split('|')[0].trim(), weight: 100,
+      calories: p.calories, protein: p.protein, fat: p.fat, carbs: p.carbs,
       meal_type: meal,
     });
     if (d && d.ok) {
-      try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch(e){}
-      showToast('✅ Добавлено в ' + meal, 'var(--green)');
-      // Предупреждение об аномалии КБЖУ
+      try { if (typeof haptic === 'function') haptic('success'); } catch(e){}
+      showToast('✅ ' + (window._exIsRu&&window._exIsRu()!==false ? 'Добавлено в ' + meal : 'Added to ' + meal), 'var(--green)');
       if (d.warning) {
-        setTimeout(function() {
-          showToast('⚠️ ' + d.warning, '#f59e0b', 5000);
-        }, 1500);
+        setTimeout(function() { showToast('⚠️ ' + d.warning, '#f59e0b', 5000); }, 1500);
       }
-    } else { showToast('Ошибка', 'var(--accent2)'); }
-  } catch(e) { showToast('Ошибка соединения', 'var(--accent2)'); }
+    } else { showToast('❌', 'var(--accent2)'); }
+  } catch(e) { showToast('❌', 'var(--accent2)'); }
 }
 window.restAddToMeal = restAddToMeal;
 
-// ---- КБЖУ калькулятор ----
+// ---- КБЖУ калькулятор: поиск-подсказки при вводе (как в «Добавить еду») ----
+var _calcFoodSearchTimeout = null;
+var _calcFoodSearchResults = [];
+
+function calcFoodSearchInput(val) {
+  clearTimeout(_calcFoodSearchTimeout);
+  if (!val || val.trim().length < 2) { _clearCalcFoodDropdown(); return; }
+  _calcFoodSearchTimeout = setTimeout(function(){ _doCalcFoodSearch(val.trim()); }, 300);
+}
+window.calcFoodSearchInput = calcFoodSearchInput;
+
+async function _doCalcFoodSearch(q) {
+  try {
+    var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+    var d = await apiGet('/api/food/search', {q:q, limit:8, lang: ru?'ru':'en'});
+    var el = document.getElementById('calc-food-dropdown');
+    if (!el) return;
+    _calcFoodSearchResults = (d && d.results) || [];
+    if (!_calcFoodSearchResults.length) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = _calcFoodSearchResults.map(function(r, i){
+      return '<button class="fadd-dropdown-item" data-src="' + (r.source||'') + '" onclick="calcSelectFoodResult(' + i + ')">'
+        + '<span class="fadd-source-dot"></span>'
+        + '<span class="fadd-dropdown-name">' + escHtml(r.name) + '</span>'
+        + '<span class="fadd-dropdown-kcal">' + Math.round(r.calories) + ' ' + (ru?'ккал/100г':'kcal/100g') + '</span>'
+        + '</button>';
+    }).join('');
+  } catch(e) { _clearCalcFoodDropdown(); }
+}
+
+function _clearCalcFoodDropdown() {
+  var el = document.getElementById('calc-food-dropdown');
+  if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+}
+
+function calcSelectFoodResult(idx) {
+  var r = _calcFoodSearchResults[idx];
+  if (!r) return;
+  document.getElementById('calc-food-input').value = r.name;
+  _clearCalcFoodDropdown();
+  var weight = parseFloat(document.getElementById('calc-weight-input').value) || 100;
+  calcCurrentResult = {
+    ok: true, name: r.name, weight: 100,
+    calories: r.calories, protein: r.protein, fat: r.fat, carbs: r.carbs,
+    he: Math.round(r.carbs/12*10)/10, _base_cal: r.calories,
+  };
+  _calcRenderResult(weight);
+  calcSaveHistory(r.name, calcCurrentResult);
+}
+window.calcSelectFoodResult = calcSelectFoodResult;
+
+function _calcRenderResult(weight) {
+  if (!calcCurrentResult) return;
+  var factor = weight / 100;
+  var name = calcCurrentResult.name || '';
+  document.getElementById('calc-result-name').textContent = name;
+  document.getElementById('calc-r-kcal').textContent = Math.round(calcCurrentResult._base_cal * factor);
+  document.getElementById('calc-r-prot').textContent = Math.round(calcCurrentResult.protein * factor * 10) / 10;
+  document.getElementById('calc-r-fat').textContent  = Math.round(calcCurrentResult.fat * factor * 10) / 10;
+  document.getElementById('calc-r-carb').textContent = Math.round(calcCurrentResult.carbs * factor * 10) / 10;
+  document.getElementById('calc-r-he').textContent   = 'ХЕ: ' + Math.round(calcCurrentResult.carbs * factor / 12 * 10) / 10;
+  document.getElementById('calc-result-preview').style.display = 'block';
+  document.getElementById('calc-weight-input').value = weight;
+  calcCurrentResult.weight = weight;
+  calcCurrentResult.calories = Math.round(calcCurrentResult._base_cal * factor);
+}
+
+function calcAdjWeight(delta) {
+  var inp = document.getElementById('calc-weight-input');
+  var cur = parseInt(inp.value) || 100;
+  var w = Math.max(1, cur + delta);
+  inp.value = w;
+  _calcRenderResult(w);
+}
+window.calcAdjWeight = calcAdjWeight;
+
+// Фолбэк для Enter без выбора из дропдауна — полный pipeline резолвинга
+// (локальная база → USDA → Claude), как и раньше через /api/search.
 async function calcSearch() {
   var food   = (document.getElementById('calc-food-input').value || '').trim();
   var weight = parseFloat(document.getElementById('calc-weight-input').value) || 100;
   if (!food) { showToast('Введи название продукта', 'var(--accent2)'); return; }
-
-  var btn = document.querySelector('#calc-kbzu-section .calc-add-btn');
-  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
-
+  _clearCalcFoodDropdown();
   try {
     var data = await apiGet('/api/search', {food: food, weight: weight});
     if (!data.ok) { showToast('Не найдено: ' + (data.error||''), 'var(--accent2)'); return; }
-    calcCurrentResult = data;
     var dname = (data.name||'').charAt(0).toUpperCase()+(data.name||'').slice(1);
-    document.getElementById('calc-result-name').textContent = dname + ' — ' + weight + 'г';
-    document.getElementById('calc-r-kcal').textContent = data.calories;
-    document.getElementById('calc-r-prot').textContent = data.protein;
-    document.getElementById('calc-r-fat').textContent  = data.fat;
-    document.getElementById('calc-r-carb').textContent = data.carbs;
-    document.getElementById('calc-r-he').textContent   = data.he;
-    document.getElementById('calc-result-preview').style.display = 'block';
-    document.getElementById('calc-weight-section').style.display = 'block';
-    calcSetWeight(100);
-    // Update weight-based kcal preview on weight change
-    var wi = document.getElementById('calc-weight-input');
-    var wk = document.getElementById('calc-weight-kcal');
-    if (wi && wk) {
-      wi.oninput = function() {
-        var w2 = parseFloat(this.value)||100;
-        if (calcCurrentResult) {
-          var baseCal = calcCurrentResult._base_cal || calcCurrentResult.calories;
-          var kcal2   = Math.round(baseCal * w2 / weight);
-          wk.textContent = kcal2 + ' ккал';
-        }
-      };
-    }
-    data._base_cal = data.calories / weight * 100;
-    // Save to history
-    calcSaveHistory(data.name, data);
+    calcCurrentResult = {
+      ok: true, name: dname, weight: weight,
+      calories: data.calories, protein: data.protein, fat: data.fat, carbs: data.carbs,
+      he: data.he, _base_cal: data.calories / weight * 100,
+    };
+    _calcRenderResult(weight);
+    calcSaveHistory(dname, calcCurrentResult);
   } catch(e) {
     showToast('Ошибка поиска', 'var(--accent2)');
-  } finally {
-    if (btn) { btn.textContent = '🔍 Найти'; btn.disabled = false; }
   }
 }
 
@@ -747,8 +794,10 @@ async function loadHeDailyData() {
     var totalHe = Math.round(data.total.carbs / 12 * 10) / 10;
     var heNorm  = 21; // средняя норма 17-25
     var pct     = Math.min(100, Math.round(totalHe / heNorm * 100));
-    document.getElementById('he-today-val').textContent = totalHe + ' ХЕ';
-    document.getElementById('he-today-prog').style.width = pct + '%';
+    var circumference = 364; // 2*pi*58, см. calc2-he-ring в index.html
+    document.getElementById('he-today-val').textContent = totalHe;
+    var ring = document.getElementById('he-ring-fill');
+    if (ring) ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
   } catch(e) {}
 }
 
