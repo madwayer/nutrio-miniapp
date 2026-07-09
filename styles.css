@@ -1899,6 +1899,7 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 
 :root {
   --glass-bg:        rgba(26, 26, 34, 0.65);
+  --glass-bg-solid:  rgba(26, 26, 34, 0.78);
   --glass-bg-2:      rgba(34, 34, 46, 0.7);
   --glass-border:    rgba(255, 255, 255, 0.08);
   --glass-border-strong: rgba(255, 255, 255, 0.14);
@@ -2375,6 +2376,7 @@ body {
   --glow-green:  0 0 0 5px rgba(5,150,105,.10), 0 6px 20px rgba(5,150,105,.24);
   --glow-purple: 0 0 0 5px rgba(109,40,217,.10), 0 6px 22px rgba(109,40,217,.26);
   --glass-bg:        rgba(255,255,255,0.9);
+  --glass-bg-solid:  rgba(255,255,255,0.9);
   --glass-bg-2:      rgba(245,242,251,0.94);
   --glass-border:    rgba(109,40,217,0.16);
   --glass-border-strong: rgba(109,40,217,0.24);
@@ -4142,7 +4144,7 @@ textarea:focus-visible,
 }
 .fadd-dropdown {
   position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60;
-  background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur));
+  background: var(--glass-bg-solid); backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border-strong); border-radius: 14px;
   max-height: 300px; overflow-y: auto; box-shadow: var(--shadow-lg);
@@ -4210,13 +4212,18 @@ textarea:focus-visible,
 .fadd-tile[data-macro="carb"]::before { background: var(--gradient-blue);   }
 .fadd-tile-emoji { font-size: 14px; margin-bottom: 2px; }
 .fadd-tile-input {
-  width: 100%; background: transparent; border: none; text-align: center;
-  color: var(--text); font-size: 16px; font-weight: 800; padding: 0;
-  -moz-appearance: textfield;
+  width: 100%; background: var(--bg2); border: 1px solid transparent; border-radius: 8px;
+  text-align: center; color: var(--text); font-size: 16px; font-weight: 800;
+  padding: 3px 0; margin-top: 1px; -moz-appearance: textfield;
+  transition: border-color .15s ease, background .15s ease;
+}
+.fadd-tile-input::placeholder { color: var(--muted); opacity: .6; font-weight: 700; }
+.fadd-tile-input:focus {
+  outline: none; border-color: var(--accent); background: var(--surface2);
+  box-shadow: 0 0 0 2px rgba(108,99,255,.18);
 }
 .fadd-tile-input::-webkit-outer-spin-button,
 .fadd-tile-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.fadd-tile-input:focus { outline: none; }
 .fadd-tile-lbl { font-size: 10px; color: var(--muted); margin-top: 1px; font-weight: 600; }
 .fadd-macro-hint {
   font-size: 11px; color: var(--muted); text-align: center; margin: -8px 0 14px;
