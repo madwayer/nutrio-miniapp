@@ -491,7 +491,7 @@ async function restSearchBrand(brand) {
   if (inp) inp.value = '';
   try {
     var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
-    var d = await apiGet('/api/restaurants/search', {q:brand.toLowerCase(), limit:15, lang: ru?'ru':'en'});
+    var d = await apiGet('/api/restaurants/search', {brand:brand, limit:20, lang: ru?'ru':'en'});
     _restRender(d && d.results || []);
   } catch(e) { _restRender([]); }
 }
