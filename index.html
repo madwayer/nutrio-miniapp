@@ -261,36 +261,74 @@
   </div>
   <div class="page" id="page-manual">
     <div class="section-title" id="lbl-manual-title"></div>
-    <div class="input-group" style="position:relative">
-      <label id="lbl-manual-name"></label>
-      <input type="text" class="text-input" id="manual-name" placeholder="" autocomplete="off"
+
+    <div class="fadd-search-wrap">
+      <span class="fadd-search-icon">🔍</span>
+      <input type="text" class="fadd-search-input" id="manual-name" placeholder="" autocomplete="off"
         oninput="manualFoodSearchInput(this.value)">
-      <div id="manual-search-results" style="position:absolute;left:0;right:0;top:100%;z-index:50;
-        background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;
-        margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:var(--shadow)"></div>
+      <div id="manual-search-results" class="fadd-dropdown"></div>
     </div>
+
+    <div class="fadd-card" id="manual-macro-group" style="display:none">
+      <div class="fadd-macro-grid">
+        <div class="fadd-tile" data-macro="cal">
+          <div class="fadd-tile-emoji">🔥</div>
+          <input type="number" class="fadd-tile-input" id="manual-cal100" oninput="fadd_recalcTotals()">
+          <div class="fadd-tile-lbl" data-i18n="fadd_cal">Ккал</div>
+        </div>
+        <div class="fadd-tile" data-macro="prot">
+          <div class="fadd-tile-emoji">💪</div>
+          <input type="number" class="fadd-tile-input" id="manual-prot100" oninput="fadd_recalcTotals()">
+          <div class="fadd-tile-lbl" data-i18n="fadd_prot">Белки</div>
+        </div>
+        <div class="fadd-tile" data-macro="fat">
+          <div class="fadd-tile-emoji">🧈</div>
+          <input type="number" class="fadd-tile-input" id="manual-fat100" oninput="fadd_recalcTotals()">
+          <div class="fadd-tile-lbl" data-i18n="fadd_fat">Жиры</div>
+        </div>
+        <div class="fadd-tile" data-macro="carb">
+          <div class="fadd-tile-emoji">🍞</div>
+          <input type="number" class="fadd-tile-input" id="manual-carb100" oninput="fadd_recalcTotals()">
+          <div class="fadd-tile-lbl" data-i18n="fadd_carb">Углеводы</div>
+        </div>
+      </div>
+      <div class="fadd-macro-hint" id="manual-macro-hint" data-i18n="fadd_hint">На 100г · можно поправить любое значение</div>
+    </div>
+
     <div class="input-group">
       <label id="lbl-manual-weight"></label>
-      <input type="number" class="text-input" id="manual-weight" placeholder="200">
-    </div>
-    <div class="input-group">
-      <label id="lbl-manual-meal"></label>
-      <select class="meal-select" id="meal-select-manual">
-        <option value="завтрак" id="opt-breakfast"></option>
-        <option value="обед" id="opt-lunch"></option>
-        <option value="ужин" id="opt-dinner"></option>
-        <option value="перекус" id="opt-snack"></option>
-      </select>
-    </div>
-    <div class="input-group" id="manual-macro-group" style="display:none">
-      <label style="font-size:11px;color:var(--muted)" data-i18n="manual_macro_lbl">КБЖУ на 100г — можно поправить</label>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
-        <input type="number" class="text-input" id="manual-cal100" placeholder="ккал" style="padding:8px;font-size:13px">
-        <input type="number" class="text-input" id="manual-prot100" placeholder="Б" style="padding:8px;font-size:13px">
-        <input type="number" class="text-input" id="manual-fat100" placeholder="Ж" style="padding:8px;font-size:13px">
-        <input type="number" class="text-input" id="manual-carb100" placeholder="У" style="padding:8px;font-size:13px">
+      <div class="fadd-portion-row">
+        <button class="fadd-stepper-btn" onclick="fadd_adjWeight(-10)">−</button>
+        <input type="number" class="fadd-portion-input" id="manual-weight" placeholder="200" oninput="fadd_recalcTotals()">
+        <span class="fadd-portion-unit" data-i18n="g_short">г</span>
+        <button class="fadd-stepper-btn" onclick="fadd_adjWeight(10)">+</button>
+      </div>
+      <div class="fadd-presets" id="manual-presets">
+        <button class="fadd-preset-chip" onclick="fadd_setWeight(100)">100г</button>
+        <button class="fadd-preset-chip" onclick="fadd_setWeight(150)">150г</button>
+        <button class="fadd-preset-chip" onclick="fadd_setWeight(200)">200г</button>
+        <button class="fadd-preset-chip" onclick="fadd_setWeight(250)">250г</button>
       </div>
     </div>
+
+    <div class="input-group">
+      <label id="lbl-manual-meal"></label>
+      <div class="fadd-meal-row" id="manual-meal-row">
+        <button class="fadd-meal-btn active" data-meal="завтрак" onclick="fadd_selectMeal('завтрак')">
+          <span class="fadd-meal-emoji">🌅</span><span data-i18n="fadd_breakfast">Завтрак</span>
+        </button>
+        <button class="fadd-meal-btn" data-meal="обед" onclick="fadd_selectMeal('обед')">
+          <span class="fadd-meal-emoji">☀️</span><span data-i18n="fadd_lunch">Обед</span>
+        </button>
+        <button class="fadd-meal-btn" data-meal="ужин" onclick="fadd_selectMeal('ужин')">
+          <span class="fadd-meal-emoji">🌙</span><span data-i18n="fadd_dinner">Ужин</span>
+        </button>
+        <button class="fadd-meal-btn" data-meal="перекус" onclick="fadd_selectMeal('перекус')">
+          <span class="fadd-meal-emoji">🍎</span><span data-i18n="fadd_snack">Перекус</span>
+        </button>
+      </div>
+    </div>
+
     <button class="btn btn-primary" id="lbl-manual-add" onclick="sendManual()"></button>
   </div>
 

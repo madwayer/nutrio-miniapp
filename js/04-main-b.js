@@ -356,25 +356,13 @@ function applyTranslations(){
   _s2("achievements-placeholder", i18n.no_data_yet||"No data yet");
   _s2("streak-label",       i18n.days_row||"days in a row");
   _s2("lbl-manual-title",  i18n.manual_title||"✍️ Вручную");
-  _s2("lbl-manual-name",   i18n.name_ph ? "Название продукта" : "Food name");
   _s2("lbl-manual-weight", i18n.weight_label||"Вес (г)");
-  _s2("lbl-manual-meal",   "Приём пищи");
-  _s2("opt-breakfast", i18n.meal_breakfast||"🌅 Завтрак");
-  _s2("opt-lunch",     i18n.meal_lunch||"☀️ Обед");
-  _s2("opt-dinner",    i18n.meal_dinner||"🌙 Ужин");
-  _s2("opt-snack",     i18n.meal_snack||"🍎 Перекус");
   _s2("lbl-manual-add", i18n.add||"✅ Добавить");
   // manual placeholder
   var _mn = document.getElementById("manual-name");
   if(_mn) _mn.placeholder = i18n.name_ph||"Например: Курица";
   _s2("lbl-manual-title",  i18n.manual_title||"✍️ Вручную");
-  _s2("lbl-manual-name",   i18n.name_lbl||i18n.manual_name_lbl||"Название продукта");
   _s2("lbl-manual-weight", i18n.weight_label||"Вес (г)");
-  _s2("lbl-manual-meal",   i18n.meal_lbl||i18n.manual_meal_lbl||"Приём пищи");
-  _s2("opt-breakfast", i18n.meal_breakfast||"🌅 Завтрак");
-  _s2("opt-lunch",     i18n.meal_lunch||"☀️ Обед");
-  _s2("opt-dinner",    i18n.meal_dinner||"🌙 Ужин");
-  _s2("opt-snack",     i18n.meal_snack||"🍎 Перекус");
   _s2("lbl-manual-add", i18n.add||"✅ Добавить");
   var _mn=document.getElementById("manual-name"); if(_mn) _mn.placeholder=i18n.name_ph||"Например: Курица";
   _s2("sync-btn",           i18n.load_data_btn||"🔄 Load data from bot");
@@ -1200,6 +1188,8 @@ window.photoRenameConfirm = photoRenameConfirm;
 // ── Поиск продукта при вводе (автодополнение, как в /Спорт для упражнений) ──
 var _manualSearchTimeout = null;
 var _manualSearchResults = [];
+var _faddSelectedMeal = 'завтрак';
+var _faddSelectedPreset = null;
 
 function manualFoodSearchInput(val) {
   clearTimeout(_manualSearchTimeout);
@@ -1213,25 +1203,24 @@ window.manualFoodSearchInput = manualFoodSearchInput;
 
 async function _doManualFoodSearch(q) {
   try {
-    var d = await apiGet('/api/food/search', {q: q, limit: 8});
+    var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+    var d  = await apiGet('/api/food/search', {q: q, limit: 8});
     var el = document.getElementById('manual-search-results');
     if (!el) return;
     _manualSearchResults = (d && d.results) || [];
     if (!_manualSearchResults.length) {
-      el.innerHTML = '';
-      el.style.display = 'none';
+      el.innerHTML = '<div class="fadd-dropdown-empty">'
+        + (ru ? 'Не найдено — можно ввести КБЖУ вручную ниже' : 'Not found — enter macros manually below')
+        + '</div>';
+      el.style.display = 'block';
       return;
     }
     el.style.display = 'block';
     el.innerHTML = _manualSearchResults.map(function(r, i){
-      return '<button onclick="manualSelectFood(' + i + ')" style="'
-        + 'display:flex;align-items:center;justify-content:space-between;gap:8px;'
-        + 'padding:10px 14px;background:transparent;border:none;'
-        + 'border-bottom:1px solid var(--glass-border);font:inherit;cursor:pointer;'
-        + 'text-align:left;width:100%">'
-        + '<span style="font-size:14px;color:var(--text);font-weight:600;overflow:hidden;'
-        + 'text-overflow:ellipsis;white-space:nowrap">' + escHtml(r.name) + '</span>'
-        + '<span style="font-size:12px;color:var(--text2);flex-shrink:0">' + Math.round(r.calories) + ' ккал/100г</span>'
+      return '<button class="fadd-dropdown-item" data-src="' + (r.source||'') + '" onclick="manualSelectFood(' + i + ')">'
+        + '<span class="fadd-source-dot"></span>'
+        + '<span class="fadd-dropdown-name">' + escHtml(r.name) + '</span>'
+        + '<span class="fadd-dropdown-kcal">' + Math.round(r.calories) + (ru ? ' ккал/100г' : ' kcal/100g') + '</span>'
         + '</button>';
     }).join('');
   } catch(e) { _clearManualSearchResults(); }
@@ -1242,6 +1231,13 @@ function _clearManualSearchResults() {
   if (el) { el.innerHTML = ''; el.style.display = 'none'; }
 }
 
+// Переигрывает spring-анимацию появления карточки, даже если она уже видна
+function _faddReplayPop(el) {
+  el.style.animation = 'none';
+  void el.offsetWidth; // форсируем reflow
+  el.style.animation = '';
+}
+
 function manualSelectFood(idx) {
   var r = _manualSearchResults[idx];
   if (!r) return;
@@ -1249,28 +1245,87 @@ function manualSelectFood(idx) {
   if (nameInp) nameInp.value = r.name;
   _clearManualSearchResults();
 
-  // Показываем и заполняем редактируемые КБЖУ на 100г
   var group = document.getElementById('manual-macro-group');
-  if (group) group.style.display = 'block';
+  if (group) { group.style.display = 'block'; _faddReplayPop(group); }
   var cal  = document.getElementById('manual-cal100');
   var prot = document.getElementById('manual-prot100');
   var fat  = document.getElementById('manual-fat100');
   var carb = document.getElementById('manual-carb100');
-  if (cal)  cal.value  = r.calories;
+  if (cal)  cal.value  = Math.round(r.calories);
   if (prot) prot.value = r.protein;
   if (fat)  fat.value  = r.fat;
   if (carb) carb.value = r.carbs;
 
+  fadd_recalcTotals();
+
   // Фокус на вес — следующий логичный шаг
   var w = document.getElementById('manual-weight');
-  if (w) { w.focus(); }
+  if (w) { w.focus(); w.select(); }
 }
 window.manualSelectFood = manualSelectFood;
+
+// ── Порция: степпер + быстрые чипсы ──────────────────────────────────────
+function fadd_adjWeight(delta) {
+  var inp = document.getElementById('manual-weight');
+  if (!inp) return;
+  var cur = parseInt(inp.value) || 100;
+  inp.value = Math.max(1, cur + delta);
+  _faddSelectedPreset = null;
+  _faddUpdatePresetHighlight();
+  fadd_recalcTotals();
+}
+window.fadd_adjWeight = fadd_adjWeight;
+
+function fadd_setWeight(val) {
+  var inp = document.getElementById('manual-weight');
+  if (inp) inp.value = val;
+  _faddSelectedPreset = val;
+  _faddUpdatePresetHighlight();
+  fadd_recalcTotals();
+}
+window.fadd_setWeight = fadd_setWeight;
+
+function _faddUpdatePresetHighlight() {
+  var wrap = document.getElementById('manual-presets');
+  if (!wrap) return;
+  wrap.querySelectorAll('.fadd-preset-chip').forEach(function(chip){
+    var val = parseInt(chip.textContent);
+    chip.classList.toggle('active', val === _faddSelectedPreset);
+  });
+}
+
+// ── Приём пищи: сегментированный контрол ─────────────────────────────────
+function fadd_selectMeal(meal) {
+  _faddSelectedMeal = meal;
+  var row = document.getElementById('manual-meal-row');
+  if (!row) return;
+  row.querySelectorAll('.fadd-meal-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-meal') === meal);
+  });
+  try { if (typeof haptic === 'function') haptic('select'); } catch(e){}
+}
+window.fadd_selectMeal = fadd_selectMeal;
+
+// ── Живой пересчёт итога под указанный вес (в подсказке под плитками) ───
+function fadd_recalcTotals() {
+  var hint = document.getElementById('manual-macro-hint');
+  if (!hint) return;
+  var cal100 = parseFloat(document.getElementById('manual-cal100').value);
+  var weight = parseInt(document.getElementById('manual-weight').value);
+  var ru = (typeof _exIsRu === 'function') ? _exIsRu() : (LANG !== 'en');
+  if (!isNaN(cal100) && cal100 > 0 && weight > 0) {
+    var total = Math.round(cal100 * weight / 100);
+    hint.textContent = (ru ? 'Итого: ' : 'Total: ') + total + (ru ? ' ккал на ' : ' kcal for ') + weight + (ru ? 'г' : 'g');
+  } else {
+    hint.textContent = T('fadd_hint', 'На 100г · можно поправить любое значение');
+  }
+}
+window.fadd_recalcTotals = fadd_recalcTotals;
 
 function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
-  const meal = document.getElementById('meal-select-manual').value;
+  const meal = _faddSelectedMeal;
   if (!name || !weight) { showToast(i18n.fill_all||'Fill name and weight', 'var(--accent2)'); return; }
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
@@ -1311,6 +1366,9 @@ function sendManual() {
         var group = document.getElementById('manual-macro-group');
         if (group) group.style.display = 'none';
         _clearManualSearchResults();
+        fadd_recalcTotals();
+        _faddSelectedPreset = null;
+        _faddUpdatePresetHighlight();
       } else { showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)'); }
     })
     .catch(() => showToast('❌ Ошибка подключения', 'var(--accent2)'));

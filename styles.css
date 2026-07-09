@@ -4115,3 +4115,159 @@ textarea:focus-visible,
   .btn-primary:active,
   .btn-primary:hover { transform: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FOOD ADD — «Добавить еду» (premium redesign)
+   Использует существующие токены/язык приложения: glass-плитки с
+   градиентной полосой сверху (как diary-macro-box), gold-нить для
+   «умного совпадения», spring-easing для реакции на выбор.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Поиск ── */
+.fadd-search-wrap { position: relative; margin-bottom: 4px; }
+.fadd-search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 16px; opacity: .55; pointer-events: none;
+}
+.fadd-search-input {
+  width: 100%; box-sizing: border-box; padding: 13px 14px 13px 40px;
+  background: var(--bg2); border: 1px solid transparent; border-radius: 14px;
+  color: var(--text); font-size: 15px; font-weight: 600;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.fadd-search-input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,.18);
+  background: rgba(34,34,46,.95);
+}
+.fadd-dropdown {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60;
+  background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border-strong); border-radius: 14px;
+  max-height: 300px; overflow-y: auto; box-shadow: var(--shadow-lg);
+  display: none;
+}
+.fadd-dropdown-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 11px 14px; background: transparent; border: none;
+  border-bottom: 1px solid var(--glass-border); font: inherit; cursor: pointer;
+  text-align: left; transition: background .15s ease;
+}
+.fadd-dropdown-item:last-child { border-bottom: none; }
+.fadd-dropdown-item:active { background: rgba(124,108,255,.12); }
+.fadd-source-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--muted);
+}
+.fadd-dropdown-item[data-src="local"] .fadd-source-dot {
+  background: var(--gold); box-shadow: 0 0 6px rgba(216,182,106,.6);
+}
+.fadd-dropdown-name {
+  flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fadd-dropdown-kcal {
+  flex-shrink: 0; font-size: 12px; color: var(--text2); font-weight: 600;
+}
+.fadd-dropdown-empty {
+  padding: 14px; font-size: 13px; color: var(--text2); text-align: center;
+}
+
+/* ── Карточка выбранного продукта (spring pop-in) ── */
+@keyframes fadd-pop {
+  0%   { opacity: 0; transform: scale(.92) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.fadd-card {
+  margin-top: 14px; animation: fadd-pop .38s var(--ease-spring);
+}
+.fadd-name-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.fadd-name-input {
+  flex: 1; min-width: 0; background: transparent; border: none;
+  color: var(--text); font-size: 17px; font-weight: 800; padding: 4px 0;
+}
+.fadd-name-input:focus { outline: none; }
+
+.fadd-macro-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-bottom: 14px;
+}
+.fadd-tile {
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  border-radius: 14px; padding: 10px 4px 8px; position: relative;
+  overflow: hidden; text-align: center;
+}
+.fadd-tile::before {
+  content: ''; position: absolute; top: 0; left: 14%; right: 14%;
+  height: 2px; border-radius: 0 0 2px 2px; opacity: .9;
+}
+.fadd-tile[data-macro="cal"]::before  { background: var(--gradient-orange); }
+.fadd-tile[data-macro="prot"]::before { background: var(--gradient-green);  }
+.fadd-tile[data-macro="fat"]::before  { background: var(--gradient-pink);   }
+.fadd-tile[data-macro="carb"]::before { background: var(--gradient-blue);   }
+.fadd-tile-emoji { font-size: 14px; margin-bottom: 2px; }
+.fadd-tile-input {
+  width: 100%; background: transparent; border: none; text-align: center;
+  color: var(--text); font-size: 16px; font-weight: 800; padding: 0;
+  -moz-appearance: textfield;
+}
+.fadd-tile-input::-webkit-outer-spin-button,
+.fadd-tile-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fadd-tile-input:focus { outline: none; }
+.fadd-tile-lbl { font-size: 10px; color: var(--muted); margin-top: 1px; font-weight: 600; }
+.fadd-macro-hint {
+  font-size: 11px; color: var(--muted); text-align: center; margin: -8px 0 14px;
+}
+
+/* ── Порция: степпер + быстрые чипсы ── */
+.fadd-portion-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.fadd-stepper-btn {
+  width: 36px; height: 36px; flex-shrink: 0; background: var(--surface2);
+  border: none; border-radius: 10px; font-size: 18px; font-weight: 700;
+  color: var(--text); cursor: pointer; touch-action: manipulation;
+  transition: transform .12s ease, background .15s ease;
+}
+.fadd-stepper-btn:active { transform: scale(.92); background: var(--bg2); }
+.fadd-portion-input {
+  width: 76px; flex-shrink: 0; padding: 9px; background: var(--bg2);
+  border: none; border-radius: 10px; color: var(--text); font-size: 16px;
+  font-weight: 700; text-align: center;
+}
+.fadd-portion-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(108,99,255,.18); }
+.fadd-portion-unit { font-size: 13px; color: var(--text2); flex-shrink: 0; }
+.fadd-presets { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.fadd-preset-chip {
+  padding: 7px 13px; background: var(--bg2); border: none; border-radius: 999px;
+  color: var(--text2); font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: transform .12s ease, background .15s ease, color .15s ease;
+}
+.fadd-preset-chip:active { transform: scale(.94); }
+.fadd-preset-chip.active { background: var(--gradient-accent); color: #fff; }
+
+/* ── Приём пищи: сегментированный контрол ── */
+.fadd-meal-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-bottom: 16px;
+}
+.fadd-meal-btn {
+  padding: 10px 4px; background: var(--bg2); border: none; border-radius: 12px;
+  color: var(--text2); font-size: 12px; font-weight: 700; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .12s ease, background .18s ease, color .18s ease;
+}
+.fadd-meal-btn .fadd-meal-emoji { font-size: 18px; }
+.fadd-meal-btn:active { transform: scale(.95); }
+.fadd-meal-btn.active {
+  background: var(--gradient-accent); color: #fff;
+  box-shadow: 0 6px 16px rgba(108,99,255,.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fadd-card { animation: none; }
+  .fadd-stepper-btn:active, .fadd-preset-chip:active, .fadd-meal-btn:active { transform: none; }
+}
