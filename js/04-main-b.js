@@ -1197,6 +1197,76 @@ window.photoRename    = photoRename;
 window.photoRenameConfirm = photoRenameConfirm;
 
 
+// ── Поиск продукта при вводе (автодополнение, как в /Спорт для упражнений) ──
+var _manualSearchTimeout = null;
+var _manualSearchResults = [];
+
+function manualFoodSearchInput(val) {
+  clearTimeout(_manualSearchTimeout);
+  if (!val || val.trim().length < 2) {
+    _clearManualSearchResults();
+    return;
+  }
+  _manualSearchTimeout = setTimeout(function(){ _doManualFoodSearch(val.trim()); }, 300);
+}
+window.manualFoodSearchInput = manualFoodSearchInput;
+
+async function _doManualFoodSearch(q) {
+  try {
+    var d = await apiGet('/api/food/search', {q: q, limit: 8});
+    var el = document.getElementById('manual-search-results');
+    if (!el) return;
+    _manualSearchResults = (d && d.results) || [];
+    if (!_manualSearchResults.length) {
+      el.innerHTML = '';
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'block';
+    el.innerHTML = _manualSearchResults.map(function(r, i){
+      return '<button onclick="manualSelectFood(' + i + ')" style="'
+        + 'display:flex;align-items:center;justify-content:space-between;gap:8px;'
+        + 'padding:10px 14px;background:transparent;border:none;'
+        + 'border-bottom:1px solid var(--glass-border);font:inherit;cursor:pointer;'
+        + 'text-align:left;width:100%">'
+        + '<span style="font-size:14px;color:var(--text);font-weight:600;overflow:hidden;'
+        + 'text-overflow:ellipsis;white-space:nowrap">' + escHtml(r.name) + '</span>'
+        + '<span style="font-size:12px;color:var(--text2);flex-shrink:0">' + Math.round(r.calories) + ' ккал/100г</span>'
+        + '</button>';
+    }).join('');
+  } catch(e) { _clearManualSearchResults(); }
+}
+
+function _clearManualSearchResults() {
+  var el = document.getElementById('manual-search-results');
+  if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+}
+
+function manualSelectFood(idx) {
+  var r = _manualSearchResults[idx];
+  if (!r) return;
+  var nameInp = document.getElementById('manual-name');
+  if (nameInp) nameInp.value = r.name;
+  _clearManualSearchResults();
+
+  // Показываем и заполняем редактируемые КБЖУ на 100г
+  var group = document.getElementById('manual-macro-group');
+  if (group) group.style.display = 'block';
+  var cal  = document.getElementById('manual-cal100');
+  var prot = document.getElementById('manual-prot100');
+  var fat  = document.getElementById('manual-fat100');
+  var carb = document.getElementById('manual-carb100');
+  if (cal)  cal.value  = r.calories;
+  if (prot) prot.value = r.protein;
+  if (fat)  fat.value  = r.fat;
+  if (carb) carb.value = r.carbs;
+
+  // Фокус на вес — следующий логичный шаг
+  var w = document.getElementById('manual-weight');
+  if (w) { w.focus(); }
+}
+window.manualSelectFood = manualSelectFood;
+
 function sendManual() {
   const name = document.getElementById('manual-name').value.trim();
   const weight = document.getElementById('manual-weight').value;
@@ -1205,17 +1275,42 @@ function sendManual() {
   var userId = tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.id;
   if(!userId){ try{ var _up=new URLSearchParams(window.location.search); userId=_up.get('user_id')||localStorage.getItem('nutrio_user_id'); }catch(e){} }
   if(!userId){ showToast('❌ Открой из Telegram', 'var(--accent2)'); return; }
+
+  var payload = { user_id: userId, food_name: name.charAt(0).toUpperCase()+name.slice(1), meal_type: meal, weight: parseInt(weight) };
+
+  // Если КБЖУ на 100г заполнены (из поиска или вручную) — масштабируем под вес
+  // и шлём готовыми, как это уже делает поток фото/штрихкода. Если поля пустые —
+  // ничего не добавляем, бэкенд сам определит КБЖУ по названию (как раньше).
+  var cal100  = parseFloat(document.getElementById('manual-cal100').value);
+  if (!isNaN(cal100) && cal100 > 0) {
+    var factor = parseInt(weight) / 100;
+    var prot100 = parseFloat(document.getElementById('manual-prot100').value) || 0;
+    var fat100  = parseFloat(document.getElementById('manual-fat100').value)  || 0;
+    var carb100 = parseFloat(document.getElementById('manual-carb100').value) || 0;
+    payload.calories = Math.round(cal100 * factor);
+    payload.protein  = Math.round(prot100 * factor * 10) / 10;
+    payload.fat      = Math.round(fat100  * factor * 10) / 10;
+    payload.carbs    = Math.round(carb100 * factor * 10) / 10;
+  }
+
   const apiBase = (window.API_BASE || '/api/proxy');
   fetch(apiBase + '/api/manual', {
     method: 'POST',
     headers: (window._authHeaders?window._authHeaders({'Content-Type':'application/json'}):{'Content-Type':'application/json'}),
-    body: JSON.stringify({ user_id: userId, food_name: name.charAt(0).toUpperCase()+name.slice(1), meal_type: meal, weight: parseInt(weight) })
+    body: JSON.stringify(payload)
   }).then(r => r.json())
     .then(d => {
       if(d.ok || d.status === 'ok'){
         showToast('✅ ' + name + ' ' + weight + 'г добавлен!');
         document.getElementById('manual-name').value = '';
         document.getElementById('manual-weight').value = '';
+        document.getElementById('manual-cal100').value = '';
+        document.getElementById('manual-prot100').value = '';
+        document.getElementById('manual-fat100').value = '';
+        document.getElementById('manual-carb100').value = '';
+        var group = document.getElementById('manual-macro-group');
+        if (group) group.style.display = 'none';
+        _clearManualSearchResults();
       } else { showToast('❌ ' + (d.error||'Ошибка'), 'var(--accent2)'); }
     })
     .catch(() => showToast('❌ Ошибка подключения', 'var(--accent2)'));

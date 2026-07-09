@@ -261,9 +261,13 @@
   </div>
   <div class="page" id="page-manual">
     <div class="section-title" id="lbl-manual-title"></div>
-    <div class="input-group">
+    <div class="input-group" style="position:relative">
       <label id="lbl-manual-name"></label>
-      <input type="text" class="text-input" id="manual-name" placeholder="">
+      <input type="text" class="text-input" id="manual-name" placeholder="" autocomplete="off"
+        oninput="manualFoodSearchInput(this.value)">
+      <div id="manual-search-results" style="position:absolute;left:0;right:0;top:100%;z-index:50;
+        background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;
+        margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:var(--shadow)"></div>
     </div>
     <div class="input-group">
       <label id="lbl-manual-weight"></label>
@@ -277,6 +281,15 @@
         <option value="ужин" id="opt-dinner"></option>
         <option value="перекус" id="opt-snack"></option>
       </select>
+    </div>
+    <div class="input-group" id="manual-macro-group" style="display:none">
+      <label style="font-size:11px;color:var(--muted)" data-i18n="manual_macro_lbl">КБЖУ на 100г — можно поправить</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <input type="number" class="text-input" id="manual-cal100" placeholder="ккал" style="padding:8px;font-size:13px">
+        <input type="number" class="text-input" id="manual-prot100" placeholder="Б" style="padding:8px;font-size:13px">
+        <input type="number" class="text-input" id="manual-fat100" placeholder="Ж" style="padding:8px;font-size:13px">
+        <input type="number" class="text-input" id="manual-carb100" placeholder="У" style="padding:8px;font-size:13px">
+      </div>
     </div>
     <button class="btn btn-primary" id="lbl-manual-add" onclick="sendManual()"></button>
   </div>
