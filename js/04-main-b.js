@@ -1264,6 +1264,16 @@ function manualSelectFood(idx) {
 }
 window.manualSelectFood = manualSelectFood;
 
+// Клик по всей плитке (не только по узкому инпуту) фокусирует поле —
+// увеличивает тап-зону на мобиле и сразу выделяет значение для перезаписи.
+function fadd_focusTile(inputId) {
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.focus();
+  inp.select();
+}
+window.fadd_focusTile = fadd_focusTile;
+
 // ── Порция: степпер + быстрые чипсы ──────────────────────────────────────
 function fadd_adjWeight(delta) {
   var inp = document.getElementById('manual-weight');

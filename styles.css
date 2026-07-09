@@ -4200,7 +4200,7 @@ textarea:focus-visible,
 .fadd-tile {
   background: var(--glass-bg); border: 1px solid var(--glass-border);
   border-radius: 14px; padding: 10px 4px 8px; position: relative;
-  overflow: hidden; text-align: center;
+  overflow: hidden; text-align: center; cursor: text;
 }
 .fadd-tile::before {
   content: ''; position: absolute; top: 0; left: 14%; right: 14%;
@@ -4214,8 +4214,12 @@ textarea:focus-visible,
 .fadd-tile-input {
   width: 100%; background: var(--bg2); border: 1px solid transparent; border-radius: 8px;
   text-align: center; color: var(--text); font-size: 16px; font-weight: 800;
-  padding: 3px 0; margin-top: 1px; -moz-appearance: textfield;
+  padding: 6px 0; margin-top: 1px; -moz-appearance: textfield;
   transition: border-color .15s ease, background .15s ease;
+  position: relative; z-index: 1;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important; user-select: text !important;
+  touch-action: manipulation;
 }
 .fadd-tile-input::placeholder { color: var(--muted); opacity: .6; font-weight: 700; }
 .fadd-tile-input:focus {
