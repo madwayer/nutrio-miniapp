@@ -321,8 +321,8 @@ async function loadDiary() {
     diaryData = data;
     renderDiary(data);
     // Обновим виджет воды
-    if (data.water_today !== undefined) {
-      _updateDiaryWaterWidget(data.water_today, data.water_goal || 2000);
+    if (data.water_ml !== undefined) {
+      _updateDiaryWaterWidget(data.water_ml, data.water_goal || 2000);
     }
   } catch(e) {
     showToast('Ошибка загрузки', 'var(--accent2)');
@@ -3210,8 +3210,8 @@ async function diaryAddWater(ml) {
       // Перезагружаем данные дневника чтобы обновить виджет
       try {
         var diary = await apiGet('/api/diary', {date: diaryDateStr(diaryDate)});
-        if (diary && diary.water_today !== undefined) {
-          _updateDiaryWaterWidget(diary.water_today, diary.water_goal || 2000);
+        if (diary && diary.water_ml !== undefined) {
+          _updateDiaryWaterWidget(diary.water_ml, diary.water_goal || 2000);
         }
       } catch(e) {}
     }
