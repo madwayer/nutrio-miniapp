@@ -4438,3 +4438,26 @@ textarea:focus-visible,
   .calc2-result-card { animation: none; }
   .calc2-stepper-btn:active, .calc2-chip:active, .calc2-meal-btn:active { transform: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIARY WATER WIDGET — компактная полоса воды в дневнике
+   ═══════════════════════════════════════════════════════════════════ */
+.dw-widget {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  border-radius: 16px; padding: 12px 16px; margin: 10px 0;
+}
+.dw-icon { font-size: 22px; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(79,195,247,.5)); }
+.dw-info { flex: 1; min-width: 0; }
+.dw-label-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.dw-amount-text { font-size: 15px; font-weight: 800; color: var(--text); }
+.dw-amount-text .dw-unit { font-size: 12px; font-weight: 600; color: var(--text2); margin-left: 2px; }
+.dw-goal-text { font-size: 11px; color: var(--text2); font-weight: 600; }
+.dw-track {
+  height: 7px; background: var(--bg2); border-radius: 4px; overflow: hidden;
+}
+.dw-bar-fill {
+  height: 100%; border-radius: 4px; width: 0%;
+  background: var(--gradient-blue); box-shadow: 0 0 8px rgba(79,195,247,.5);
+  transition: width .5s var(--ease-out);
+}

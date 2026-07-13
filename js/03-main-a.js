@@ -3195,9 +3195,11 @@ function _updateDiaryWaterWidget(amount, goal) {
   var barEl = document.getElementById('dw-bar');
   var goalEl = document.getElementById('dw-goal');
   if (!amEl) return;
-  amEl.textContent = amount || 0;
-  if (goalEl) goalEl.textContent = goal || 2000;
-  if (barEl) barEl.style.width = Math.min(100, Math.round((amount || 0) / (goal || 2000) * 100)) + '%';
+  var ml = amount || 0;
+  var goalMl = goal || 2000;
+  amEl.textContent = (ml / 1000).toFixed(1);
+  if (goalEl) goalEl.textContent = (goalMl / 1000).toFixed(1) + ' л';
+  if (barEl) barEl.style.width = Math.min(100, Math.round(ml / goalMl * 100)) + '%';
 }
 
 async function diaryAddWater(ml) {
