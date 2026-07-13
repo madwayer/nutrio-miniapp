@@ -265,7 +265,8 @@
     <div class="fadd-search-wrap">
       <span class="fadd-search-icon">🔍</span>
       <input type="text" class="fadd-search-input" id="manual-name" placeholder="" autocomplete="off"
-        oninput="manualFoodSearchInput(this.value)">
+        oninput="manualFoodSearchInput(this.value)"
+        onblur="setTimeout(_clearManualSearchResults, 200)">
       <div id="manual-search-results" class="fadd-dropdown"></div>
     </div>
 
@@ -939,6 +940,7 @@
         <input type="text" id="calc-food-input" class="calc2-search-input"
           oninput="calcFoodSearchInput(this.value)"
           onkeydown="if(event.key==='Enter'){_clearCalcFoodDropdown();calcSearch();}"
+          onblur="setTimeout(_clearCalcFoodDropdown, 200)"
           data-i18n-ph="calc2_food_ph" placeholder="Гречка, творог, яблоко...">
         <div id="calc-food-dropdown" class="calc2-dropdown" style="display:none;position:absolute;left:0;right:0;z-index:50"></div>
       </div>

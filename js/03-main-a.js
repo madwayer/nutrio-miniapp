@@ -106,12 +106,20 @@ function _syncTimezone() {
     var offsetMin = -new Date().getTimezoneOffset();
     var offsetH   = Math.round(offsetMin / 60 * 2) / 2; // с шагом 0.5 для India/Иран
     var body = {user_id: parseInt(uid), tz_name: tzName, tz_offset: offsetH};
-    var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-    if (initData) body.initData = initData;
+    // ВАЖНО: initData должна идти заголовком X-Telegram-Init-Data — бэкенд
+    // (resolve_user_id) проверяет подпись только там, не в теле запроса.
+    // Раньше initData клался в body.initData и в strict-режиме авторизации
+    // тихо игнорировался (fire-and-forget съедал 401), из-за чего реальная
+    // таймзона устройства никогда не сохранялась — сервер стоял на догадке
+    // по языку интерфейса, которая может сильно расходиться с реальным
+    // часовым поясом пользователя.
+    var headers = (typeof _authHeaders === 'function')
+      ? _authHeaders({'Content-Type': 'application/json', 'X-Telegram-User-Id': String(uid)})
+      : {'Content-Type': 'application/json', 'X-Telegram-User-Id': String(uid)};
     // fire-and-forget: не ждём ответа, не блокируем загрузку
     fetch('/api/proxy/api/tz', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-Telegram-User-Id': String(uid)},
+      headers: headers,
       body: JSON.stringify(body),
       keepalive: true,
     }).catch(function(){});
